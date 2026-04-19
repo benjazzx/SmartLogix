@@ -20,7 +20,8 @@ public class RolService {
     }
 
     public RolModel getRolById(UUID id) {
-        return rolRepository.findById(id).orElse(null);
+        return rolRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Rol no encontrado con id: " + id));
     }
 
     public RolModel getRolByNombre(String nombre) {
@@ -32,13 +33,11 @@ public class RolService {
     }
 
     public RolModel updateRol(UUID id, RolModel rol) {
-        RolModel rolFound = rolRepository.findById(id).orElse(null);
-        if (rolFound != null) {
-            rolFound.setNombre(rol.getNombre());
-            rolFound.setDescripcion(rol.getDescripcion());
-            return rolRepository.save(rolFound);
-        }
-        return null;
+        RolModel rolFound = rolRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Rol no encontrado con id: " + id));
+        rolFound.setNombre(rol.getNombre());
+        rolFound.setDescripcion(rol.getDescripcion());
+        return rolRepository.save(rolFound);
     }
 
     public void deleteRol(UUID id) {

@@ -7,10 +7,12 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # Dos listeners: PLAINTEXT para acceso externo (localhost), INTERNAL para Docker
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -28,12 +30,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: rol-service
+    restart: on-failure
     ports:
       - "8081:8081"
     environment:
-      # Kafka apunta al nombre del servicio dentro de Docker
-      SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:9092
-      # Base de datos: usa "host.docker.internal" para conectarse a tu PostgreSQL local en Windows
+      # Dentro de Docker usa el listener INTERNO (kafka:29092)
+      SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Rol
       SPRING_DATASOURCE_USERNAME: postgres
       DB_PASSWORD: ${DB_PASSWORD}
@@ -42,3 +44,20 @@ services:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/api/roles || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway-rol
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      rol-service:
+        condition: service_healthy

@@ -16,67 +16,88 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
 
 @RestController
 @RequestMapping("/api/roles")
+@Tag(name = "Roles", description = "Gestión de roles de usuario en SmartLogix")
 public class RolController {
 
     @Autowired
     private RolService rolService;
 
+    @Operation(summary = "Listar todos los roles")
+    @ApiResponse(responseCode = "200", description = "Lista de roles obtenida correctamente")
     @GetMapping
     public List<RolModel> getAllRoles() {
         return rolService.getAllRoles();
     }
 
+    @Operation(summary = "Obtener rol por ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Rol encontrado"),
+        @ApiResponse(responseCode = "404", description = "Rol no encontrado")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<RolModel> getRolById(@PathVariable UUID id) {
-        RolModel rol = rolService.getRolById(id);
-        if (rol != null) {
-            return ResponseEntity.ok(rol);
+        try {
+            return ResponseEntity.ok(rolService.getRolById(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
     }
 
+    @Operation(summary = "Asignar rol según dominio de email")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Rol asignado correctamente"),
+        @ApiResponse(responseCode = "200", description = "Rol de emergencia asignado (circuit breaker activo)")
+    })
     @CircuitBreaker(name = "rolService", fallbackMethod = "fallbackAssignRole")
     @GetMapping("/assign")
-    public ResponseEntity<RolModel> assignRoleByEmail(@RequestParam String email) {
-        RolModel rol = rolService.assignRoleByEmail(email);
-        if (rol != null) {
-            return ResponseEntity.ok(rol);
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<RolModel> assignRoleByEmail(
+            @Parameter(description = "Email del usuario a asignar rol", example = "juan@smartb.cl")
+            @RequestParam String email) {
+        return ResponseEntity.ok(rolService.assignRoleByEmail(email));
     }
 
     public ResponseEntity<RolModel> fallbackAssignRole(String email, Throwable exception) {
-        System.out.println("⚠️ CIRCUIT BREAKER ACTIVO: Ejecutando Plan B para email: " + email);
-        System.out.println("Error prevenido gracias a Resilience4j: " + exception.getMessage());
-        
         RolModel fallbackRol = new RolModel();
         fallbackRol.setId(UUID.randomUUID());
         fallbackRol.setNombre("cliente_temporal_por_falla");
         fallbackRol.setDescripcion("Rol de emergencia asignado automáticamente al caer el servicio principal.");
-        
         return ResponseEntity.ok(fallbackRol);
     }
 
+    @Operation(summary = "Crear nuevo rol")
+    @ApiResponse(responseCode = "200", description = "Rol creado correctamente")
     @PostMapping
     public RolModel createRol(@RequestBody RolModel rol) {
         return rolService.createRol(rol);
     }
 
+    @Operation(summary = "Actualizar rol existente")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Rol actualizado correctamente"),
+        @ApiResponse(responseCode = "404", description = "Rol no encontrado")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<RolModel> updateRol(@PathVariable UUID id, @RequestBody RolModel rol) {
-        RolModel updatedRol = rolService.updateRol(id, rol);
-        if (updatedRol != null) {
-            return ResponseEntity.ok(updatedRol);
+        try {
+            return ResponseEntity.ok(rolService.updateRol(id, rol));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
     }
 
+    @Operation(summary = "Eliminar rol por ID")
+    @ApiResponse(responseCode = "204", description = "Rol eliminado correctamente")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRol(@PathVariable UUID id) {
         rolService.deleteRol(id);
