@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import Rol.example.Rol.messaging.RoleEventProcessor;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.repository.RolRepository;
 
@@ -27,7 +28,10 @@ import Rol.example.Rol.repository.RolRepository;
 public class RolServiceTest {
 
     @Mock
-    private RolRepository rolRepository; // Simula comportamiento de la BD
+    private RolRepository rolRepository;
+
+    @Mock
+    private RoleEventProcessor roleEventProcessor;
 
     @InjectMocks
     private RolService rolService; // Usará la BD simulada (Mock) injectada
@@ -39,7 +43,7 @@ public class RolServiceTest {
 
     @BeforeEach
     public void setUp() {
-        // Se ejecuta antes de cada Test para inicializar datos falsos
+     
         bodegueroRole = new RolModel(UUID.randomUUID(), "bodeguero", "Encargado de bodega");
         adminRole = new RolModel(UUID.randomUUID(), "admin", "Admin");
         transportistaRole = new RolModel(UUID.randomUUID(), "transportista", "Transport");
@@ -48,14 +52,13 @@ public class RolServiceTest {
 
     @Test
     public void testAssignBodegueroRoleByEmail() {
-        // Cuando nuestro servicio pregunte por 'bodeguero' a la BD, devuelve este objeto falso sin conectarse a postgres
         when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
 
         RolModel result = rolService.assignRoleByEmail("empleado@smartb.cl");
 
         assertNotNull(result);
         assertEquals("bodeguero", result.getNombre());
-        verify(rolRepository, times(1)).findByNombre("bodeguero"); // Comprueba metodo ejecutado
+        verify(rolRepository, times(1)).findByNombre("bodeguero"); 
     }
 
     @Test
@@ -90,9 +93,8 @@ public class RolServiceTest {
 
     @Test
     public void testFallbackToClienteIfRoleDatabaseMissing() {
-        // Si no existe 'bodeguero' devuelto por BD, nuestro sistema debe regresar como fallback al 'cliente'
-        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.empty()); // no lo encuentra
-        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole)); // agarra cliente
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.empty()); 
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole)); 
 
         RolModel result = rolService.assignRoleByEmail("error@smartb.cl");
 

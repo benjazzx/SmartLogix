@@ -1,42 +1,21 @@
 package Rol.example.Rol.messaging;
 
-import java.util.function.Function;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.stereotype.Component;
 
 import Rol.example.Rol.dto.RoleAssignedEvent;
-import Rol.example.Rol.dto.UserRegisteredEvent;
-import Rol.example.Rol.model.RolModel;
-import Rol.example.Rol.service.RolService;
 
-
-@Configuration
+@Component
 public class RoleEventProcessor {
 
     @Autowired
-    private RolService rolService;
+    private StreamBridge streamBridge;
 
-    
-     
-    @Bean
-    public Function<UserRegisteredEvent, RoleAssignedEvent> processUserRegistration() {
-        return event -> {
-            System.out.println("⚡ KAFKA CONSUMER: Recibido evento de nuevo usuario en correo: " + event.getEmail());
-            
-            // Logica: Determinamos y asignamos su Rol
-            RolModel assignedRole = rolService.assignRoleByEmail(event.getEmail());
-            
-            // Armamos nuestra respuesta al tópico
-            RoleAssignedEvent responseEvent = new RoleAssignedEvent(
-                event.getEmail(),
-                assignedRole.getId(),
-                assignedRole.getNombre()
-            );
-            
-            System.out.println(" KAFKA PRODUCER: Notificando al sistema que se asginó rol [" + assignedRole.getNombre() + "]");
-            return responseEvent;
-        };
+    public void publishRoleAssigned(String email, UUID roleId, String roleName) {
+        RoleAssignedEvent event = new RoleAssignedEvent(email, roleId, roleName);
+        streamBridge.send("role-assigned-topic", event);
     }
 }

@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import Rol.example.Rol.messaging.RoleEventProcessor;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.repository.RolRepository;
 
@@ -14,6 +15,9 @@ public class RolService {
 
     @Autowired
     private RolRepository rolRepository;
+
+    @Autowired
+    private RoleEventProcessor roleEventProcessor;
 
     public List<RolModel> getAllRoles() {
         return rolRepository.findAll();
@@ -47,10 +51,15 @@ public class RolService {
     public RolModel assignRoleByEmail(String email) {
         String roleName = determineRoleName(email);
         RolModel rol = getRolByNombre(roleName);
-        
+
         if (rol == null) {
-            return getRolByNombre("cliente");
+            rol = getRolByNombre("cliente");
         }
+
+        if (rol != null) {
+            roleEventProcessor.publishRoleAssigned(email, rol.getId(), rol.getNombre());
+        }
+
         return rol;
     }
 
