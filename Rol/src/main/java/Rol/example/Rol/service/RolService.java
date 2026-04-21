@@ -47,7 +47,7 @@ public class RolService {
     public void deleteRol(UUID id) {
         rolRepository.deleteById(id);
     }
-    
+
     public RolModel assignRoleByEmail(String email) {
         String roleName = determineRoleName(email);
         RolModel rol = getRolByNombre(roleName);
@@ -56,6 +56,10 @@ public class RolService {
             rol = getRolByNombre("cliente");
         }
 
+        // Arquitectura orientada a eventos: en lugar de llamar directamente al microservicio Users
+        // (lo que crearía acoplamiento fuerte), publicamos un evento en Kafka.
+        // Kafka actúa como intermediario: Rol no sabe ni le importa quién consume este mensaje.
+        // Users escucha el tópico "role-assigned-topic" y actualiza el campo id_rol del usuario.
         if (rol != null) {
             roleEventProcessor.publishRoleAssigned(email, rol.getId(), rol.getNombre());
         }
@@ -63,13 +67,16 @@ public class RolService {
         return rol;
     }
 
+    // Regla de negocio: determina el rol según el dominio del email.
+    // @smartb.cl → bodeguero | @smartt.cl → transportista
+    // @smartadmin.cl o @admin.smart.cl → admin | cualquier otro → cliente
     private String determineRoleName(String email) {
         if (email == null || !email.contains("@")) {
             return "cliente";
         }
-        
+
         String domain = email.substring(email.indexOf("@") + 1).toLowerCase();
-        
+
         if (domain.equals("smartb.cl")) {
             return "bodeguero";
         } else if (domain.equals("smartt.cl")) {
@@ -77,7 +84,7 @@ public class RolService {
         } else if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) {
             return "admin";
         } else {
-            return "cliente"; 
+            return "cliente";
         }
     }
 }
