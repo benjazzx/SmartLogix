@@ -71,6 +71,14 @@ public class UserController {
         return userService.getUsersByRol(rolId);
     }
 
+    @Operation(summary = "Listar usuarios por estado")
+    @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+    @GetMapping("/por-estado/{estadoId}")
+    public List<UserModel> getUsersByEstado(
+            @Parameter(description = "UUID del estado") @PathVariable UUID estadoId) {
+        return userService.getUsersByEstado(estadoId);
+    }
+
     @Operation(summary = "Crear nuevo usuario")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Usuario creado correctamente"),

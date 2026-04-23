@@ -22,6 +22,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import Rol.example.Rol.client.UsersClient;
+import Rol.example.Rol.dto.UserDto;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
 
@@ -32,6 +34,9 @@ public class RolController {
 
     @Autowired
     private RolService rolService;
+
+    @Autowired
+    private UsersClient usersClient;
 
     @Operation(summary = "Listar todos los roles")
     @ApiResponse(responseCode = "200", description = "Lista de roles obtenida correctamente")
@@ -94,6 +99,14 @@ public class RolController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Listar usuarios que tienen un rol específico")
+    @ApiResponse(responseCode = "200", description = "Lista de usuarios obtenida del microservicio Users")
+    @GetMapping("/{id}/usuarios")
+    public ResponseEntity<List<UserDto>> getUsuariosByRol(
+            @Parameter(description = "UUID del rol") @PathVariable UUID id) {
+        return ResponseEntity.ok(usersClient.getUsuariosByRol(id));
     }
 
     @Operation(summary = "Eliminar rol por ID")

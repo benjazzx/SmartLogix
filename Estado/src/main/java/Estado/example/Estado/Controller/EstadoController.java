@@ -22,6 +22,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import Estado.example.Estado.Client.UsersClient;
+import Estado.example.Estado.Dto.UserDto;
 import Estado.example.Estado.Model.Estado;
 import Estado.example.Estado.Service.EstadoService;
 
@@ -32,6 +34,9 @@ public class EstadoController {
 
     @Autowired
     private EstadoService estadoService;
+
+    @Autowired
+    private UsersClient usersClient;
 
     @Operation(summary = "Listar todos los estados")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
@@ -101,6 +106,14 @@ public class EstadoController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Listar usuarios que tienen un estado específico")
+    @ApiResponse(responseCode = "200", description = "Lista de usuarios obtenida del microservicio Users")
+    @GetMapping("/{id}/usuarios")
+    public ResponseEntity<List<UserDto>> getUsuariosByEstado(
+            @Parameter(description = "UUID del estado") @PathVariable UUID id) {
+        return ResponseEntity.ok(usersClient.getUsuariosByEstado(id));
     }
 
     @Operation(summary = "Eliminar estado por ID")

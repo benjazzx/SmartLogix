@@ -1,5 +1,7 @@
 package User.example.Users.service;
 
+import User.example.Users.client.RolClient;
+import User.example.Users.dto.RolDto;
 import User.example.Users.dto.UserCreatedEvent;
 import User.example.Users.dto.UserRequestDto;
 import User.example.Users.factory.UserFactory;
@@ -25,6 +27,7 @@ public class UserService {
     @Autowired private DireccionRepository direccionRepository;
     @Autowired private UserEventProducer eventProducer;
     @Autowired private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
+    @Autowired private RolClient rolClient;
 
     // Circuit Breaker aplicado: si la BD falla repetidamente, devuelve lista vacía (fallback)
     // Patrón: protege la disponibilidad del servicio ante fallos de infraestructura
@@ -53,6 +56,10 @@ public class UserService {
 
     public List<UserModel> getUsersByRol(UUID rolId) {
         return userRepository.findByRolId(rolId);
+    }
+
+    public List<UserModel> getUsersByEstado(UUID estadoId) {
+        return userRepository.findByEstadoId(estadoId);
     }
 
     @Transactional
@@ -119,8 +126,11 @@ public class UserService {
     public UserModel asignarRol(UUID userId, UUID rolId, String rolNombre) {
         UserModel user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + userId));
+
+        // Validar vía HTTP que el rol existe en el microservicio Rol
+        RolDto rol = rolClient.getRolById(rolId);
         user.setRolId(rolId);
-        user.setRolNombre(rolNombre);
+        user.setRolNombre(rol.getNombre());
         return userRepository.save(user);
     }
 

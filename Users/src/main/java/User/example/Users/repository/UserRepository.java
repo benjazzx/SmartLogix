@@ -13,6 +13,7 @@ public interface UserRepository extends JpaRepository<UserModel, UUID> {
     Optional<UserModel> findByCorreo(String correo);
     Optional<UserModel> findByRut(String rut);
     List<UserModel> findByRolId(UUID rolId);
+    List<UserModel> findByEstadoId(UUID estadoId);
     List<UserModel> findByActivo(Boolean activo);
     boolean existsByCorreo(String correo);
     boolean existsByRut(String rut);

@@ -40,6 +40,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Users
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      ROL_SERVICE_URL: http://rol-service:8081
+      ESTADO_SERVICE_URL: http://estado-service:8082
     depends_on:
       kafka:
         condition: service_healthy
@@ -65,6 +67,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Rol
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      USERS_SERVICE_URL: http://users-service:8082
     depends_on:
       kafka:
         condition: service_healthy
@@ -92,6 +95,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Estado
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      USERS_SERVICE_URL: http://users-service:8082
     depends_on:
       kafka:
         condition: service_healthy
