@@ -85,6 +85,9 @@ public class UserService {
             RolDto rol = rolClient.getRolByNombre(user.getRolNombre());
             if (rol != null) {
                 user.setRolId(rol.getId());
+                System.out.println("[Users] rolId resuelto: " + rol.getId() + " para rol=" + rol.getNombre());
+            } else {
+                System.err.println("[Users] ADVERTENCIA: no se pudo resolver rolId para rolNombre=" + user.getRolNombre() + " (¿microservicio Rol en puerto 8081 está corriendo?)");
             }
         }
 
@@ -96,6 +99,9 @@ public class UserService {
                 user.setEstadoNombre(estado.getNombre());
                 user.setActivo("activo".equalsIgnoreCase(estado.getNombre())
                             || "disponible".equalsIgnoreCase(estado.getNombre()));
+                System.out.println("[Users] estadoId resuelto: " + estado.getId() + " (" + estado.getNombre() + ") para rol=" + user.getRolNombre());
+            } else {
+                System.err.println("[Users] ADVERTENCIA: no se pudo resolver estadoId para rolNombre=" + user.getRolNombre() + " (¿microservicio Estado en puerto 8086 está corriendo?)");
             }
         }
 

@@ -96,11 +96,11 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Correo o RUT duplicado")
     })
     @PostMapping
-    public ResponseEntity<UserResponseDto> createUser(@RequestBody UserRequestDto dto) {
+    public ResponseEntity<?> createUser(@RequestBody UserRequestDto dto) {
         try {
             return ResponseEntity.ok(UserResponseDto.from(userService.createUser(dto)));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
