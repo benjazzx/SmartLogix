@@ -77,6 +77,14 @@ public class UserService {
         UserFactory factory = UserFactory.obtenerFactory(dto.getRolNombre());
         UserModel user = factory.crearUsuario(dto);
 
+        // Si rolId no viene en el DTO, resolverlo por nombre al microservicio Rol
+        if (user.getRolId() == null && user.getRolNombre() != null) {
+            RolDto rol = rolClient.getRolByNombre(user.getRolNombre());
+            if (rol != null) {
+                user.setRolId(rol.getId());
+            }
+        }
+
         // Encriptar la clave antes de persistir
         user.setClave(passwordEncoder.encode(user.getClave()));
 

@@ -15,7 +15,7 @@ public class OrdenResponseDto {
 
     private Long id;
     private LocalDateTime fechaOrden;
-    private Long direccionId;
+    private UUID direccionId;
     private UUID userId;
     private String userNombre;
     private String estadoActual;

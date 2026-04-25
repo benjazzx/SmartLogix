@@ -11,7 +11,7 @@ import java.util.UUID;
 public class OrdenRequestDto {
 
     @NotNull
-    private Long direccionId;
+    private UUID direccionId;
 
     // Nombre del cliente desnormalizado (evita llamadas HTTP en consultas)
     private String userNombre;

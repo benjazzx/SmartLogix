@@ -16,7 +16,7 @@ public class OrdenCreadaEvent {
     private Long ordenId;
     private UUID userId;
     private String userNombre;
-    private Long direccionId;
+    private UUID direccionId;
     private LocalDateTime fechaOrden;
     private List<DetalleDto> detalles;
 

@@ -31,7 +31,7 @@ public class DataInitializer implements CommandLineRunner {
         seedPermisos();
     }
 
-    // ─── ROLES ───────────────────────────────────────────────────────────────────
+    // ─── ROLES 
     private void seedRoles() {
         if (rolRepository.count() > 0) return;
         rolRepository.saveAll(List.of(
@@ -43,7 +43,7 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("[DataInitializer] Roles insertados.");
     }
 
-    // ─── TIPOS ───────────────────────────────────────────────────────────────────
+    // ─── TIPOS 
     // Los tipos categorizan la naturaleza de cada privilegio
     private void seedTipos() {
         if (tipoRepository.count() > 0) return;
@@ -57,7 +57,7 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("[DataInitializer] Tipos insertados.");
     }
 
-    // ─── PRIVILEGIOS ─────────────────────────────────────────────────────────────
+    // ─── PRIVILEGIOS
     // Alineados con los 3 módulos del caso semestral: Inventario, Pedidos, Envíos
     private void seedPrivilegios() {
         if (privilegioRepository.count() > 0) return;

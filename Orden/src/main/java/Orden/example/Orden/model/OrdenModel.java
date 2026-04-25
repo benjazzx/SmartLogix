@@ -21,9 +21,9 @@ public class OrdenModel {
     @Column(nullable = false)
     private LocalDateTime fechaOrden = LocalDateTime.now();
 
-    // FK al microservicio Users — direccion del cliente
+    // FK al microservicio Users — direccion del cliente (UUID para coincidir con DireccionModel en Users)
     @Column(name = "direccion_id", nullable = false)
-    private Long direccionId;
+    private UUID direccionId;
 
     // FK al microservicio Users — solo clientes crean ordenes
     @Column(name = "user_id", nullable = false)
