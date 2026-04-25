@@ -9,10 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.function.Consumer;
 
-// Consumer Kafka: escucha "user-created-topic" publicado por el microservicio Users.
-// Cuando un usuario se registra, Rol lo detecta y asigna automáticamente el rol
-// basándose en el dominio del email — luego publica role-assigned-topic para
-// que Estado y Users actualicen sus registros.
+
 @Configuration
 public class UserEventConsumer {
 

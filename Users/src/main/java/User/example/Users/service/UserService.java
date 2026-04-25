@@ -13,6 +13,7 @@ import User.example.Users.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class UserService {
     @Autowired private UserEventProducer eventProducer;
     @Autowired private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
     @Autowired private RolClient rolClient;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     // Circuit Breaker aplicado: si la BD falla repetidamente, devuelve lista vacía (fallback)
     // Patrón: protege la disponibilidad del servicio ante fallos de infraestructura
@@ -75,6 +77,9 @@ public class UserService {
         UserFactory factory = UserFactory.obtenerFactory(dto.getRolNombre());
         UserModel user = factory.crearUsuario(dto);
 
+        // Encriptar la clave antes de persistir
+        user.setClave(passwordEncoder.encode(user.getClave()));
+
         // Asociar dirección si se provee
         if (dto.getDireccionId() != null) {
             DireccionModel dir = direccionRepository.findById(dto.getDireccionId())
@@ -101,7 +106,7 @@ public class UserService {
         if (dto.getNombre() != null)    user.setNombre(dto.getNombre());
         if (dto.getApellido() != null)  user.setApellido(dto.getApellido());
         if (dto.getCargo() != null)     user.setCargo(dto.getCargo());
-        if (dto.getClave() != null)     user.setClave(dto.getClave());
+        if (dto.getClave() != null)     user.setClave(passwordEncoder.encode(dto.getClave()));
         if (dto.getRolId() != null)     user.setRolId(dto.getRolId());
         if (dto.getRolNombre() != null) user.setRolNombre(dto.getRolNombre());
 

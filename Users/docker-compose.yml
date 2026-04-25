@@ -33,14 +33,16 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Users
       SPRING_DATASOURCE_USERNAME: postgres
-      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      ROL_SERVICE_URL: http://host.docker.internal:8081
+      ESTADO_SERVICE_URL: http://host.docker.internal:8086
     depends_on:
       kafka:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/api/users || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8

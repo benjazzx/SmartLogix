@@ -1,7 +1,9 @@
 package User.example.Users.component;
 
+import User.example.Users.dto.UserRequestDto;
 import User.example.Users.model.*;
 import User.example.Users.repository.*;
+import User.example.Users.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,7 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private ComunaRepository comunaRepository;
     @Autowired private DireccionRepository direccionRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private UserService userService;
 
     @Override
     public void run(String... args) throws Exception {
@@ -63,31 +66,35 @@ public class DataInitializer implements CommandLineRunner {
     private void seedUsuarios() {
         if (userRepository.count() > 0) return;
 
-        DireccionModel dir1 = direccionRepository.findAll().get(0);
-        DireccionModel dir2 = direccionRepository.findAll().get(1);
-        DireccionModel dir3 = direccionRepository.findAll().get(2);
+        List<DireccionModel> dirs = direccionRepository.findAll();
 
-        userRepository.saveAll(List.of(
-            // Admin: acceso total al sistema
-            new UserModel(null, "Admin", "Sistema", "00000000-0",
-                "admin@smartlogix.cl",    "admin123",    "Administrador", true,
-                null, "admin", null, null, dir1),
+        UserRequestDto admin = new UserRequestDto();
+        admin.setNombre("Admin"); admin.setApellido("Sistema");
+        admin.setRut("00000000-0"); admin.setCorreo("admin@smartlogix.cl");
+        admin.setClave("admin123"); admin.setCargo("Administrador");
+        admin.setRolNombre("admin"); admin.setDireccionId(dirs.get(0).getId());
 
-            // Bodeguero: gestiona inventario y productos
-            new UserModel(null, "Juan", "Pérez", "11111111-1",
-                "bodeguero@smartlogix.cl", "bodega123",  "Bodeguero", true,
-                null, "bodeguero", null, null, dir1),
+        UserRequestDto bodeguero = new UserRequestDto();
+        bodeguero.setNombre("Juan"); bodeguero.setApellido("Pérez");
+        bodeguero.setRut("11111111-1"); bodeguero.setCorreo("bodeguero@smartlogix.cl");
+        bodeguero.setClave("bodega123"); bodeguero.setCargo("Bodeguero");
+        bodeguero.setRolNombre("bodeguero"); bodeguero.setDireccionId(dirs.get(0).getId());
 
-            // Transportista: coordina envíos
-            new UserModel(null, "Carlos", "González", "22222222-2",
-                "transportista@smartlogix.cl", "trans123", "Transportista", true,
-                null, "transportista", null, null, dir2),
+        UserRequestDto transportista = new UserRequestDto();
+        transportista.setNombre("Carlos"); transportista.setApellido("González");
+        transportista.setRut("22222222-2"); transportista.setCorreo("transportista@smartlogix.cl");
+        transportista.setClave("trans123"); transportista.setCargo("Transportista");
+        transportista.setRolNombre("transportista"); transportista.setDireccionId(dirs.get(1).getId());
 
-            // Cliente: realiza pedidos
-            new UserModel(null, "María", "López", "33333333-3",
-                "cliente@smartlogix.cl",  "cliente123",  null, true,
-                null, "cliente", null, null, dir3)
-        ));
-        System.out.println("[DataInitializer] Usuarios insertados.");
+        UserRequestDto cliente = new UserRequestDto();
+        cliente.setNombre("María"); cliente.setApellido("López");
+        cliente.setRut("33333333-3"); cliente.setCorreo("cliente@smartlogix.cl");
+        cliente.setClave("cliente123"); cliente.setRolNombre("cliente");
+        cliente.setDireccionId(dirs.get(2).getId());
+
+        for (UserRequestDto dto : List.of(admin, bodeguero, transportista, cliente)) {
+            userService.createUser(dto);
+        }
+        System.out.println("[DataInitializer] Usuarios insertados y eventos user-created-topic publicados.");
     }
 }

@@ -7,10 +7,9 @@ import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.UUID;
 
-// Cliente HTTP hacia el microservicio Rol.
-// Se usa para validar que un rol existe antes de asignarlo a un usuario.
 @Component
 public class RolClient {
 
@@ -26,6 +25,23 @@ public class RolClient {
             throwable -> {
                 System.err.println("[CircuitBreaker][Users→Rol] getRolById: " + throwable.getMessage());
                 throw new RuntimeException("Servicio Rol no disponible");
+            }
+        );
+    }
+
+    public RolDto getRolByNombre(String nombre) {
+        return circuitBreakerFactory.create("rolClient").run(
+            () -> {
+                RolDto[] roles = restTemplate.getForObject(rolUrl + "/api/roles", RolDto[].class);
+                if (roles == null) return null;
+                return Arrays.stream(roles)
+                        .filter(r -> nombre.equals(r.getNombre()))
+                        .findFirst()
+                        .orElse(null);
+            },
+            throwable -> {
+                System.err.println("[CircuitBreaker][Users→Rol] getRolByNombre: " + throwable.getMessage());
+                return null;
             }
         );
     }

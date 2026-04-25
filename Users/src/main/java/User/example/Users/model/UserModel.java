@@ -66,7 +66,7 @@ public class UserModel {
     private String estadoNombre;
 
     // Relación con Dirección (dentro del mismo microservicio)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "direccion_id")
     @Schema(description = "Dirección del usuario (principalmente para clientes)")
     private DireccionModel direccion;
