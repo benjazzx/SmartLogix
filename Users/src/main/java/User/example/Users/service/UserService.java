@@ -1,6 +1,8 @@
 package User.example.Users.service;
 
+import User.example.Users.client.EstadoClient;
 import User.example.Users.client.RolClient;
+import User.example.Users.dto.EstadoDto;
 import User.example.Users.dto.RolDto;
 import User.example.Users.dto.UserCreatedEvent;
 import User.example.Users.dto.UserRequestDto;
@@ -29,6 +31,7 @@ public class UserService {
     @Autowired private UserEventProducer eventProducer;
     @Autowired private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
     @Autowired private RolClient rolClient;
+    @Autowired private EstadoClient estadoClient;
     @Autowired private PasswordEncoder passwordEncoder;
 
     // Circuit Breaker aplicado: si la BD falla repetidamente, devuelve lista vacía (fallback)
@@ -82,6 +85,17 @@ public class UserService {
             RolDto rol = rolClient.getRolByNombre(user.getRolNombre());
             if (rol != null) {
                 user.setRolId(rol.getId());
+            }
+        }
+
+        // Resolver estadoId y estadoNombre síncronamente al microservicio Estado
+        if (user.getEstadoId() == null && user.getRolNombre() != null) {
+            EstadoDto estado = estadoClient.getEstadoByRol(user.getRolNombre());
+            if (estado != null) {
+                user.setEstadoId(estado.getId());
+                user.setEstadoNombre(estado.getNombre());
+                user.setActivo("activo".equalsIgnoreCase(estado.getNombre())
+                            || "disponible".equalsIgnoreCase(estado.getNombre()));
             }
         }
 

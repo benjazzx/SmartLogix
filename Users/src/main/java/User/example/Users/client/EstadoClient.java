@@ -29,4 +29,15 @@ public class EstadoClient {
             }
         );
     }
+
+    public EstadoDto getEstadoByRol(String rolNombre) {
+        return circuitBreakerFactory.create("estadoClient").run(
+            () -> restTemplate.getForObject(
+                estadoUrl + "/api/estados/assign?roleName=" + rolNombre, EstadoDto.class),
+            throwable -> {
+                System.err.println("[CircuitBreaker][Users→Estado] getEstadoByRol: " + throwable.getMessage());
+                return null;
+            }
+        );
+    }
 }
