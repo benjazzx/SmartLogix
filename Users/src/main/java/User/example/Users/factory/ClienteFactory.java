@@ -16,7 +16,7 @@ public class ClienteFactory extends UserFactory {
         user.setRut(dto.getRut());
         user.setCorreo(dto.getCorreo());
         user.setClave(dto.getClave());
-        user.setCargo(null);
+        user.setCargo(dto.getCargo() != null ? dto.getCargo() : "Cliente");
         user.setActivo(true);
         user.setRolId(dto.getRolId());
         user.setRolNombre(dto.getRolNombre());

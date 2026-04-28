@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/ordenes")
 @Tag(name = "Ordenes", description = "Gestión de órdenes en SmartLogix")
@@ -78,11 +80,13 @@ public class OrdenController {
             HttpServletRequest request,
             Authentication auth) {
         UUID userId = (UUID) request.getAttribute("userId");
-        String rolNombre = auth.getAuthorities().iterator().next()
-                .getAuthority().replace("ROLE_", "");
+        String rolNombre = (auth != null && !auth.getAuthorities().isEmpty())
+                ? auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "")
+                : "";
         try {
             return ResponseEntity.ok(ordenService.getById(id, userId, rolNombre));
         } catch (RuntimeException e) {
+            log.warn("getById id={}: {}", id, e.getMessage());
             if (e.getMessage().contains("Acceso denegado")) {
                 return ResponseEntity.status(403).build();
             }

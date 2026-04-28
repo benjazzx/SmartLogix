@@ -1,17 +1,35 @@
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B --no-transfer-progress
 
 COPY src src
-RUN mvn package -DskipTests
+RUN mvn package -DskipTests -B --no-transfer-progress
 
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
+
+LABEL org.opencontainers.image.title="SmartLogix Estado Service"
+LABEL org.opencontainers.image.description="Microservicio de gestión de estados de usuario — SmartLogix DSY1106"
+LABEL org.opencontainers.image.vendor="SmartLogix"
+LABEL org.opencontainers.image.version="1.0.0"
+
 WORKDIR /app
 
-COPY --from=build /app/target/Estado-0.0.1-SNAPSHOT.jar app.jar
+RUN addgroup -S smartlogix && adduser -S smartlogix -G smartlogix
 
+COPY --from=build /app/target/Estado-0.0.1-SNAPSHOT.jar app.jar
+RUN chown smartlogix:smartlogix app.jar
+
+USER smartlogix
+
+# Estado corre en el puerto 8082 internamente (mapeado a 8086 externamente)
 EXPOSE 8082
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]
