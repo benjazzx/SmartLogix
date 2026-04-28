@@ -1,0 +1,163 @@
+spring:
+  application:
+    name: Gateway
+  cloud:
+    gateway:
+      mvc:
+        routes:
+
+          # ── Autenticación (rutas públicas — sin JWT) ───────────────────────────
+          - id: auth-route
+            uri: http://users-service:8082
+            predicates:
+              - Path=/auth/**
+
+          # ── Users ──────────────────────────────────────────────────────────────
+          - id: users-service
+            uri: http://users-service:8082
+            predicates:
+              - Path=/api/users/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: usersCircuitBreaker
+                  fallbackUri: forward:/fallback/users
+
+          # ── Rol ────────────────────────────────────────────────────────────────
+          - id: rol-roles
+            uri: http://rol-service:8081
+            predicates:
+              - Path=/api/roles/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: rolCircuitBreaker
+                  fallbackUri: forward:/fallback/rol
+
+          - id: rol-tipos
+            uri: http://rol-service:8081
+            predicates:
+              - Path=/api/tipos/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: rolCircuitBreaker
+                  fallbackUri: forward:/fallback/rol
+
+          - id: rol-privilegios
+            uri: http://rol-service:8081
+            predicates:
+              - Path=/api/privilegios/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: rolCircuitBreaker
+                  fallbackUri: forward:/fallback/rol
+
+          - id: rol-permisos
+            uri: http://rol-service:8081
+            predicates:
+              - Path=/api/permisos/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: rolCircuitBreaker
+                  fallbackUri: forward:/fallback/rol
+
+          # ── Estado ─────────────────────────────────────────────────────────────
+          - id: estado-service
+            uri: http://estado-service:8082
+            predicates:
+              - Path=/api/estados/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: estadoCircuitBreaker
+                  fallbackUri: forward:/fallback/estado
+
+          # ── Inventario ─────────────────────────────────────────────────────────
+          - id: inventario-service
+            uri: http://inventario-service:8083
+            predicates:
+              - Path=/api/inventario/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: inventarioCircuitBreaker
+                  fallbackUri: forward:/fallback/inventario
+
+          # ── Orden ──────────────────────────────────────────────────────────────
+          - id: orden-service
+            uri: http://orden-service:8084
+            predicates:
+              - Path=/api/ordenes/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: ordenCircuitBreaker
+                  fallbackUri: forward:/fallback/orden
+
+          # ── Producto ───────────────────────────────────────────────────────────
+          - id: producto-service
+            uri: http://producto-service:8085
+            predicates:
+              - Path=/api/productos/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: productoCircuitBreaker
+                  fallbackUri: forward:/fallback/producto
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      usersCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+      rolCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+      estadoCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+      inventarioCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+      ordenCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+      productoCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    gateway:
+      enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    Gateway.example: DEBUG

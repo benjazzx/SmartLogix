@@ -1,3 +1,5 @@
+name: SmartLogix
+
 services:
 
   # ─── INFRAESTRUCTURA ────────────────────────────────────────────────────────
@@ -205,16 +207,20 @@ services:
       retries: 8
       start_period: 60s
 
-  # ─── API GATEWAY ────────────────────────────────────────────────────────────
-  # NGINX reverse proxy: enruta /api/* al microservicio correspondiente.
-  # También expone /auth/login y /auth/register públicamente.
-  api-gateway:
-    image: nginx:alpine
-    container_name: api-gateway
+  # ─── API GATEWAY / BFF ──────────────────────────────────────────────────────
+  # Spring Cloud Gateway: enruta /api/* y /auth/* al microservicio correcto.
+  # Valida JWT globalmente (excepto /auth/login y /auth/register).
+  # Circuit Breaker por ruta — fallback en /fallback/{servicio}.
+  gateway-service:
+    build:
+      context: ./Gateway
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    restart: on-failure
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - "80:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       rol-service:
         condition: service_healthy
@@ -228,3 +234,9 @@ services:
         condition: service_healthy
       estado-service:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
