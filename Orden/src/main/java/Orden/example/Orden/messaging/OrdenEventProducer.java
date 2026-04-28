@@ -23,4 +23,8 @@ public class OrdenEventProducer {
         streamBridge.send("estado-orden-topic", event);
         log.info("[PRODUCER] estado-orden-topic → ordenId={} estado={}", event.getOrdenId(), event.getEstadoNombre());
     }
+
+    
+    
+
 }

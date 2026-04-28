@@ -2,6 +2,7 @@ package Orden.example.Orden.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
@@ -21,9 +22,14 @@ public class DetalleOrdenModel {
     @EqualsAndHashCode.Exclude
     private OrdenModel orden;
 
-    // null por ahora hasta que exista microservicio Inventario
     @Column(name = "producto_id")
     private UUID productoId;
+
+    @Column(name = "producto_nombre", length = 200)
+    private String productoNombre;
+
+    @Column(name = "precio_unitario", precision = 12, scale = 2)
+    private BigDecimal precioUnitario;
 
     @Column(nullable = false)
     private Integer cantidad;

@@ -119,8 +119,9 @@ services:
       retries: 8
       start_period: 60s
 
-  # Inventario: gestión de stock en tiempo real (en desarrollo).
-  # Consume: orden-creada-topic para descontar stock automáticamente.
+  # Inventario: gestión de stock en tiempo real.
+  # Consume: orden-creada-topic, producto-actualizado-topic
+  # Llama sincrónicamente a Producto (validar existencia) con Circuit Breaker.
   inventario-service:
     build:
       context: ./Inventario
@@ -134,8 +135,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Inventario
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
+      USERS_SERVICE_URL: http://users-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
+        condition: service_healthy
+      producto-service:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -146,7 +152,8 @@ services:
       retries: 8
       start_period: 60s
 
-  # Producto: catálogo de productos del eCommerce (en desarrollo).
+  # Producto: catálogo de productos del eCommerce.
+  # Produce: producto-actualizado-topic
   producto-service:
     build:
       context: ./Producto
@@ -160,6 +167,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Producto
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
@@ -174,7 +182,7 @@ services:
 
   # Orden: ciclo de vida de pedidos con historial de estados.
   # Produce: orden-creada-topic, estado-orden-topic
-  # Llama sincrónicamente a Users (nombre) y Estado (validar estado) con Circuit Breaker.
+  # Llama sincrónicamente a Users, Estado y Producto con Circuit Breaker.
   orden-service:
     build:
       context: ./Orden
@@ -190,6 +198,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
       ESTADO_SERVICE_URL: http://estado-service:8082
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
       JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
@@ -197,6 +206,8 @@ services:
       users-service:
         condition: service_healthy
       estado-service:
+        condition: service_healthy
+      producto-service:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -108,6 +108,16 @@ spring:
                   name: productoCircuitBreaker
                   fallbackUri: forward:/fallback/producto
 
+          - id: categorias-service
+            uri: http://producto-service:8085
+            predicates:
+              - Path=/api/categorias/**
+            filters:
+              - name: CircuitBreaker
+                args:
+                  name: productoCircuitBreaker
+                  fallbackUri: forward:/fallback/producto
+
 server:
   port: 8080
 
