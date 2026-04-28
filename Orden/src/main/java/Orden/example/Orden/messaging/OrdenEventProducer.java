@@ -2,10 +2,12 @@ package Orden.example.Orden.messaging;
 
 import Orden.example.Orden.dto.EstadoOrdenEvent;
 import Orden.example.Orden.dto.OrdenCreadaEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class OrdenEventProducer {
 
@@ -14,11 +16,11 @@ public class OrdenEventProducer {
 
     public void publishOrdenCreada(OrdenCreadaEvent event) {
         streamBridge.send("orden-creada-topic", event);
-        System.out.println("[Orden PRODUCER] Evento publicado en orden-creada-topic para orden: " + event.getOrdenId());
+        log.info("[PRODUCER] orden-creada-topic → ordenId={}", event.getOrdenId());
     }
 
     public void publishEstadoOrden(EstadoOrdenEvent event) {
         streamBridge.send("estado-orden-topic", event);
-        System.out.println("[Orden PRODUCER] Evento publicado en estado-orden-topic: orden=" + event.getOrdenId() + " estado=" + event.getEstadoNombre());
+        log.info("[PRODUCER] estado-orden-topic → ordenId={} estado={}", event.getOrdenId(), event.getEstadoNombre());
     }
 }

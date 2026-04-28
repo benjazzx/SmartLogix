@@ -1,6 +1,7 @@
 services:
 
   # ─── INFRAESTRUCTURA ────────────────────────────────────────────────────────
+  # Kafka en modo KRaft (sin ZooKeeper). Broker compartido por todos los servicios.
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
@@ -27,6 +28,8 @@ services:
       retries: 10
 
   # ─── MICROSERVICIOS ─────────────────────────────────────────────────────────
+  # Users: autenticación JWT, registro y gestión de usuarios.
+  # Produce: user-created-topic | Consume: role-assigned-topic, estado-assigned-topic
   users-service:
     build:
       context: ./Users
@@ -39,21 +42,24 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Users
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       ROL_SERVICE_URL: http://rol-service:8081
       ESTADO_SERVICE_URL: http://estado-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/api/users || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8
       start_period: 60s
 
+  # Rol: asignación automática de roles por dominio de email.
+  # Produce: role-assigned-topic | Consume: user-created-topic
   rol-service:
     build:
       context: ./Rol
@@ -66,7 +72,7 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Rol
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
     depends_on:
       kafka:
@@ -76,12 +82,15 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/api/roles || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8
       start_period: 60s
 
+  # Estado: asignación de estados según rol del usuario.
+  # Puerto interno 8082, expuesto como 8086 para evitar conflicto con Users.
+  # Produce: estado-assigned-topic | Consume: role-assigned-topic
   estado-service:
     build:
       context: ./Estado
@@ -94,7 +103,7 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Estado
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
     depends_on:
       kafka:
@@ -102,12 +111,14 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/api/estados || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8
       start_period: 60s
 
+  # Inventario: gestión de stock en tiempo real (en desarrollo).
+  # Consume: orden-creada-topic para descontar stock automáticamente.
   inventario-service:
     build:
       context: ./Inventario
@@ -120,19 +131,20 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Inventario
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
     depends_on:
       kafka:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/api/inventario || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8
       start_period: 60s
 
+  # Producto: catálogo de productos del eCommerce (en desarrollo).
   producto-service:
     build:
       context: ./Producto
@@ -145,21 +157,22 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Producto
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
     depends_on:
       kafka:
-        condition: service_healthy
-      estado-service:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/api/productos || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8
       start_period: 60s
 
+  # Orden: ciclo de vida de pedidos con historial de estados.
+  # Produce: orden-creada-topic, estado-orden-topic
+  # Llama sincrónicamente a Users (nombre) y Estado (validar estado) con Circuit Breaker.
   orden-service:
     build:
       context: ./Orden
@@ -172,24 +185,29 @@ services:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Orden
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      USERS_SERVICE_URL: http://users-service:8082
+      ESTADO_SERVICE_URL: http://estado-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
-      estado-service:
+      users-service:
         condition: service_healthy
-      producto-service:
+      estado-service:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/api/ordenes || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/swagger-ui.html || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 8
       start_period: 60s
 
   # ─── API GATEWAY ────────────────────────────────────────────────────────────
+  # NGINX reverse proxy: enruta /api/* al microservicio correspondiente.
+  # También expone /auth/login y /auth/register públicamente.
   api-gateway:
     image: nginx:alpine
     container_name: api-gateway

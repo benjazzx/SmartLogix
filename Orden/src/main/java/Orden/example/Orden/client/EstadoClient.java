@@ -1,5 +1,6 @@
 package Orden.example.Orden.client;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
@@ -9,7 +10,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 import java.util.UUID;
 
-// Valida que el estadoId exista en el microservicio Estado antes de agregarlo al historial.
+@Slf4j
 @Component
 public class EstadoClient {
 
@@ -27,8 +28,7 @@ public class EstadoClient {
                 return estado != null;
             },
             throwable -> {
-                System.err.println("[CircuitBreaker][Orden→Estado] existeEstado: " + throwable.getMessage());
-                // Degradacion: si Estado no responde, se acepta el estado del historial
+                log.error("[CircuitBreaker][Orden→Estado] existeEstado estadoId={}: {}", estadoId, throwable.getMessage());
                 return true;
             }
         );

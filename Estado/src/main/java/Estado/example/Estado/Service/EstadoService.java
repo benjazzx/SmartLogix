@@ -71,7 +71,7 @@ public class EstadoService {
     private String determineEstadoNombre(String roleName) {
         if (roleName == null) return "pendiente_verificacion";
         return switch (roleName.toLowerCase()) {
-            case "admin" -> "activo";
+            case "admin", "cliente" -> "activo";
             case "bodeguero", "transportista" -> "disponible";
             default -> "pendiente_verificacion";
         };
