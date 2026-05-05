@@ -46,6 +46,10 @@ public class OrdenService {
 
         List<DetalleOrdenModel> detalles = dto.getDetalles().stream().map(d -> {
             var productoData = productoClient.getProducto(d.getProductoId());
+            if (productoData == null) {
+                throw new RuntimeException(
+                    "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
+            }
             DetalleOrdenModel det = new DetalleOrdenModel();
             det.setOrden(orden);
             det.setProductoId(d.getProductoId());
