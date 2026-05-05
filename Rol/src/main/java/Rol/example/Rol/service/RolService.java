@@ -67,24 +67,21 @@ public class RolService {
         return rol;
     }
 
-    // Regla de negocio: determina el rol según el dominio del email.
-    // @smartb.cl → bodeguero | @smartt.cl → transportista
-    // @smartadmin.cl o @admin.smart.cl → admin | cualquier otro → cliente
     private String determineRoleName(String email) {
-        if (email == null || !email.contains("@")) {
-            return "cliente";
+        if (email == null || !email.contains("@")) return "cliente";
+        String localPart = email.substring(0, email.indexOf("@")).toLowerCase();
+        String domain    = email.substring(email.indexOf("@") + 1).toLowerCase();
+        if (domain.equals("smartb.cl")) return "bodeguero";
+        if (domain.equals("smartt.cl")) return "transportista";
+        if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) return "admin";
+        if (domain.equals("smartlogix.cl")) {
+            return switch (localPart) {
+                case "admin"         -> "admin";
+                case "bodeguero"     -> "bodeguero";
+                case "transportista" -> "transportista";
+                default              -> "cliente";
+            };
         }
-
-        String domain = email.substring(email.indexOf("@") + 1).toLowerCase();
-
-        if (domain.equals("smartb.cl")) {
-            return "bodeguero";
-        } else if (domain.equals("smartt.cl")) {
-            return "transportista";
-        } else if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) {
-            return "admin";
-        } else {
-            return "cliente";
-        }
+        return "cliente";
     }
 }
