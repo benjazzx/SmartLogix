@@ -23,6 +23,16 @@ spring:
                     id: usersCircuitBreaker
                     fallbackUri: forward:/fallback/users
 
+            - id: direcciones-service
+              uri: http://users-service:8082
+              predicates:
+                - Path=/api/direcciones/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: usersCircuitBreaker
+                    fallbackUri: forward:/fallback/users
+
             # ── Rol ──────────────────────────────────────────────────────────────
             - id: rol-roles
               uri: http://rol-service:8081
@@ -126,37 +136,27 @@ jwt:
 
 resilience4j:
   circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 60
+        permittedNumberOfCallsInHalfOpenState: 5
+        automaticTransitionFromOpenToHalfOpenEnabled: true
     instances:
       usersCircuitBreaker:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        baseConfig: default
       rolCircuitBreaker:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        baseConfig: default
       estadoCircuitBreaker:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        baseConfig: default
       inventarioCircuitBreaker:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        baseConfig: default
       ordenCircuitBreaker:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        baseConfig: default
       productoCircuitBreaker:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        baseConfig: default
 
 management:
   endpoints:
