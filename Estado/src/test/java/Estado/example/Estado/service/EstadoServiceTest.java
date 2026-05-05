@@ -169,12 +169,13 @@ public class EstadoServiceTest {
     }
 
     @Test
-    void testAssignEstadoByRol_cliente_retornaPendiente() {
-        when(estadoRepository.findByNombre("pendiente_verificacion")).thenReturn(Optional.of(estadoPendiente));
+    void testAssignEstadoByRol_cliente_retornaActivo() {
+        when(estadoRepository.findByNombre("activo")).thenReturn(Optional.of(estadoActivo));
 
         Estado result = estadoService.assignEstadoByRol("cliente");
 
-        assertEquals("pendiente_verificacion", result.getNombre());
+        assertEquals("activo", result.getNombre());
+        assertEquals("cuenta", result.getTipoDeEstado().getNombre());
     }
 
     @Test
