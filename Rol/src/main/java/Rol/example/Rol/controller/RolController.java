@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import Rol.example.Rol.client.UsersClient;
+import Rol.example.Rol.dto.RolRequestDto;
 import Rol.example.Rol.dto.UserDto;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
@@ -83,7 +84,10 @@ public class RolController {
     @Operation(summary = "Crear nuevo rol")
     @ApiResponse(responseCode = "200", description = "Rol creado correctamente")
     @PostMapping
-    public RolModel createRol(@RequestBody RolModel rol) {
+    public RolModel createRol(@RequestBody RolRequestDto dto) {
+        RolModel rol = new RolModel();
+        rol.setNombre(dto.getNombre());
+        rol.setDescripcion(dto.getDescripcion());
         return rolService.createRol(rol);
     }
 
@@ -93,8 +97,11 @@ public class RolController {
         @ApiResponse(responseCode = "404", description = "Rol no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<RolModel> updateRol(@PathVariable UUID id, @RequestBody RolModel rol) {
+    public ResponseEntity<RolModel> updateRol(@PathVariable UUID id, @RequestBody RolRequestDto dto) {
         try {
+            RolModel rol = new RolModel();
+            rol.setNombre(dto.getNombre());
+            rol.setDescripcion(dto.getDescripcion());
             return ResponseEntity.ok(rolService.updateRol(id, rol));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

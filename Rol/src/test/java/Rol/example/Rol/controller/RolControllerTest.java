@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import Rol.example.Rol.dto.RolRequestDto;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
 
@@ -116,11 +117,15 @@ public class RolControllerTest {
 
     @Test
     void testCreateRol() throws Exception {
+        RolRequestDto dto = new RolRequestDto();
+        dto.setNombre("bodeguero");
+        dto.setDescripcion("Encargado de bodega");
+
         when(rolService.createRol(any(RolModel.class))).thenReturn(rolModel);
 
         mockMvc.perform(post("/api/roles")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(rolModel)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("bodeguero"));
 
@@ -129,24 +134,32 @@ public class RolControllerTest {
 
     @Test
     void testUpdateRol_encontrado() throws Exception {
+        RolRequestDto dto = new RolRequestDto();
+        dto.setNombre("admin");
+        dto.setDescripcion("Administrador");
+
         RolModel actualizado = new RolModel(rolId, "admin", "Administrador");
         when(rolService.updateRol(eq(rolId), any(RolModel.class))).thenReturn(actualizado);
 
         mockMvc.perform(put("/api/roles/{id}", rolId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(actualizado)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("admin"));
     }
 
     @Test
     void testUpdateRol_noEncontrado() throws Exception {
+        RolRequestDto dto = new RolRequestDto();
+        dto.setNombre("bodeguero");
+        dto.setDescripcion("Encargado de bodega");
+
         when(rolService.updateRol(any(UUID.class), any(RolModel.class)))
                 .thenThrow(new RuntimeException("Rol no encontrado"));
 
         mockMvc.perform(put("/api/roles/{id}", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(rolModel)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound());
     }
 

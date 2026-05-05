@@ -1,6 +1,9 @@
 package User.example.Users.controller;
 
+import User.example.Users.dto.DireccionRequestDto;
+import User.example.Users.model.ComunaModel;
 import User.example.Users.model.DireccionModel;
+import User.example.Users.repository.ComunaRepository;
 import User.example.Users.repository.DireccionRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +24,9 @@ public class DireccionController {
     @Autowired
     private DireccionRepository direccionRepository;
 
+    @Autowired
+    private ComunaRepository comunaRepository;
+
     @Operation(summary = "Listar todas las direcciones")
     @GetMapping
     public List<DireccionModel> getAll() {
@@ -37,7 +43,14 @@ public class DireccionController {
 
     @Operation(summary = "Crear nueva dirección")
     @PostMapping
-    public DireccionModel create(@RequestBody DireccionModel direccion) {
+    public DireccionModel create(@RequestBody DireccionRequestDto dto) {
+        ComunaModel comuna = comunaRepository.findById(dto.getComunaId())
+                .orElseThrow(() -> new RuntimeException("Comuna no encontrada: " + dto.getComunaId()));
+        DireccionModel direccion = new DireccionModel();
+        direccion.setCalle(dto.getCalle());
+        direccion.setNumero(dto.getNumero());
+        direccion.setCodigoPostal(dto.getCodigoPostal());
+        direccion.setComuna(comuna);
         return direccionRepository.save(direccion);
     }
 }

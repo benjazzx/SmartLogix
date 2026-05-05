@@ -23,9 +23,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import Estado.example.Estado.Client.UsersClient;
+import Estado.example.Estado.Dto.EstadoRequestDto;
 import Estado.example.Estado.Dto.UserDto;
 import Estado.example.Estado.Model.Estado;
+import Estado.example.Estado.Model.TipoDeEstadoModel;
 import Estado.example.Estado.Service.EstadoService;
+import Estado.example.Estado.Service.TipoDeEstadoService;
 
 @RestController
 @RequestMapping("/api/estados")
@@ -34,6 +37,9 @@ public class EstadoController {
 
     @Autowired
     private EstadoService estadoService;
+
+    @Autowired
+    private TipoDeEstadoService tipoDeEstadoService;
 
     @Autowired
     private UsersClient usersClient;
@@ -90,7 +96,12 @@ public class EstadoController {
     @Operation(summary = "Crear nuevo estado")
     @ApiResponse(responseCode = "200", description = "Estado creado correctamente")
     @PostMapping
-    public Estado create(@RequestBody Estado estado) {
+    public Estado create(@RequestBody EstadoRequestDto dto) {
+        TipoDeEstadoModel tipo = tipoDeEstadoService.getById(dto.getTipoDeEstadoId());
+        Estado estado = new Estado();
+        estado.setNombre(dto.getNombre());
+        estado.setDescripcion(dto.getDescripcion());
+        estado.setTipoDeEstado(tipo);
         return estadoService.create(estado);
     }
 
@@ -100,8 +111,13 @@ public class EstadoController {
         @ApiResponse(responseCode = "404", description = "Estado no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Estado> update(@PathVariable UUID id, @RequestBody Estado estado) {
+    public ResponseEntity<Estado> update(@PathVariable UUID id, @RequestBody EstadoRequestDto dto) {
         try {
+            TipoDeEstadoModel tipo = tipoDeEstadoService.getById(dto.getTipoDeEstadoId());
+            Estado estado = new Estado();
+            estado.setNombre(dto.getNombre());
+            estado.setDescripcion(dto.getDescripcion());
+            estado.setTipoDeEstado(tipo);
             return ResponseEntity.ok(estadoService.update(id, estado));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

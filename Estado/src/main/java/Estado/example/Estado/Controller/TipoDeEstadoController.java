@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import Estado.example.Estado.Dto.TipoDeEstadoRequestDto;
 import Estado.example.Estado.Model.TipoDeEstadoModel;
 import Estado.example.Estado.Service.TipoDeEstadoService;
 
@@ -54,7 +55,10 @@ public class TipoDeEstadoController {
     @Operation(summary = "Crear nuevo tipo de estado")
     @ApiResponse(responseCode = "200", description = "Tipo de estado creado correctamente")
     @PostMapping
-    public TipoDeEstadoModel create(@RequestBody TipoDeEstadoModel tipo) {
+    public TipoDeEstadoModel create(@RequestBody TipoDeEstadoRequestDto dto) {
+        TipoDeEstadoModel tipo = new TipoDeEstadoModel();
+        tipo.setNombre(dto.getNombre());
+        tipo.setDescripcion(dto.getDescripcion());
         return tipoDeEstadoService.create(tipo);
     }
 
@@ -64,8 +68,11 @@ public class TipoDeEstadoController {
         @ApiResponse(responseCode = "404", description = "Tipo de estado no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<TipoDeEstadoModel> update(@PathVariable UUID id, @RequestBody TipoDeEstadoModel tipo) {
+    public ResponseEntity<TipoDeEstadoModel> update(@PathVariable UUID id, @RequestBody TipoDeEstadoRequestDto dto) {
         try {
+            TipoDeEstadoModel tipo = new TipoDeEstadoModel();
+            tipo.setNombre(dto.getNombre());
+            tipo.setDescripcion(dto.getDescripcion());
             return ResponseEntity.ok(tipoDeEstadoService.update(id, tipo));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

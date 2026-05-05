@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import Rol.example.Rol.dto.TipoRequestDto;
 import Rol.example.Rol.model.TipoModel;
 import Rol.example.Rol.service.TipoService;
 
@@ -50,8 +51,10 @@ public class TipoController {
         @ApiResponse(responseCode = "400", description = "Ya existe un tipo con ese nombre")
     })
     @PostMapping
-    public ResponseEntity<TipoModel> createTipo(@RequestBody TipoModel tipo) {
+    public ResponseEntity<TipoModel> createTipo(@RequestBody TipoRequestDto dto) {
         try {
+            TipoModel tipo = new TipoModel();
+            tipo.setNombre(dto.getNombre());
             return ResponseEntity.ok(tipoService.createTipo(tipo));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -64,8 +67,10 @@ public class TipoController {
         @ApiResponse(responseCode = "404", description = "Tipo no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<TipoModel> updateTipo(@PathVariable UUID id, @RequestBody TipoModel tipo) {
+    public ResponseEntity<TipoModel> updateTipo(@PathVariable UUID id, @RequestBody TipoRequestDto dto) {
         try {
+            TipoModel tipo = new TipoModel();
+            tipo.setNombre(dto.getNombre());
             return ResponseEntity.ok(tipoService.updateTipo(id, tipo));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

@@ -23,15 +23,20 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import Estado.example.Estado.Controller.EstadoController;
+import Estado.example.Estado.Dto.EstadoRequestDto;
 import Estado.example.Estado.Model.Estado;
 import Estado.example.Estado.Model.TipoDeEstadoModel;
 import Estado.example.Estado.Service.EstadoService;
+import Estado.example.Estado.Service.TipoDeEstadoService;
 
 @ExtendWith(MockitoExtension.class)
 public class EstadoControllerTest {
 
     @Mock
     private EstadoService estadoService;
+
+    @Mock
+    private TipoDeEstadoService tipoDeEstadoService;
 
     @InjectMocks
     private EstadoController estadoController;
@@ -125,11 +130,17 @@ public class EstadoControllerTest {
 
     @Test
     void testCreate_guardaYRetorna() throws Exception {
+        EstadoRequestDto dto = new EstadoRequestDto();
+        dto.setNombre("activo");
+        dto.setDescripcion("Usuario activo");
+        dto.setTipoDeEstadoId(tipoCuenta.getId());
+
+        when(tipoDeEstadoService.getById(tipoCuenta.getId())).thenReturn(tipoCuenta);
         when(estadoService.create(any(Estado.class))).thenReturn(estadoActivo);
 
         mockMvc.perform(post("/api/estados")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(estadoActivo)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("activo"));
 
@@ -138,24 +149,36 @@ public class EstadoControllerTest {
 
     @Test
     void testUpdate_encontrado() throws Exception {
+        EstadoRequestDto dto = new EstadoRequestDto();
+        dto.setNombre("inactivo");
+        dto.setDescripcion("Usuario inactivo");
+        dto.setTipoDeEstadoId(tipoCuenta.getId());
+
         Estado actualizado = new Estado(estadoId, "inactivo", "Usuario inactivo", tipoCuenta);
+        when(tipoDeEstadoService.getById(tipoCuenta.getId())).thenReturn(tipoCuenta);
         when(estadoService.update(eq(estadoId), any(Estado.class))).thenReturn(actualizado);
 
         mockMvc.perform(put("/api/estados/{id}", estadoId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(actualizado)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("inactivo"));
     }
 
     @Test
     void testUpdate_noEncontrado() throws Exception {
+        EstadoRequestDto dto = new EstadoRequestDto();
+        dto.setNombre("activo");
+        dto.setDescripcion("Usuario activo");
+        dto.setTipoDeEstadoId(tipoCuenta.getId());
+
+        when(tipoDeEstadoService.getById(tipoCuenta.getId())).thenReturn(tipoCuenta);
         when(estadoService.update(any(UUID.class), any(Estado.class)))
                 .thenThrow(new RuntimeException("No encontrado"));
 
         mockMvc.perform(put("/api/estados/{id}", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(estadoActivo)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound());
     }
 
