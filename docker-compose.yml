@@ -76,6 +76,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
@@ -107,6 +108,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
