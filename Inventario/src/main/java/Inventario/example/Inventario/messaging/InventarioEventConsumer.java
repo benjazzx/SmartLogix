@@ -43,12 +43,24 @@ public class InventarioEventConsumer {
                     for (Object item : detalles) {
                         if (item instanceof Map<?, ?> detalle) {
                             Object productoIdRaw = detalle.get("productoId");
-                            Object cantidad      = detalle.get("cantidad");
-                            if (productoIdRaw != null) {
-                                UUID productoId = UUID.fromString(productoIdRaw.toString());
-                                boolean existe = productoClient.existeProducto(productoId);
-                                log.info("[Inventario] Validando producto productoId={} cantidad={} existe={}",
-                                        productoId, cantidad, existe);
+                            Object cantidadRaw   = detalle.get("cantidad");
+                            if (productoIdRaw == null || cantidadRaw == null) continue;
+
+                            UUID productoId = UUID.fromString(productoIdRaw.toString());
+                            int  cantidad   = Integer.parseInt(cantidadRaw.toString());
+
+                            boolean existe = productoClient.existeProducto(productoId);
+                            log.info("[Inventario] Producto productoId={} cantidad={} existe={}",
+                                    productoId, cantidad, existe);
+
+                            if (existe) {
+                                boolean ok = productoClient.decrementarStock(productoId, cantidad);
+                                if (!ok) {
+                                    log.warn("[Inventario] No se pudo decrementar stock — productoId={} cantidad={}",
+                                            productoId, cantidad);
+                                }
+                            } else {
+                                log.warn("[Inventario] Producto no encontrado en catálogo — productoId={}", productoId);
                             }
                         }
                     }
