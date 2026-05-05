@@ -123,7 +123,7 @@ class OrdenServiceTest {
     }
 
     @Test
-    void createOrden_productoClientRetornaNull_detalleConCamposNulos() {
+    void createOrden_productoClientRetornaNull_lanzaExcepcion() {
         UUID userId = UUID.randomUUID();
         UUID productoId = UUID.randomUUID();
 
@@ -139,13 +139,7 @@ class OrdenServiceTest {
         when(usersClient.getNombreUsuario(userId)).thenReturn("Usuario");
         when(productoClient.getProducto(productoId)).thenReturn(null);
 
-        OrdenModel saved = ordenSample(userId);
-        when(ordenRepository.save(any())).thenReturn(saved);
-        doNothing().when(eventProducer).publishOrdenCreada(any());
-
-        OrdenResponseDto result = ordenService.createOrden(dto, userId);
-
-        assertNotNull(result);
+        assertThrows(RuntimeException.class, () -> ordenService.createOrden(dto, userId));
     }
 
     @Test
