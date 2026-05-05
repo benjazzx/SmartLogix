@@ -48,10 +48,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Documentación pública
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                // Lectura: todos los roles autenticados (incluye Inventario vía ProductoClient)
-                .requestMatchers(HttpMethod.GET, "/api/productos/**").hasAnyRole("admin", "bodeguero", "transportista", "cliente")
-                .requestMatchers(HttpMethod.GET, "/api/categorias/**").hasAnyRole("admin", "bodeguero", "transportista", "cliente")
-                // Escritura: solo admin y bodeguero
+                // GET del catálogo: público dentro de la red Docker (el Gateway protege el acceso externo)
+                .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categorias/**").permitAll()
+                // Descuento de stock: llamado internamente por Inventario sin JWT
+                .requestMatchers(HttpMethod.PATCH, "/api/productos/*/decrementar-stock").permitAll()
+                // Escritura: solo admin y bodeguero (con JWT)
                 .requestMatchers(HttpMethod.POST,   "/api/productos/**").hasAnyRole("admin", "bodeguero")
                 .requestMatchers(HttpMethod.PUT,    "/api/productos/**").hasAnyRole("admin", "bodeguero")
                 .requestMatchers(HttpMethod.PATCH,  "/api/productos/**").hasAnyRole("admin", "bodeguero")

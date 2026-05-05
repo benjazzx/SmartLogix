@@ -120,6 +120,20 @@ public class ProductoService {
     }
 
     @Transactional
+    public ProductoResponseDTO decrementarStock(UUID id, int cantidad) {
+        ProductoModel p = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+        int nuevoStock = Math.max(0, p.getStock() - cantidad);
+        p.setStock(nuevoStock);
+        if (nuevoStock == 0) p.setEstadoNombre("sin_stock");
+        else if (nuevoStock <= 10) p.setEstadoNombre("bajo_stock");
+        else p.setEstadoNombre("publicado");
+        ProductoModel saved = productoRepository.save(p);
+        eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
+        return ProductoResponseDTO.from(saved);
+    }
+
+    @Transactional
     public void desactivar(UUID id) {
         ProductoModel p = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));

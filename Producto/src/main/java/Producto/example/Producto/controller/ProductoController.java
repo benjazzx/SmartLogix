@@ -86,6 +86,16 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.actualizarStock(id, nuevoStock));
     }
 
+    @PatchMapping("/{id}/decrementar-stock")
+    @Operation(summary = "Decrementar stock del producto — llamado por Inventario tras una orden")
+    public ResponseEntity<ProductoResponseDTO> decrementarStock(@PathVariable UUID id,
+                                                                @RequestParam Integer cantidad) {
+        if (cantidad == null || cantidad <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(productoService.decrementarStock(id, cantidad));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Desactivar producto (soft delete)")
     public ResponseEntity<Void> desactivar(@PathVariable UUID id) {
