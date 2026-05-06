@@ -85,6 +85,16 @@ spring:
                     id: estadoCircuitBreaker
                     fallbackUri: forward:/fallback/estado
 
+            - id: tipos-estado-service
+              uri: http://estado-service:8082
+              predicates:
+                - Path=/api/tipos-estado/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: estadoCircuitBreaker
+                    fallbackUri: forward:/fallback/estado
+
             # ── Inventario ───────────────────────────────────────────────────────
             - id: inventario-service
               uri: http://inventario-service:8083
