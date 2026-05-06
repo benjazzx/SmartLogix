@@ -8,8 +8,8 @@ import User.example.Users.repository.DireccionRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,14 +18,12 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/direcciones")
+@RequiredArgsConstructor
 @Tag(name = "Direcciones", description = "Consulta de direcciones disponibles para asignar a usuarios")
 public class DireccionController {
 
-    @Autowired
-    private DireccionRepository direccionRepository;
-
-    @Autowired
-    private ComunaRepository comunaRepository;
+    private final DireccionRepository direccionRepository;
+    private final ComunaRepository comunaRepository;
 
     @Operation(summary = "Listar todas las direcciones")
     @GetMapping

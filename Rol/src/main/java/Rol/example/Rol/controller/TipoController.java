@@ -3,8 +3,8 @@ package Rol.example.Rol.controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,11 +18,11 @@ import Rol.example.Rol.service.TipoService;
 
 @RestController
 @RequestMapping("/api/tipos")
+@RequiredArgsConstructor
 @Tag(name = "Tipos", description = "Categorías que agrupan los privilegios del sistema")
 public class TipoController {
 
-    @Autowired
-    private TipoService tipoService;
+    private final TipoService tipoService;
 
     @Operation(summary = "Listar todos los tipos")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")

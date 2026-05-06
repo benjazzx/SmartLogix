@@ -3,8 +3,8 @@ package Rol.example.Rol.controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,11 +20,11 @@ import Rol.example.Rol.service.PrivilegioService;
 
 @RestController
 @RequestMapping("/api/privilegios")
+@RequiredArgsConstructor
 @Tag(name = "Privilegios", description = "Acciones específicas que puede realizar un rol en el sistema")
 public class PrivilegioController {
 
-    @Autowired
-    private PrivilegioService privilegioService;
+    private final PrivilegioService privilegioService;
 
     @Operation(summary = "Listar todos los privilegios")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")

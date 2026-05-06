@@ -3,21 +3,19 @@ package Rol.example.Rol.service;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import Rol.example.Rol.messaging.RoleEventProcessor;
+import lombok.RequiredArgsConstructor;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.repository.RolRepository;
 
 @Service
+@RequiredArgsConstructor
 public class RolService {
 
-    @Autowired
-    private RolRepository rolRepository;
-
-    @Autowired
-    private RoleEventProcessor roleEventProcessor;
+    private final RolRepository rolRepository;
+    private final RoleEventProcessor roleEventProcessor;
 
     public List<RolModel> getAllRoles() {
         return rolRepository.findAll();

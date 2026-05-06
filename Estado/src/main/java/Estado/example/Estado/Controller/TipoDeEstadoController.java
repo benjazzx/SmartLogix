@@ -3,7 +3,6 @@ package Estado.example.Estado.Controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,11 +25,11 @@ import Estado.example.Estado.Service.TipoDeEstadoService;
 
 @RestController
 @RequestMapping("/api/tipos-estado")
+@RequiredArgsConstructor
 @Tag(name = "Tipos de Estado", description = "Gestión de tipos de estado en SmartLogix")
 public class TipoDeEstadoController {
 
-    @Autowired
-    private TipoDeEstadoService tipoDeEstadoService;
+    private final TipoDeEstadoService tipoDeEstadoService;
 
     @Operation(summary = "Listar todos los tipos de estado")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")

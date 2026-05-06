@@ -3,7 +3,6 @@ package Estado.example.Estado.Controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -32,17 +32,13 @@ import Estado.example.Estado.Service.TipoDeEstadoService;
 
 @RestController
 @RequestMapping("/api/estados")
+@RequiredArgsConstructor
 @Tag(name = "Estados", description = "Gestión de estados de usuario en SmartLogix")
 public class EstadoController {
 
-    @Autowired
-    private EstadoService estadoService;
-
-    @Autowired
-    private TipoDeEstadoService tipoDeEstadoService;
-
-    @Autowired
-    private UsersClient usersClient;
+    private final EstadoService estadoService;
+    private final TipoDeEstadoService tipoDeEstadoService;
+    private final UsersClient usersClient;
 
     @Operation(summary = "Listar todos los estados")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")

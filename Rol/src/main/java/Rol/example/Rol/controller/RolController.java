@@ -3,8 +3,8 @@ package Rol.example.Rol.controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,14 +30,12 @@ import Rol.example.Rol.service.RolService;
 
 @RestController
 @RequestMapping("/api/roles")
+@RequiredArgsConstructor
 @Tag(name = "Roles", description = "Gestión de roles de usuario en SmartLogix")
 public class RolController {
 
-    @Autowired
-    private RolService rolService;
-
-    @Autowired
-    private UsersClient usersClient;
+    private final RolService rolService;
+    private final UsersClient usersClient;
 
     @Operation(summary = "Listar todos los roles")
     @ApiResponse(responseCode = "200", description = "Lista de roles obtenida correctamente")
