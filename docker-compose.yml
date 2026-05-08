@@ -170,6 +170,9 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      FOTO_STORAGE_PATH: /app/fotos
+    volumes:
+      - fotos-data:/app/fotos
     depends_on:
       kafka:
         condition: service_healthy
@@ -253,3 +256,6 @@ services:
       timeout: 10s
       retries: 8
       start_period: 60s
+
+volumes:
+  fotos-data:

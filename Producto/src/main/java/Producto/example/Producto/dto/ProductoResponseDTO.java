@@ -19,6 +19,7 @@ public class ProductoResponseDTO {
     private String categoriaNombre;
     private String estadoNombre;
     private Boolean activo;
+    private String imagenUrl;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 
@@ -33,6 +34,7 @@ public class ProductoResponseDTO {
         dto.setCategoriaNombre(p.getCategoria().getNombre());
         dto.setEstadoNombre(p.getEstadoNombre());
         dto.setActivo(p.getActivo());
+        dto.setImagenUrl(p.getImagenUrl() != null ? "/api/productos/fotos/" + p.getImagenUrl() : null);
         dto.setFechaCreacion(p.getFechaCreacion());
         dto.setFechaActualizacion(p.getFechaActualizacion());
         return dto;

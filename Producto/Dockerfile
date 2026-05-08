@@ -21,7 +21,7 @@ WORKDIR /app
 RUN addgroup -S smartlogix && adduser -S smartlogix -G smartlogix
 
 COPY --from=build /app/target/Producto-0.0.1-SNAPSHOT.jar app.jar
-RUN chown smartlogix:smartlogix app.jar
+RUN mkdir -p /app/fotos && chown -R smartlogix:smartlogix /app
 
 USER smartlogix
 

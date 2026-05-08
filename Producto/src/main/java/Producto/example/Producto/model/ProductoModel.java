@@ -41,6 +41,9 @@ public class ProductoModel {
     @Column(name = "estado_nombre", length = 50)
     private String estadoNombre;
 
+    @Column(name = "imagen_url", length = 500)
+    private String imagenUrl;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;

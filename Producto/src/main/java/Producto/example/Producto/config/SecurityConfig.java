@@ -48,6 +48,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Documentación pública
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                // /error permite que Spring reenvíe excepciones correctamente (sin esto devuelve 403 sobre el error real)
+                .requestMatchers("/error").permitAll()
                 // GET del catálogo: público dentro de la red Docker (el Gateway protege el acceso externo)
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categorias/**").permitAll()
