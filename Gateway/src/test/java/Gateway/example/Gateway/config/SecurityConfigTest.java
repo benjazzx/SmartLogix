@@ -9,6 +9,8 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.springframework.web.cors.CorsConfigurationSource;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -98,5 +100,18 @@ class SecurityConfigTest {
 
         assertNotNull(result);
         verify(http).build();
+    }
+
+    @Test
+    void corsConfigurationSource_permiteLocalhost4200() {
+        CorsConfigurationSource source = securityConfig.corsConfigurationSource();
+
+        assertNotNull(source);
+        var config = source.getCorsConfiguration(new MockHttpServletRequest());
+        assertNotNull(config);
+        assertTrue(config.getAllowedOrigins().contains("http://localhost:4200"));
+        assertTrue(config.getAllowedMethods().contains("POST"));
+        assertTrue(config.getAllowedMethods().contains("GET"));
+        assertTrue(Boolean.TRUE.equals(config.getAllowCredentials()));
     }
 }
