@@ -1,0 +1,12 @@
+jwt:
+  secret: SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters
+
+server:
+  port: 0
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes: []
