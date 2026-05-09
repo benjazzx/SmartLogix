@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Configura repositorios de Spring para Spring Boot 4.x / Spring Cloud 2025.x
+env:
+  MAVEN_OPTS: "-Dmaven.repo.local=${{ github.workspace }}/.m2/repository"
+
 jobs:
 
   # ── Gateway ──────────────────────────────────────────────────────────────────
@@ -18,7 +22,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Gateway
@@ -39,7 +78,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Users
@@ -60,7 +134,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Rol
@@ -81,7 +190,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Estado
@@ -102,7 +246,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Inventario
@@ -123,7 +302,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Producto
@@ -144,7 +358,42 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+      - name: Configurar repositorios Maven
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <profiles>
+              <profile>
+                <id>spring-repos</id>
+                <repositories>
+                  <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                  <repository>
+                    <id>spring-snapshots</id>
+                    <name>Spring Snapshots</name>
+                    <url>https://repo.spring.io/snapshot</url>
+                    <releases><enabled>false</enabled></releases>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>spring-milestones</id>
+                    <url>https://repo.spring.io/milestone</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>spring-repos</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
       - name: Test
         run: mvn test -B --no-transfer-progress
         working-directory: Orden
