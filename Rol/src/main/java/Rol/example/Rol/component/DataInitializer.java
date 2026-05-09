@@ -2,6 +2,7 @@ package Rol.example.Rol.component;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import Rol.example.Rol.repository.PrivilegioRepository;
 import Rol.example.Rol.repository.RolRepository;
 import Rol.example.Rol.repository.TipoRepository;
 
+@Slf4j
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -40,7 +42,7 @@ public class DataInitializer implements CommandLineRunner {
             new RolModel(null, "transportista", "Coordina y ejecuta los envíos de pedidos"),
             new RolModel(null, "cliente",       "Usuario final que realiza pedidos en la plataforma")
         ));
-        System.out.println("[DataInitializer] Roles insertados.");
+        log.info("[DataInitializer] Roles insertados.");
     }
 
     // ─── TIPOS 
@@ -54,7 +56,7 @@ public class DataInitializer implements CommandLineRunner {
             new TipoModel(null, "GESTION"),       // CRUD completo sobre un módulo
             new TipoModel(null, "ADMINISTRACION") // Control total del sistema
         ));
-        System.out.println("[DataInitializer] Tipos insertados.");
+        log.info("[DataInitializer] Tipos insertados.");
     }
 
     // ─── PRIVILEGIOS
@@ -98,7 +100,7 @@ public class DataInitializer implements CommandLineRunner {
             new PrivilegioModel(null, "GESTIONAR_ROLES",      "Administrar roles del sistema",                 administracion),
             new PrivilegioModel(null, "GESTIONAR_PERMISOS",   "Administrar permisos por rol",                  administracion)
         ));
-        System.out.println("[DataInitializer] Privilegios insertados.");
+        log.info("[DataInitializer] Privilegios insertados.");
     }
 
     // ─── PERMISOS ─────────────────────────────────────────────────────────────────
@@ -136,7 +138,7 @@ public class DataInitializer implements CommandLineRunner {
             "VER_ORDENES", "CREAR_ORDEN"
         );
 
-        System.out.println("[DataInitializer] Permisos insertados.");
+        log.info("[DataInitializer] Permisos insertados.");
     }
 
     // Método auxiliar para asignar múltiples privilegios a un rol

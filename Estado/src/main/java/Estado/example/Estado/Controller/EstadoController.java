@@ -3,7 +3,6 @@ package Estado.example.Estado.Controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,26 +16,29 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import Estado.example.Estado.Client.UsersClient;
+import Estado.example.Estado.Dto.EstadoRequestDto;
 import Estado.example.Estado.Dto.UserDto;
 import Estado.example.Estado.Model.Estado;
+import Estado.example.Estado.Model.TipoDeEstadoModel;
 import Estado.example.Estado.Service.EstadoService;
+import Estado.example.Estado.Service.TipoDeEstadoService;
 
 @RestController
 @RequestMapping("/api/estados")
+@RequiredArgsConstructor
 @Tag(name = "Estados", description = "Gestión de estados de usuario en SmartLogix")
 public class EstadoController {
 
-    @Autowired
-    private EstadoService estadoService;
-
-    @Autowired
-    private UsersClient usersClient;
+    private final EstadoService estadoService;
+    private final TipoDeEstadoService tipoDeEstadoService;
+    private final UsersClient usersClient;
 
     @Operation(summary = "Listar todos los estados")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
@@ -90,7 +92,12 @@ public class EstadoController {
     @Operation(summary = "Crear nuevo estado")
     @ApiResponse(responseCode = "200", description = "Estado creado correctamente")
     @PostMapping
-    public Estado create(@RequestBody Estado estado) {
+    public Estado create(@RequestBody EstadoRequestDto dto) {
+        TipoDeEstadoModel tipo = tipoDeEstadoService.getById(dto.getTipoDeEstadoId());
+        Estado estado = new Estado();
+        estado.setNombre(dto.getNombre());
+        estado.setDescripcion(dto.getDescripcion());
+        estado.setTipoDeEstado(tipo);
         return estadoService.create(estado);
     }
 
@@ -100,8 +107,13 @@ public class EstadoController {
         @ApiResponse(responseCode = "404", description = "Estado no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Estado> update(@PathVariable UUID id, @RequestBody Estado estado) {
+    public ResponseEntity<Estado> update(@PathVariable UUID id, @RequestBody EstadoRequestDto dto) {
         try {
+            TipoDeEstadoModel tipo = tipoDeEstadoService.getById(dto.getTipoDeEstadoId());
+            Estado estado = new Estado();
+            estado.setNombre(dto.getNombre());
+            estado.setDescripcion(dto.getDescripcion());
+            estado.setTipoDeEstado(tipo);
             return ResponseEntity.ok(estadoService.update(id, estado));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

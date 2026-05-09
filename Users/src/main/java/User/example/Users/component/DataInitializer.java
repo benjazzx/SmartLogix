@@ -4,12 +4,14 @@ import User.example.Users.dto.UserRequestDto;
 import User.example.Users.model.*;
 import User.example.Users.repository.*;
 import User.example.Users.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Slf4j
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -34,7 +36,7 @@ public class DataInitializer implements CommandLineRunner {
             new RegionModel(null, "Región de Valparaíso"),
             new RegionModel(null, "Región del Biobío")
         ));
-        System.out.println("[DataInitializer] Regiones insertadas.");
+        log.info("[DataInitializer] Regiones insertadas.");
     }
 
     private void seedComunas() {
@@ -47,7 +49,7 @@ public class DataInitializer implements CommandLineRunner {
             new ComunaModel(null, "Las Condes",  rm),
             new ComunaModel(null, "Viña del Mar", valpo)
         ));
-        System.out.println("[DataInitializer] Comunas insertadas.");
+        log.info("[DataInitializer] Comunas insertadas.");
     }
 
     private void seedDirecciones() {
@@ -60,10 +62,24 @@ public class DataInitializer implements CommandLineRunner {
             new DireccionModel(null, "Av. Providencia",                  "2345", "7500000", providencia),
             new DireccionModel(null, "Av. Apoquindo",                    "6500", "7550000", lasCondes)
         ));
-        System.out.println("[DataInitializer] Direcciones insertadas.");
+        log.info("[DataInitializer] Direcciones insertadas.");
+    }
+
+    private void corregirRolExistente(String correo, String rolNombre) {
+        userRepository.findByCorreo(correo).ifPresent(user -> {
+            if (!rolNombre.equals(user.getRolNombre())) {
+                user.setRolNombre(rolNombre);
+                user.setActivo(true);
+                userRepository.save(user);
+                log.info("[DataInitializer] Rol corregido: {} -> {}", correo, rolNombre);
+            }
+        });
     }
 
     private void seedUsuarios() {
+        corregirRolExistente("admin@smartlogix.cl",         "admin");
+        corregirRolExistente("bodeguero@smartlogix.cl",     "bodeguero");
+        corregirRolExistente("transportista@smartlogix.cl", "transportista");
         if (userRepository.count() > 0) return;
 
         List<DireccionModel> dirs = direccionRepository.findAll();
@@ -95,6 +111,6 @@ public class DataInitializer implements CommandLineRunner {
         for (UserRequestDto dto : List.of(admin, bodeguero, transportista, cliente)) {
             userService.createUser(dto);
         }
-        System.out.println("[DataInitializer] Usuarios insertados y eventos user-created-topic publicados.");
+        log.info("[DataInitializer] Usuarios insertados y eventos user-created-topic publicados.");
     }
 }

@@ -3,6 +3,7 @@ package Estado.example.Estado.Component;
 import java.util.Arrays;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,7 @@ import Estado.example.Estado.Model.TipoDeEstadoModel;
 import Estado.example.Estado.Repository.EstadoRepository;
 import Estado.example.Estado.Repository.TipoDeEstadoRepository;
 
+@Slf4j
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -63,7 +65,7 @@ public class DataInitializer implements CommandLineRunner {
             );
             estadoRepository.saveAll(estados);
 
-            System.out.println("Tipos de estado y estados iniciales insertados en la base de datos.");
+            log.info("[DataInitializer] Tipos de estado y estados iniciales insertados.");
         }
     }
 }

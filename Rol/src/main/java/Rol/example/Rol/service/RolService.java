@@ -3,21 +3,19 @@ package Rol.example.Rol.service;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import Rol.example.Rol.messaging.RoleEventProcessor;
+import lombok.RequiredArgsConstructor;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.repository.RolRepository;
 
 @Service
+@RequiredArgsConstructor
 public class RolService {
 
-    @Autowired
-    private RolRepository rolRepository;
-
-    @Autowired
-    private RoleEventProcessor roleEventProcessor;
+    private final RolRepository rolRepository;
+    private final RoleEventProcessor roleEventProcessor;
 
     public List<RolModel> getAllRoles() {
         return rolRepository.findAll();
@@ -67,24 +65,21 @@ public class RolService {
         return rol;
     }
 
-    // Regla de negocio: determina el rol según el dominio del email.
-    // @smartb.cl → bodeguero | @smartt.cl → transportista
-    // @smartadmin.cl o @admin.smart.cl → admin | cualquier otro → cliente
     private String determineRoleName(String email) {
-        if (email == null || !email.contains("@")) {
-            return "cliente";
+        if (email == null || !email.contains("@")) return "cliente";
+        String localPart = email.substring(0, email.indexOf("@")).toLowerCase();
+        String domain    = email.substring(email.indexOf("@") + 1).toLowerCase();
+        if (domain.equals("smartb.cl")) return "bodeguero";
+        if (domain.equals("smartt.cl")) return "transportista";
+        if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) return "admin";
+        if (domain.equals("smartlogix.cl")) {
+            return switch (localPart) {
+                case "admin"         -> "admin";
+                case "bodeguero"     -> "bodeguero";
+                case "transportista" -> "transportista";
+                default              -> "cliente";
+            };
         }
-
-        String domain = email.substring(email.indexOf("@") + 1).toLowerCase();
-
-        if (domain.equals("smartb.cl")) {
-            return "bodeguero";
-        } else if (domain.equals("smartt.cl")) {
-            return "transportista";
-        } else if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) {
-            return "admin";
-        } else {
-            return "cliente";
-        }
+        return "cliente";
     }
 }

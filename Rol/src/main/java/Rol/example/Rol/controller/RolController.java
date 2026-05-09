@@ -3,8 +3,8 @@ package Rol.example.Rol.controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,20 +23,19 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import Rol.example.Rol.client.UsersClient;
+import Rol.example.Rol.dto.RolRequestDto;
 import Rol.example.Rol.dto.UserDto;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
 
 @RestController
 @RequestMapping("/api/roles")
+@RequiredArgsConstructor
 @Tag(name = "Roles", description = "Gestión de roles de usuario en SmartLogix")
 public class RolController {
 
-    @Autowired
-    private RolService rolService;
-
-    @Autowired
-    private UsersClient usersClient;
+    private final RolService rolService;
+    private final UsersClient usersClient;
 
     @Operation(summary = "Listar todos los roles")
     @ApiResponse(responseCode = "200", description = "Lista de roles obtenida correctamente")
@@ -83,7 +82,10 @@ public class RolController {
     @Operation(summary = "Crear nuevo rol")
     @ApiResponse(responseCode = "200", description = "Rol creado correctamente")
     @PostMapping
-    public RolModel createRol(@RequestBody RolModel rol) {
+    public RolModel createRol(@RequestBody RolRequestDto dto) {
+        RolModel rol = new RolModel();
+        rol.setNombre(dto.getNombre());
+        rol.setDescripcion(dto.getDescripcion());
         return rolService.createRol(rol);
     }
 
@@ -93,8 +95,11 @@ public class RolController {
         @ApiResponse(responseCode = "404", description = "Rol no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<RolModel> updateRol(@PathVariable UUID id, @RequestBody RolModel rol) {
+    public ResponseEntity<RolModel> updateRol(@PathVariable UUID id, @RequestBody RolRequestDto dto) {
         try {
+            RolModel rol = new RolModel();
+            rol.setNombre(dto.getNombre());
+            rol.setDescripcion(dto.getDescripcion());
             return ResponseEntity.ok(rolService.updateRol(id, rol));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

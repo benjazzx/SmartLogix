@@ -5,6 +5,7 @@ import Orden.example.Orden.model.HistorialModel;
 import Orden.example.Orden.model.OrdenModel;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -43,12 +44,16 @@ public class OrdenResponseDto {
     public static class DetalleDto {
         private Long id;
         private UUID productoId;
+        private String productoNombre;
+        private BigDecimal precioUnitario;
         private Integer cantidad;
 
         public static DetalleDto from(DetalleOrdenModel d) {
             DetalleDto dto = new DetalleDto();
             dto.setId(d.getId());
             dto.setProductoId(d.getProductoId());
+            dto.setProductoNombre(d.getProductoNombre());
+            dto.setPrecioUnitario(d.getPrecioUnitario());
             dto.setCantidad(d.getCantidad());
             return dto;
         }

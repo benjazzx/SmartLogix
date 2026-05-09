@@ -3,8 +3,8 @@ package Rol.example.Rol.service;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import Rol.example.Rol.model.PrivilegioModel;
 import Rol.example.Rol.model.TipoModel;
@@ -12,13 +12,11 @@ import Rol.example.Rol.repository.PrivilegioRepository;
 import Rol.example.Rol.repository.TipoRepository;
 
 @Service
+@RequiredArgsConstructor
 public class PrivilegioService {
 
-    @Autowired
-    private PrivilegioRepository privilegioRepository;
-
-    @Autowired
-    private TipoRepository tipoRepository;
+    private final PrivilegioRepository privilegioRepository;
+    private final TipoRepository tipoRepository;
 
     public List<PrivilegioModel> getAllPrivilegios() {
         return privilegioRepository.findAll();

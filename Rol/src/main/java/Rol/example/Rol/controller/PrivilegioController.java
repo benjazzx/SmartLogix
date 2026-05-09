@@ -3,8 +3,8 @@ package Rol.example.Rol.controller;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,16 +13,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import Rol.example.Rol.dto.PrivilegioRequestDto;
 import Rol.example.Rol.model.PrivilegioModel;
+import Rol.example.Rol.model.TipoModel;
 import Rol.example.Rol.service.PrivilegioService;
 
 @RestController
 @RequestMapping("/api/privilegios")
+@RequiredArgsConstructor
 @Tag(name = "Privilegios", description = "Acciones específicas que puede realizar un rol en el sistema")
 public class PrivilegioController {
 
-    @Autowired
-    private PrivilegioService privilegioService;
+    private final PrivilegioService privilegioService;
 
     @Operation(summary = "Listar todos los privilegios")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
@@ -63,8 +65,14 @@ public class PrivilegioController {
         @ApiResponse(responseCode = "400", description = "Nombre duplicado o tipo inválido")
     })
     @PostMapping
-    public ResponseEntity<PrivilegioModel> createPrivilegio(@RequestBody PrivilegioModel privilegio) {
+    public ResponseEntity<PrivilegioModel> createPrivilegio(@RequestBody PrivilegioRequestDto dto) {
         try {
+            PrivilegioModel privilegio = new PrivilegioModel();
+            privilegio.setNombre(dto.getNombre());
+            privilegio.setDescripcion(dto.getDescripcion());
+            TipoModel tipo = new TipoModel();
+            tipo.setId(dto.getTipoId());
+            privilegio.setTipo(tipo);
             return ResponseEntity.ok(privilegioService.createPrivilegio(privilegio));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -77,8 +85,14 @@ public class PrivilegioController {
         @ApiResponse(responseCode = "404", description = "Privilegio no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<PrivilegioModel> updatePrivilegio(@PathVariable UUID id, @RequestBody PrivilegioModel privilegio) {
+    public ResponseEntity<PrivilegioModel> updatePrivilegio(@PathVariable UUID id, @RequestBody PrivilegioRequestDto dto) {
         try {
+            PrivilegioModel privilegio = new PrivilegioModel();
+            privilegio.setNombre(dto.getNombre());
+            privilegio.setDescripcion(dto.getDescripcion());
+            TipoModel tipo = new TipoModel();
+            tipo.setId(dto.getTipoId());
+            privilegio.setTipo(tipo);
             return ResponseEntity.ok(privilegioService.updatePrivilegio(id, privilegio));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

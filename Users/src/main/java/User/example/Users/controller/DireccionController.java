@@ -1,12 +1,15 @@
 package User.example.Users.controller;
 
+import User.example.Users.dto.DireccionRequestDto;
+import User.example.Users.model.ComunaModel;
 import User.example.Users.model.DireccionModel;
+import User.example.Users.repository.ComunaRepository;
 import User.example.Users.repository.DireccionRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,11 +18,12 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/direcciones")
+@RequiredArgsConstructor
 @Tag(name = "Direcciones", description = "Consulta de direcciones disponibles para asignar a usuarios")
 public class DireccionController {
 
-    @Autowired
-    private DireccionRepository direccionRepository;
+    private final DireccionRepository direccionRepository;
+    private final ComunaRepository comunaRepository;
 
     @Operation(summary = "Listar todas las direcciones")
     @GetMapping
@@ -37,7 +41,14 @@ public class DireccionController {
 
     @Operation(summary = "Crear nueva dirección")
     @PostMapping
-    public DireccionModel create(@RequestBody DireccionModel direccion) {
+    public DireccionModel create(@RequestBody DireccionRequestDto dto) {
+        ComunaModel comuna = comunaRepository.findById(dto.getComunaId())
+                .orElseThrow(() -> new RuntimeException("Comuna no encontrada: " + dto.getComunaId()));
+        DireccionModel direccion = new DireccionModel();
+        direccion.setCalle(dto.getCalle());
+        direccion.setNumero(dto.getNumero());
+        direccion.setCodigoPostal(dto.getCodigoPostal());
+        direccion.setComuna(comuna);
         return direccionRepository.save(direccion);
     }
 }

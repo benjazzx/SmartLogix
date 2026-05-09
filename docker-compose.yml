@@ -1,3 +1,5 @@
+name: SmartLogix
+
 services:
 
   # ─── INFRAESTRUCTURA ────────────────────────────────────────────────────────
@@ -74,6 +76,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
@@ -105,6 +108,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
         condition: service_healthy
@@ -117,8 +121,9 @@ services:
       retries: 8
       start_period: 60s
 
-  # Inventario: gestión de stock en tiempo real (en desarrollo).
-  # Consume: orden-creada-topic para descontar stock automáticamente.
+  # Inventario: gestión de stock en tiempo real.
+  # Consume: orden-creada-topic, producto-actualizado-topic
+  # Llama sincrónicamente a Producto (validar existencia) con Circuit Breaker.
   inventario-service:
     build:
       context: ./Inventario
@@ -132,8 +137,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Inventario
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
+      USERS_SERVICE_URL: http://users-service:8082
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
+        condition: service_healthy
+      producto-service:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -144,7 +154,8 @@ services:
       retries: 8
       start_period: 60s
 
-  # Producto: catálogo de productos del eCommerce (en desarrollo).
+  # Producto: catálogo de productos del eCommerce.
+  # Produce: producto-actualizado-topic
   producto-service:
     build:
       context: ./Producto
@@ -158,6 +169,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Producto
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      FOTO_STORAGE_PATH: /app/fotos
+    volumes:
+      - fotos-data:/app/fotos
     depends_on:
       kafka:
         condition: service_healthy
@@ -172,7 +187,7 @@ services:
 
   # Orden: ciclo de vida de pedidos con historial de estados.
   # Produce: orden-creada-topic, estado-orden-topic
-  # Llama sincrónicamente a Users (nombre) y Estado (validar estado) con Circuit Breaker.
+  # Llama sincrónicamente a Users, Estado y Producto con Circuit Breaker.
   orden-service:
     build:
       context: ./Orden
@@ -188,6 +203,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
       ESTADO_SERVICE_URL: http://estado-service:8082
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
       JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       kafka:
@@ -195,6 +211,8 @@ services:
       users-service:
         condition: service_healthy
       estado-service:
+        condition: service_healthy
+      producto-service:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -205,16 +223,20 @@ services:
       retries: 8
       start_period: 60s
 
-  # ─── API GATEWAY ────────────────────────────────────────────────────────────
-  # NGINX reverse proxy: enruta /api/* al microservicio correspondiente.
-  # También expone /auth/login y /auth/register públicamente.
-  api-gateway:
-    image: nginx:alpine
-    container_name: api-gateway
+  # ─── API GATEWAY / BFF ──────────────────────────────────────────────────────
+  # Spring Cloud Gateway: enruta /api/* y /auth/* al microservicio correcto.
+  # Valida JWT globalmente (excepto /auth/login y /auth/register).
+  # Circuit Breaker por ruta — fallback en /fallback/{servicio}.
+  gateway-service:
+    build:
+      context: ./Gateway
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    restart: on-failure
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - "80:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
     depends_on:
       rol-service:
         condition: service_healthy
@@ -228,3 +250,12 @@ services:
         condition: service_healthy
       estado-service:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+volumes:
+  fotos-data:

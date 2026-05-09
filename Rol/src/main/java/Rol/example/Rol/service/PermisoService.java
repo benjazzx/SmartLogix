@@ -3,9 +3,9 @@ package Rol.example.Rol.service;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import Rol.example.Rol.model.PermisoModel;
 import Rol.example.Rol.model.PrivilegioModel;
@@ -15,16 +15,12 @@ import Rol.example.Rol.repository.PrivilegioRepository;
 import Rol.example.Rol.repository.RolRepository;
 
 @Service
+@RequiredArgsConstructor
 public class PermisoService {
 
-    @Autowired
-    private PermisoRepository permisoRepository;
-
-    @Autowired
-    private RolRepository rolRepository;
-
-    @Autowired
-    private PrivilegioRepository privilegioRepository;
+    private final PermisoRepository permisoRepository;
+    private final RolRepository rolRepository;
+    private final PrivilegioRepository privilegioRepository;
 
     // Retorna todos los permisos del sistema
     public List<PermisoModel> getAllPermisos() {

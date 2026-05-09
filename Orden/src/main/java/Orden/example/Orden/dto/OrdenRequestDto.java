@@ -22,7 +22,7 @@ public class OrdenRequestDto {
 
     @Data
     public static class DetalleDto {
-        // Null hasta que exista microservicio Inventario
+        @NotNull
         private UUID productoId;
 
         @NotNull

@@ -93,10 +93,80 @@ public class RolServiceTest {
 
     @Test
     public void testFallbackToClienteIfRoleDatabaseMissing() {
-        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.empty()); 
-        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole)); 
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.empty());
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
 
         RolModel result = rolService.assignRoleByEmail("error@smartb.cl");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleEmailNull() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail(null);
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleEmailSinArroba() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail("correoSinArroba");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignAdminRoleByEmailAdminSmartCl() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleByEmail("jefe@admin.smart.cl");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+    }
+
+    @Test
+    public void testAssignAdminRoleSmartlogixDomain() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleByEmail("admin@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+    }
+
+    @Test
+    public void testAssignBodegueroRoleSmartlogixDomain() {
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleByEmail("bodeguero@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+    }
+
+    @Test
+    public void testAssignTransportistaRoleSmartlogixDomain() {
+        when(rolRepository.findByNombre("transportista")).thenReturn(Optional.of(transportistaRole));
+
+        RolModel result = rolService.assignRoleByEmail("transportista@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("transportista", result.getNombre());
+    }
+
+    @Test
+    public void testAssignClienteRoleSmartlogixDomainDefault() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail("otro@smartlogix.cl");
 
         assertNotNull(result);
         assertEquals("cliente", result.getNombre());

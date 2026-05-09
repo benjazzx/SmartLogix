@@ -1,6 +1,7 @@
 package Orden.example.Orden.service;
 
 import Orden.example.Orden.client.EstadoClient;
+import Orden.example.Orden.client.ProductoClient;
 import Orden.example.Orden.client.UsersClient;
 import Orden.example.Orden.dto.*;
 import Orden.example.Orden.model.DetalleOrdenModel;
@@ -25,6 +26,7 @@ public class OrdenService {
     @Autowired private HistorialRepository historialRepository;
     @Autowired private UsersClient usersClient;
     @Autowired private EstadoClient estadoClient;
+    @Autowired private ProductoClient productoClient;
     @Autowired private OrdenEventProducer eventProducer;
 
     @Transactional
@@ -43,9 +45,16 @@ public class OrdenService {
         orden.setEstadoActual("pendiente");
 
         List<DetalleOrdenModel> detalles = dto.getDetalles().stream().map(d -> {
+            var productoData = productoClient.getProducto(d.getProductoId());
+            if (productoData == null) {
+                throw new RuntimeException(
+                    "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
+            }
             DetalleOrdenModel det = new DetalleOrdenModel();
             det.setOrden(orden);
             det.setProductoId(d.getProductoId());
+            det.setProductoNombre(ProductoClient.extraerNombre(productoData));
+            det.setPrecioUnitario(ProductoClient.extraerPrecio(productoData));
             det.setCantidad(d.getCantidad());
             return det;
         }).collect(Collectors.toList());
@@ -55,8 +64,10 @@ public class OrdenService {
 
         OrdenCreadaEvent event = new OrdenCreadaEvent(
             saved.getId(), userId, nombre, dto.getDireccionId(), saved.getFechaOrden(),
-            dto.getDetalles().stream()
-                .map(d -> new OrdenCreadaEvent.DetalleDto(d.getProductoId(), d.getCantidad()))
+            saved.getDetalles().stream()
+                .map(d -> new OrdenCreadaEvent.DetalleDto(
+                        d.getProductoId(), d.getCantidad(),
+                        d.getProductoNombre(), d.getPrecioUnitario()))
                 .collect(Collectors.toList())
         );
         eventProducer.publishOrdenCreada(event);

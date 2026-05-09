@@ -19,9 +19,9 @@ public class UserEventConsumer {
     @Bean
     public Consumer<UserRegisteredEvent> userRegisteredConsumer() {
         return event -> {
-            log.info("[CONSUMER] user-created-topic → email={}", event.getEmail());
+            log.info("[Rol CONSUMER] user-created-topic → email={}", event.getEmail());
             RolModel rol = rolService.assignRoleByEmail(event.getEmail());
-            log.info("[PRODUCER] role-assigned-topic → rol={} para email={}", rol != null ? rol.getNombre() : "null", event.getEmail());
+            log.info("[Rol PRODUCER] role-assigned-topic → rol={} email={}", rol != null ? rol.getNombre() : "null", event.getEmail());
         };
     }
 }

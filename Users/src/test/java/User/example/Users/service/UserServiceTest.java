@@ -1,5 +1,9 @@
 package User.example.Users.service;
 
+import User.example.Users.client.EstadoClient;
+import User.example.Users.client.RolClient;
+import User.example.Users.dto.EstadoDto;
+import User.example.Users.dto.RolDto;
 import User.example.Users.dto.UserRequestDto;
 import User.example.Users.messaging.UserEventProducer;
 import User.example.Users.model.UserModel;
@@ -11,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,14 +38,17 @@ class UserServiceTest {
     @Mock private UserEventProducer eventProducer;
     @Mock private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
     @Mock private CircuitBreaker circuitBreaker;
+    @Mock private RolClient rolClient;
+    @Mock private EstadoClient estadoClient;
+    @Mock private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(circuitBreakerFactory.create(anyString())).thenReturn(circuitBreaker);
-        // El circuit breaker ejecuta directamente la lógica (sin abrir el circuito)
         when(circuitBreaker.run(any(Supplier.class), any(Function.class)))
             .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded_pass");
     }
 
     @Test
@@ -99,6 +107,16 @@ class UserServiceTest {
 
         when(userRepository.existsByCorreo(dto.getCorreo())).thenReturn(false);
         when(userRepository.existsByRut(dto.getRut())).thenReturn(false);
+
+        RolDto rolDto = new RolDto();
+        rolDto.setId(UUID.randomUUID());
+        rolDto.setNombre("cliente");
+        when(rolClient.getRolByNombre("cliente")).thenReturn(rolDto);
+
+        EstadoDto estadoDto = new EstadoDto();
+        estadoDto.setId(UUID.randomUUID());
+        estadoDto.setNombre("activo");
+        when(estadoClient.getEstadoByRol("cliente")).thenReturn(estadoDto);
 
         UserModel saved = new UserModel();
         saved.setId(UUID.randomUUID());
