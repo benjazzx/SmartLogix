@@ -142,4 +142,18 @@ public class ProductoService {
         ProductoModel saved = productoRepository.save(p);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.DESACTIVADO);
     }
+
+    @Transactional
+    public ProductoResponseDTO toggleActivo(UUID id) {
+        ProductoModel p = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+        p.setActivo(!p.getActivo());
+        p.setEstadoNombre(p.getActivo() ? "publicado" : "descontinuado");
+        ProductoModel saved = productoRepository.save(p);
+        ProductoActualizadoEvent.TipoEvento tipo = p.getActivo()
+                ? ProductoActualizadoEvent.TipoEvento.ACTUALIZADO
+                : ProductoActualizadoEvent.TipoEvento.DESACTIVADO;
+        eventProducer.publishProductoActualizado(saved, tipo);
+        return ProductoResponseDTO.from(saved);
+    }
 }

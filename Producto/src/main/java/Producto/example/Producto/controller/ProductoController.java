@@ -96,6 +96,12 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.decrementarStock(id, cantidad));
     }
 
+    @PatchMapping("/{id}/toggle-activo")
+    @Operation(summary = "Activar o desactivar producto")
+    public ResponseEntity<ProductoResponseDTO> toggleActivo(@PathVariable UUID id) {
+        return ResponseEntity.ok(productoService.toggleActivo(id));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Desactivar producto (soft delete)")
     public ResponseEntity<Void> desactivar(@PathVariable UUID id) {
