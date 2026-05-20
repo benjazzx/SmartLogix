@@ -1,6 +1,7 @@
 package Gateway.example.Gateway.config;
 
 import Gateway.example.Gateway.filter.JwtAuthFilter;
+import Gateway.example.Gateway.filter.LoginRateLimitFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -48,7 +49,8 @@ public class SecurityConfig {
             .httpBasic(basic -> basic.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .addFilterBefore(new LoginRateLimitFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

@@ -76,7 +76,7 @@ spring:
 
             # ── Estado ───────────────────────────────────────────────────────────
             - id: estado-service
-              uri: http://estado-service:8082
+              uri: http://estado-service:8086
               predicates:
                 - Path=/api/estados/**
               filters:
@@ -86,7 +86,7 @@ spring:
                     fallbackUri: forward:/fallback/estado
 
             - id: tipos-estado-service
-              uri: http://estado-service:8082
+              uri: http://estado-service:8086
               predicates:
                 - Path=/api/tipos-estado/**
               filters:
@@ -145,12 +145,29 @@ jwt:
   secret: ${JWT_SECRET:SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
 
 resilience4j:
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 15s
+    instances:
+      usersCircuitBreaker:
+        baseConfig: default
+      rolCircuitBreaker:
+        baseConfig: default
+      estadoCircuitBreaker:
+        baseConfig: default
+      inventarioCircuitBreaker:
+        baseConfig: default
+      ordenCircuitBreaker:
+        baseConfig: default
+      productoCircuitBreaker:
+        baseConfig: default
   circuitbreaker:
     configs:
       default:
         slidingWindowSize: 20
         minimumNumberOfCalls: 10
-        waitDurationInOpenState: 30s
+        waitDurationInOpenState: 10s
         failureRateThreshold: 60
         permittedNumberOfCallsInHalfOpenState: 5
         automaticTransitionFromOpenToHalfOpenEnabled: true
@@ -180,5 +197,5 @@ management:
 logging:
   level:
     org.springframework.cloud.gateway: INFO
-    org.springframework.security: DEBUG
-    Gateway.example: DEBUG
+    org.springframework.security: INFO
+    Gateway.example: INFO

@@ -15,6 +15,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -37,8 +39,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+                String rolNombre = claims.get("rolNombre", String.class);
+                List<GrantedAuthority> authorities = (rolNombre != null && !rolNombre.isBlank())
+                    ? List.of(new SimpleGrantedAuthority("ROLE_" + rolNombre))
+                    : List.of();
                 UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(claims.getSubject(), null, List.of());
+                    new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException ignored) {
                 // Spring Security rechazará la petición si no hay autenticación
