@@ -171,4 +171,59 @@ public class RolServiceTest {
         assertNotNull(result);
         assertEquals("cliente", result.getNombre());
     }
+
+    // ── assignRoleFromEvent ──────────────────────────────────────────────────────
+
+    @Test
+    public void testAssignRoleFromEvent_rolNombreEspecificado_usaRolDelEvento() {
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleFromEvent("juan@gmail.com", "bodeguero");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+        verify(roleEventProcessor).publishRoleAssigned("juan@gmail.com", bodegueroRole.getId(), "bodeguero");
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_rolNombreNulo_usaLogicaDominio() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleFromEvent("usuario@gmail.com", null);
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_rolNombreVacio_usaLogicaDominio() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleFromEvent("usuario@gmail.com", "   ");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_rolNoExisteEnBD_fallbackLogicaDominio() {
+        when(rolRepository.findByNombre("rolInexistente")).thenReturn(Optional.empty());
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleFromEvent("empleado@smartb.cl", "rolInexistente");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_adminEspecificadoExplicitamente() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleFromEvent("nuevo@gmail.com", "admin");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+        verify(roleEventProcessor).publishRoleAssigned("nuevo@gmail.com", adminRole.getId(), "admin");
+    }
 }

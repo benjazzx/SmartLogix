@@ -72,11 +72,11 @@ public class RolController {
     }
 
     public ResponseEntity<RolModel> fallbackAssignRole(String email, Throwable exception) {
-        RolModel fallbackRol = new RolModel();
-        fallbackRol.setId(UUID.randomUUID());
-        fallbackRol.setNombre("cliente_temporal_por_falla");
-        fallbackRol.setDescripcion("Rol de emergencia asignado automáticamente al caer el servicio principal.");
-        return ResponseEntity.ok(fallbackRol);
+        RolModel clienteRol = rolService.getRolByNombre("cliente");
+        if (clienteRol != null) {
+            return ResponseEntity.ok(clienteRol);
+        }
+        return ResponseEntity.status(503).build();
     }
 
     @Operation(summary = "Crear nuevo rol")

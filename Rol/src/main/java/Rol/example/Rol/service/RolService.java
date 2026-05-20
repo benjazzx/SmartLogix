@@ -14,6 +14,11 @@ import Rol.example.Rol.repository.RolRepository;
 @RequiredArgsConstructor
 public class RolService {
 
+    private static final String ROL_ADMIN         = "admin";
+    private static final String ROL_BODEGUERO     = "bodeguero";
+    private static final String ROL_TRANSPORTISTA = "transportista";
+    private static final String ROL_CLIENTE       = "cliente";
+
     private final RolRepository rolRepository;
     private final RoleEventProcessor roleEventProcessor;
 
@@ -49,37 +54,43 @@ public class RolService {
     public RolModel assignRoleByEmail(String email) {
         String roleName = determineRoleName(email);
         RolModel rol = getRolByNombre(roleName);
-
         if (rol == null) {
-            rol = getRolByNombre("cliente");
+            rol = getRolByNombre(ROL_CLIENTE);
         }
-
-        // Arquitectura orientada a eventos: en lugar de llamar directamente al microservicio Users
-        // (lo que crearía acoplamiento fuerte), publicamos un evento en Kafka.
-        // Kafka actúa como intermediario: Rol no sabe ni le importa quién consume este mensaje.
-        // Users escucha el tópico "role-assigned-topic" y actualiza el campo id_rol del usuario.
         if (rol != null) {
             roleEventProcessor.publishRoleAssigned(email, rol.getId(), rol.getNombre());
         }
+        return rol;
+    }
 
+    /**
+     * Asigna directamente el rol indicado en el evento (respeta lo que el admin especificó).
+     * Solo cae a lógica por dominio de email si rolNombre es nulo o no existe en BD.
+     */
+    public RolModel assignRoleFromEvent(String email, String rolNombre) {
+        RolModel rol = (rolNombre != null && !rolNombre.isBlank()) ? getRolByNombre(rolNombre) : null;
+        if (rol == null) {
+            return assignRoleByEmail(email);
+        }
+        roleEventProcessor.publishRoleAssigned(email, rol.getId(), rol.getNombre());
         return rol;
     }
 
     private String determineRoleName(String email) {
-        if (email == null || !email.contains("@")) return "cliente";
+        if (email == null || !email.contains("@")) return ROL_CLIENTE;
         String localPart = email.substring(0, email.indexOf("@")).toLowerCase();
         String domain    = email.substring(email.indexOf("@") + 1).toLowerCase();
-        if (domain.equals("smartb.cl")) return "bodeguero";
-        if (domain.equals("smartt.cl")) return "transportista";
-        if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) return "admin";
+        if (domain.equals("smartb.cl")) return ROL_BODEGUERO;
+        if (domain.equals("smartt.cl")) return ROL_TRANSPORTISTA;
+        if (domain.equals("smartadmin.cl") || domain.equals("admin.smart.cl")) return ROL_ADMIN;
         if (domain.equals("smartlogix.cl")) {
             return switch (localPart) {
-                case "admin"         -> "admin";
-                case "bodeguero"     -> "bodeguero";
-                case "transportista" -> "transportista";
-                default              -> "cliente";
+                case ROL_ADMIN         -> ROL_ADMIN;
+                case ROL_BODEGUERO     -> ROL_BODEGUERO;
+                case ROL_TRANSPORTISTA -> ROL_TRANSPORTISTA;
+                default                -> ROL_CLIENTE;
             };
         }
-        return "cliente";
+        return ROL_CLIENTE;
     }
 }

@@ -34,8 +34,11 @@ import Rol.example.Rol.dto.RolRequestDto;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
 
+@SuppressWarnings("java:S100")
 @ExtendWith(MockitoExtension.class)
 public class RolControllerTest {
+
+    private static final String ROL_CLIENTE = "cliente";
 
     @Mock
     private RolService rolService;
@@ -105,14 +108,26 @@ public class RolControllerTest {
     }
 
     @Test
-    void testFallbackAssignRole_retornaRolTemporal() {
+    void testFallbackAssignRole_retornaRolCliente() {
+        RolModel clienteRol = new RolModel(UUID.randomUUID(), ROL_CLIENTE, "Usuario final");
+        when(rolService.getRolByNombre(ROL_CLIENTE)).thenReturn(clienteRol);
+
         RolModel fallback = rolController
                 .fallbackAssignRole("user@test.cl", new RuntimeException("falla"))
                 .getBody();
 
         assertNotNull(fallback);
-        assertEquals("cliente_temporal_por_falla", fallback.getNombre());
+        assertEquals(ROL_CLIENTE, fallback.getNombre());
         assertNotNull(fallback.getId());
+    }
+
+    @Test
+    void testFallbackAssignRole_rolNoExisteEnBD_retorna503() {
+        when(rolService.getRolByNombre(ROL_CLIENTE)).thenReturn(null);
+
+        var resp = rolController.fallbackAssignRole("user@test.cl", new RuntimeException("falla"));
+
+        assertEquals(503, resp.getStatusCode().value());
     }
 
     @Test
