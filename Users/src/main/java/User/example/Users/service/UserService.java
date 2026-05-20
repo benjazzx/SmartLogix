@@ -160,8 +160,10 @@ public class UserService {
         UserModel user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + userId));
 
-        // Validar vía HTTP que el rol existe en el microservicio Rol
         RolDto rol = rolClient.getRolById(rolId);
+        if (rol == null) {
+            throw new RuntimeException("Rol no encontrado: " + rolId);
+        }
         user.setRolId(rolId);
         user.setRolNombre(rol.getNombre());
         return userRepository.save(user);
@@ -179,6 +181,15 @@ public class UserService {
     }
 
     // Llamado desde el consumer de Kafka cuando Estado publica un evento de asignación
+    @Transactional
+    public UserModel toggleActivo(UUID id) {
+        UserModel user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
+        user.setActivo(!user.getActivo());
+        user.setEstadoNombre(user.getActivo() ? "activo" : "inactivo");
+        return userRepository.save(user);
+    }
+
     @Transactional
     public void actualizarEstadoPorCorreo(String correo, UUID estadoId, String estadoNombre) {
         userRepository.findByCorreo(correo).ifPresent(user -> {

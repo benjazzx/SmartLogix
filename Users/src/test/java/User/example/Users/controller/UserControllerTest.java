@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -150,5 +151,132 @@ class UserControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.nombre").value("Nuevo Nombre"));
+    }
+
+    @Test
+    void updateUser_noExistente_debeRetornar404() throws Exception {
+        UUID id = UUID.randomUUID();
+        UserRequestDto dto = new UserRequestDto();
+        dto.setNombre("NoExiste");
+
+        when(userService.updateUser(eq(id), any())).thenThrow(new RuntimeException("no encontrado"));
+
+        mockMvc.perform(put("/api/users/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+               .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getUserByCorreo_existente_debeRetornar200() throws Exception {
+        UserModel user = new UserModel();
+        user.setId(UUID.randomUUID());
+        user.setCorreo("test@smart.cl");
+        user.setNombre("Ana");
+
+        when(userService.getUserByCorreo("test@smart.cl")).thenReturn(user);
+
+        mockMvc.perform(get("/api/users/correo/test@smart.cl"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.nombre").value("Ana"));
+    }
+
+    @Test
+    void getUserByCorreo_noExistente_debeRetornar404() throws Exception {
+        when(userService.getUserByCorreo("nope@smart.cl"))
+                .thenThrow(new RuntimeException("no encontrado"));
+
+        mockMvc.perform(get("/api/users/correo/nope@smart.cl"))
+               .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getUsersByRol_retornaLista() throws Exception {
+        UUID rolId = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(UUID.randomUUID());
+        user.setNombre("Bodeguero");
+
+        when(userService.getUsersByRol(rolId)).thenReturn(List.of(user));
+
+        mockMvc.perform(get("/api/users/por-rol/" + rolId))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$[0].nombre").value("Bodeguero"));
+    }
+
+    @Test
+    void getUsersByEstado_retornaLista() throws Exception {
+        UUID estadoId = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(UUID.randomUUID());
+        user.setNombre("Activo");
+
+        when(userService.getUsersByEstado(estadoId)).thenReturn(List.of(user));
+
+        mockMvc.perform(get("/api/users/por-estado/" + estadoId))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$[0].nombre").value("Activo"));
+    }
+
+    @Test
+    void toggleActivo_existente_debeRetornar200() throws Exception {
+        UUID id = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(id);
+        user.setNombre("Pedro");
+        user.setActivo(false);
+
+        when(userService.toggleActivo(id)).thenReturn(user);
+
+        mockMvc.perform(patch("/api/users/" + id + "/toggle-activo"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.nombre").value("Pedro"));
+    }
+
+    @Test
+    void toggleActivo_noExistente_debeRetornar404() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(userService.toggleActivo(id)).thenThrow(new RuntimeException("no encontrado"));
+
+        mockMvc.perform(patch("/api/users/" + id + "/toggle-activo"))
+               .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void asignarRol_valido_debeRetornar200() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID rolId = UUID.randomUUID();
+
+        UserModel user = new UserModel();
+        user.setId(id);
+        user.setNombre("Luis");
+        user.setRolId(rolId);
+        user.setRolNombre("bodeguero");
+
+        when(userService.asignarRol(id, rolId, "bodeguero")).thenReturn(user);
+
+        Map<String, String> body = Map.of("rolId", rolId.toString(), "rolNombre", "bodeguero");
+
+        mockMvc.perform(post("/api/users/" + id + "/asignar-rol")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.rolNombre").value("bodeguero"));
+    }
+
+    @Test
+    void asignarRol_usuarioNoExistente_debeRetornar404() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID rolId = UUID.randomUUID();
+
+        when(userService.asignarRol(any(), any(), any()))
+                .thenThrow(new RuntimeException("usuario no encontrado"));
+
+        Map<String, String> body = Map.of("rolId", rolId.toString(), "rolNombre", "admin");
+
+        mockMvc.perform(post("/api/users/" + id + "/asignar-rol")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isNotFound());
     }
 }

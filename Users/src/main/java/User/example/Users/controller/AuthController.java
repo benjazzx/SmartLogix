@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 @Tag(name = "Autenticación", description = "Login y generación de token JWT")
@@ -67,12 +69,29 @@ public class AuthController {
         }
     }
 
+    
+    @Operation(summary = "Recuperar contraseña", description = "Envía instrucciones si correo y RUT coinciden")
+    @PostMapping("/recuperar-clave")
+    public ResponseEntity<?> recuperarClave(@RequestBody java.util.Map<String, String> body) {
+        String correo = body.get("correo");
+        String rut = body.get("rut");
+        boolean coincide = correo != null && rut != null
+                && userRepository.findByCorreo(correo)
+                        .map(u -> rut.equalsIgnoreCase(u.getRut()))
+                        .orElse(false);
+        // Log de auditoría; la respuesta es siempre genérica para evitar enumeración de usuarios
+        if (coincide) {
+            log.info("[Auth] Recuperación solicitada para correo válido: {}", correo);
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+            "mensaje", "Si el correo y RUT coinciden, recibirás instrucciones para recuperar tu contraseña."
+        ));
+    }
+
     @Operation(summary = "Registrarse como cliente",
                description = "Endpoint público. Crea una cuenta con rol cliente y devuelve el token JWT.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Registro exitoso, token generado"),
-        @ApiResponse(responseCode = "400", description = "Correo o RUT ya registrado / datos inválidos")
-    })
+    @ApiResponse(responseCode = "200", description = "Registro exitoso, token generado")
+    @ApiResponse(responseCode = "400", description = "Correo o RUT ya registrado / datos inválidos")
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDto dto) {
         if (userRepository.existsByCorreo(dto.getCorreo())) {

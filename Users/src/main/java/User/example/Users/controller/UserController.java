@@ -131,6 +131,16 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Activar o desactivar usuario")
+    @PatchMapping("/{id}/toggle-activo")
+    public ResponseEntity<UserResponseDto> toggleActivo(@PathVariable UUID id) {
+        try {
+            return ResponseEntity.ok(UserResponseDto.from(userService.toggleActivo(id)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @Operation(summary = "Asignar rol a un usuario")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Rol asignado correctamente"),
