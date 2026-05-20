@@ -1,6 +1,7 @@
 package Inventario.example.Inventario.messaging;
 
 import Inventario.example.Inventario.client.ProductoClient;
+import Inventario.example.Inventario.dto.OrdenCreadaEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -18,7 +19,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("java:S100")
 class InventarioEventConsumerTest {
+
+    private static final String NOMBRE_PRODUCTO = "Producto Test";
+    private static final String NOMBRE_USUARIO  = "Test User";
+    private static final String KEY_PRODUCTO_ID = "productoId";
 
     @InjectMocks
     private InventarioEventConsumer inventarioEventConsumer;
@@ -31,23 +37,18 @@ class InventarioEventConsumerTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    // ── onOrdenCreada ────────────────────────────────────────────────────────────
+
     @Test
     void onOrdenCreada_conDetalles_procesaProductosExistentes() {
         UUID productoId = UUID.randomUUID();
+        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 3, NOMBRE_PRODUCTO, null);
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
-        Map<String, Object> detalle = new HashMap<>();
-        detalle.put("productoId", productoId.toString());
-        detalle.put("cantidad", "3");
+        when(productoClient.existeProducto(productoId)).thenReturn(true);
+        when(productoClient.decrementarStock(productoId, 3)).thenReturn(true);
 
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("ordenId", "orden-123");
-        evento.put("userId", "user-456");
-        evento.put("detalles", List.of(detalle));
-
-        when(productoClient.existeProducto(any(UUID.class))).thenReturn(true);
-        when(productoClient.decrementarStock(any(UUID.class), anyInt())).thenReturn(true);
-
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient).existeProducto(productoId);
@@ -57,18 +58,12 @@ class InventarioEventConsumerTest {
     @Test
     void onOrdenCreada_productoNoExiste_noDecrementaStock() {
         UUID productoId = UUID.randomUUID();
+        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 2, NOMBRE_PRODUCTO, null);
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
-        Map<String, Object> detalle = new HashMap<>();
-        detalle.put("productoId", productoId.toString());
-        detalle.put("cantidad", "2");
+        when(productoClient.existeProducto(productoId)).thenReturn(false);
 
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("ordenId", "orden-123");
-        evento.put("detalles", List.of(detalle));
-
-        when(productoClient.existeProducto(any(UUID.class))).thenReturn(false);
-
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient).existeProducto(productoId);
@@ -78,35 +73,24 @@ class InventarioEventConsumerTest {
     @Test
     void onOrdenCreada_stockDecrementoFalla_registraAdvertencia() {
         UUID productoId = UUID.randomUUID();
+        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 5, NOMBRE_PRODUCTO, null);
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
-        Map<String, Object> detalle = new HashMap<>();
-        detalle.put("productoId", productoId.toString());
-        detalle.put("cantidad", "5");
+        when(productoClient.existeProducto(productoId)).thenReturn(true);
+        when(productoClient.decrementarStock(productoId, 5)).thenReturn(false);
 
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("ordenId", "orden-789");
-        evento.put("detalles", List.of(detalle));
-
-        when(productoClient.existeProducto(any(UUID.class))).thenReturn(true);
-        when(productoClient.decrementarStock(any(UUID.class), anyInt())).thenReturn(false);
-
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient).decrementarStock(productoId, 5);
     }
 
     @Test
-    void onOrdenCreada_detalleConCamposNulos_ignoraItem() {
-        Map<String, Object> detalleSinProducto = new HashMap<>();
-        detalleSinProducto.put("productoId", null);
-        detalleSinProducto.put("cantidad", "1");
+    void onOrdenCreada_detalleConProductoIdNulo_ignoraItem() {
+        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(null, 1, null, null);
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("ordenId", "orden-null");
-        evento.put("detalles", List.of(detalleSinProducto));
-
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient, never()).existeProducto(any());
@@ -114,11 +98,9 @@ class InventarioEventConsumerTest {
 
     @Test
     void onOrdenCreada_sinDetalles_noInteractua() {
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("ordenId", "orden-sin-detalles");
-        evento.put("detalles", List.of());
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of());
 
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient, never()).existeProducto(any());
@@ -126,33 +108,33 @@ class InventarioEventConsumerTest {
 
     @Test
     void onOrdenCreada_detallesNulo_noFalla() {
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("ordenId", "orden-nula");
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, null);
 
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient, never()).existeProducto(any());
     }
 
     @Test
-    void onOrdenCreada_excepcionInterna_noPropaга() {
-        Map<String, Object> detalle = new HashMap<>();
-        detalle.put("productoId", "uuid-invalido");
-        detalle.put("cantidad", "1");
+    void onOrdenCreada_excepcionEnCliente_noPropaga() {
+        UUID productoId = UUID.randomUUID();
+        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 1, NOMBRE_PRODUCTO, null);
+        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
-        Map<String, Object> evento = new HashMap<>();
-        evento.put("detalles", List.of(detalle));
+        when(productoClient.existeProducto(any(UUID.class))).thenThrow(new RuntimeException("Error de red"));
 
-        Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onOrdenCreada();
+        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         assertDoesNotThrow(() -> consumer.accept(evento));
     }
+
+    // ── onProductoActualizado ────────────────────────────────────────────────────
 
     @Test
     void onProductoActualizado_eventoStockCambiado_procesaCorrectamente() {
         Map<String, Object> evento = new HashMap<>();
-        evento.put("productoId", "prod-123");
-        evento.put("nombre", "Producto Test");
+        evento.put(KEY_PRODUCTO_ID, "prod-123");
+        evento.put("nombre", NOMBRE_PRODUCTO);
         evento.put("stock", 50);
         evento.put("estadoNombre", "activo");
         evento.put("tipoEvento", "STOCK_CAMBIADO");
@@ -164,7 +146,7 @@ class InventarioEventConsumerTest {
     @Test
     void onProductoActualizado_eventoDesactivado_procesaCorrectamente() {
         Map<String, Object> evento = new HashMap<>();
-        evento.put("productoId", "prod-456");
+        evento.put(KEY_PRODUCTO_ID, "prod-456");
         evento.put("nombre", "Producto Desactivado");
         evento.put("stock", 0);
         evento.put("estadoNombre", "inactivo");
@@ -177,7 +159,7 @@ class InventarioEventConsumerTest {
     @Test
     void onProductoActualizado_otroTipoEvento_procesaSinAccionEspecial() {
         Map<String, Object> evento = new HashMap<>();
-        evento.put("productoId", "prod-789");
+        evento.put(KEY_PRODUCTO_ID, "prod-789");
         evento.put("tipoEvento", "PRECIO_CAMBIADO");
 
         Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onProductoActualizado();
@@ -185,7 +167,7 @@ class InventarioEventConsumerTest {
     }
 
     @Test
-    void onProductoActualizado_excepcionInterna_noPropaга() {
+    void onProductoActualizado_excepcionInterna_noPropaga() {
         Consumer<Map<String, Object>> consumer = inventarioEventConsumer.onProductoActualizado();
         assertDoesNotThrow(() -> consumer.accept(null));
     }

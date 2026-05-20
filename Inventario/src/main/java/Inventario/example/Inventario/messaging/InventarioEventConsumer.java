@@ -1,23 +1,15 @@
 package Inventario.example.Inventario.messaging;
 
 import Inventario.example.Inventario.client.ProductoClient;
+import Inventario.example.Inventario.dto.OrdenCreadaEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 
-/**
- * Consumidor Kafka orientado a eventos del ecosistema SmartLogix.
- *
- * Tópicos consumidos:
- *   - orden-creada-topic   → publicado por Orden cuando se crea una nueva orden
- *   - producto-actualizado-topic → publicado por Producto ante cambios de stock/precio/estado
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -25,50 +17,34 @@ public class InventarioEventConsumer {
 
     private final ProductoClient productoClient;
 
-    /**
-     * Consume eventos de órdenes creadas.
-     * Verifica existencia de cada producto vía ProductoClient (Circuit Breaker).
-     * Binding: onOrdenCreada-in-0 → orden-creada-topic
-     */
     @Bean
-    public Consumer<Map<String, Object>> onOrdenCreada() {
+    public Consumer<OrdenCreadaEvent> onOrdenCreada() {
         return event -> {
-            try {
-                Object ordenId = event.get("ordenId");
-                Object userId  = event.get("userId");
-                log.info("[Inventario] Orden recibida — ordenId={} userId={}", ordenId, userId);
-
-                Object detallesObj = event.get("detalles");
-                if (detallesObj instanceof List<?> detalles) {
-                    for (Object item : detalles) {
-                        if (item instanceof Map<?, ?> detalle) {
-                            Object productoIdRaw = detalle.get("productoId");
-                            Object cantidadRaw   = detalle.get("cantidad");
-                            if (productoIdRaw == null || cantidadRaw == null) continue;
-
-                            UUID productoId = UUID.fromString(productoIdRaw.toString());
-                            int  cantidad   = Integer.parseInt(cantidadRaw.toString());
-
-                            boolean existe = productoClient.existeProducto(productoId);
-                            log.info("[Inventario] Producto productoId={} cantidad={} existe={}",
-                                    productoId, cantidad, existe);
-
-                            if (existe) {
-                                boolean ok = productoClient.decrementarStock(productoId, cantidad);
-                                if (!ok) {
-                                    log.warn("[Inventario] No se pudo decrementar stock — productoId={} cantidad={}",
-                                            productoId, cantidad);
-                                }
-                            } else {
-                                log.warn("[Inventario] Producto no encontrado en catálogo — productoId={}", productoId);
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("[Inventario] Error procesando onOrdenCreada: {}", e.getMessage(), e);
+            log.info("[Inventario] Orden recibida — ordenId={} userId={}", event.getOrdenId(), event.getUserId());
+            if (event.getDetalles() != null) {
+                event.getDetalles().forEach(this::procesarDetalle);
             }
         };
+    }
+
+    private void procesarDetalle(OrdenCreadaEvent.DetalleDto detalle) {
+        try {
+            if (detalle.getProductoId() == null || detalle.getCantidad() == null) return;
+            boolean existe = productoClient.existeProducto(detalle.getProductoId());
+            log.info("[Inventario] Producto productoId={} cantidad={} existe={}",
+                    detalle.getProductoId(), detalle.getCantidad(), existe);
+            if (!existe) {
+                log.warn("[Inventario] Producto no encontrado en catálogo — productoId={}", detalle.getProductoId());
+                return;
+            }
+            boolean ok = productoClient.decrementarStock(detalle.getProductoId(), detalle.getCantidad());
+            if (!ok) {
+                log.warn("[Inventario] No se pudo decrementar stock — productoId={} cantidad={}",
+                        detalle.getProductoId(), detalle.getCantidad());
+            }
+        } catch (Exception e) {
+            log.error("[Inventario] Error procesando detalle productoId={}: {}", detalle.getProductoId(), e.getMessage());
+        }
     }
 
     /**
