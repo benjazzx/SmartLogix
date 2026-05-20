@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -36,17 +37,18 @@ public class OrdenController {
         @ApiResponse(responseCode = "400", description = "Datos inválidos")
     })
     @PostMapping
-    public ResponseEntity<OrdenResponseDto> createOrden(
+    public ResponseEntity<?> createOrden(
             @Valid @RequestBody OrdenRequestDto dto,
             HttpServletRequest request) {
         UUID userId = (UUID) request.getAttribute("userId");
         if (userId == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(401).body(Map.of("error", "Token inválido o expirado"));
         }
         try {
             return ResponseEntity.ok(ordenService.createOrden(dto, userId));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            log.error("Error al crear orden para userId={}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
