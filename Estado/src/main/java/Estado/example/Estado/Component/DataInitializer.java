@@ -64,8 +64,23 @@ public class DataInitializer implements CommandLineRunner {
                 new Estado(null, "devuelto",               "Pedido devuelto al vendedor",                         envio)
             );
             estadoRepository.saveAll(estados);
-
             log.info("[DataInitializer] Tipos de estado y estados iniciales insertados.");
+        }
+
+        // Sembrar estados de orden siempre que no existan (idempotente)
+        if (tipoDeEstadoRepository.findByNombre("orden").isEmpty()) {
+            TipoDeEstadoModel orden = tipoDeEstadoRepository.save(
+                new TipoDeEstadoModel(null, "orden", "Ciclo de vida de órdenes de compra")
+            );
+            estadoRepository.saveAll(Arrays.asList(
+                new Estado(null, "Pendiente",   "Orden registrada, pendiente de procesamiento",  orden),
+                new Estado(null, "Procesando",  "Orden en proceso de preparación",               orden),
+                new Estado(null, "Aprobado",    "Orden aprobada y lista para despacho",           orden),
+                new Estado(null, "En tránsito", "Orden en camino al destino",                     orden),
+                new Estado(null, "Entregado",   "Orden entregada exitosamente al cliente",        orden),
+                new Estado(null, "Cancelado",   "Orden cancelada",                                orden)
+            ));
+            log.info("[DataInitializer] Estados de ciclo de vida de orden insertados.");
         }
     }
 }

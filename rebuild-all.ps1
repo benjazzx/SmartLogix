@@ -44,4 +44,4 @@ docker compose up -d --force-recreate `
 
 Write-Host "`n===== Rebuild completado =====" -ForegroundColor Green
 Write-Host "Esperando que los servicios arranquen (healthchecks ~60s)..." -ForegroundColor Gray
-Write-Host "Ejecuta '.\verificar-microservicios.ps1' para confirmar que todo esta operativo."
+Write-Host "Ejecuta .\verificar-microservicios.ps1 para confirmar que todo esta operativo."
