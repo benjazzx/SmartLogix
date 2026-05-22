@@ -42,12 +42,6 @@ export const routes: Routes = [
         canActivate: [roleGuard],
       },
       {
-        path: 'estados',
-        loadComponent: () => import('./features/estados/estados.component').then(m => m.EstadosComponent),
-        data: { roles: ['admin'] },
-        canActivate: [roleGuard],
-      },
-      {
         path: 'usuarios',
         loadComponent: () => import('./features/usuarios/usuarios.component').then(m => m.UsuariosComponent),
         data: { roles: ['admin'] },

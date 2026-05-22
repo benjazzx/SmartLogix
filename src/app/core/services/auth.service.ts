@@ -116,9 +116,15 @@ export class AuthService {
     return raw ? JSON.parse(raw) : null;
   }
 
-  recuperarClave(correo: string, rut: string): Observable<{ mensaje: string }> {
-    return this.http.post<{ mensaje: string }>(`${environment.services.recuperar}`, { correo, rut }).pipe(
-      catchError(() => of({ mensaje: 'Si el correo y RUT coinciden, recibirás instrucciones para recuperar tu contraseña.' })),
+  validarIdentidad(correo: string, rut: string): Observable<{ valido: boolean }> {
+    return this.http.post<{ valido: boolean }>(`${environment.services.recuperar}`, { correo, rut }).pipe(
+      catchError(() => of({ valido: false })),
+    );
+  }
+
+  cambiarClave(correo: string, rut: string, nuevaClave: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>('/auth/cambiar-clave', { correo, rut, nuevaClave }).pipe(
+      catchError(() => of({ mensaje: 'No se pudo actualizar la contraseña. Intenta nuevamente.' })),
     );
   }
 
