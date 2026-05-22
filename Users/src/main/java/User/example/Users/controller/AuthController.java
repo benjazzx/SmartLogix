@@ -35,6 +35,7 @@ public class AuthController {
     @Autowired private UserRepository userRepository;
     @Autowired private UserService userService;
     @Autowired private RolClient rolClient;
+    @Autowired private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Operation(summary = "Iniciar sesión", description = "Autentica al usuario con correo y clave, retorna un token JWT")
     @ApiResponses({
@@ -70,22 +71,39 @@ public class AuthController {
     }
 
     
-    @Operation(summary = "Recuperar contraseña", description = "Envía instrucciones si correo y RUT coinciden")
+    @Operation(summary = "Validar identidad para recuperar contraseña", description = "Valida que correo y RUT correspondan a un usuario")
     @PostMapping("/recuperar-clave")
     public ResponseEntity<?> recuperarClave(@RequestBody java.util.Map<String, String> body) {
         String correo = body.get("correo");
         String rut = body.get("rut");
-        boolean coincide = correo != null && rut != null
+        boolean valido = correo != null && rut != null
                 && userRepository.findByCorreo(correo)
                         .map(u -> rut.equalsIgnoreCase(u.getRut()))
                         .orElse(false);
-        // Log de auditoría; la respuesta es siempre genérica para evitar enumeración de usuarios
-        if (coincide) {
-            log.info("[Auth] Recuperación solicitada para correo válido: {}", correo);
+        if (valido) {
+            log.info("[Auth] Identidad validada para cambio de clave: {}", correo);
         }
-        return ResponseEntity.ok(java.util.Map.of(
-            "mensaje", "Si el correo y RUT coinciden, recibirás instrucciones para recuperar tu contraseña."
-        ));
+        return ResponseEntity.ok(java.util.Map.of("valido", valido));
+    }
+
+    @Operation(summary = "Cambiar contraseña", description = "Actualiza la contraseña tras validar correo y RUT")
+    @PostMapping("/cambiar-clave")
+    public ResponseEntity<?> cambiarClave(@RequestBody java.util.Map<String, String> body) {
+        String correo    = body.get("correo");
+        String rut       = body.get("rut");
+        String nuevaClave = body.get("nuevaClave");
+        if (correo == null || rut == null || nuevaClave == null || nuevaClave.length() < 6) {
+            return ResponseEntity.badRequest().body("Datos incompletos o contraseña muy corta");
+        }
+        java.util.Optional<User.example.Users.model.UserModel> userOpt = userRepository.findByCorreo(correo);
+        if (userOpt.isEmpty() || !rut.equalsIgnoreCase(userOpt.get().getRut())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
+        }
+        User.example.Users.model.UserModel user = userOpt.get();
+        user.setClave(passwordEncoder.encode(nuevaClave));
+        userRepository.save(user);
+        log.info("[Auth] Contraseña actualizada para: {}", correo);
+        return ResponseEntity.ok(java.util.Map.of("mensaje", "Contraseña actualizada exitosamente"));
     }
 
     @Operation(summary = "Registrarse como cliente",
