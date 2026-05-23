@@ -71,6 +71,14 @@ public class SecurityConfig {
                 // Endpoints públicos
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                // Geo: regiones y comunas accesibles a cualquier autenticado
+                .requestMatchers(HttpMethod.GET,    "/api/regiones/**").authenticated()
+                .requestMatchers(HttpMethod.GET,    "/api/comunas/**").authenticated()
+                .requestMatchers(HttpMethod.POST,   "/api/direcciones").authenticated()
+                .requestMatchers(HttpMethod.GET,    "/api/direcciones/**").authenticated()
+                // Cualquier usuario autenticado puede ver/editar su propio perfil
+                .requestMatchers(HttpMethod.GET,    "/api/users/me").authenticated()
+                .requestMatchers(HttpMethod.PUT,    "/api/users/me").authenticated()
                 // Solo ADMIN puede hacer CRUD de usuarios
                 .requestMatchers(HttpMethod.POST,   "/api/users/**").hasRole("admin")
                 .requestMatchers(HttpMethod.PUT,    "/api/users/**").hasRole("admin")

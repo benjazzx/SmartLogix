@@ -62,6 +62,12 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.getBajoStock(umbral));
     }
 
+    @GetMapping("/por-pais")
+    @Operation(summary = "Listar productos activos filtrados por país")
+    public ResponseEntity<List<ProductoResponseDTO>> getByPais(@RequestParam String pais) {
+        return ResponseEntity.ok(productoService.getByPais(pais));
+    }
+
     @PostMapping
     @Operation(summary = "Crear nuevo producto")
     public ResponseEntity<ProductoResponseDTO> crear(@Valid @RequestBody ProductoRequestDTO dto) {

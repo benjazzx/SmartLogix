@@ -41,8 +41,25 @@ public class ProductoModel {
     @Column(name = "estado_nombre", length = 50)
     private String estadoNombre;
 
-    @Column(name = "imagen_url", length = 500)
-    private String imagenUrl;
+    // Imagen almacenada directamente en BD para que persista entre rebuilds del contenedor
+    @Column(name = "imagen_data", columnDefinition = "bytea")
+    private byte[] imagenData;
+
+    @Column(name = "imagen_tipo", length = 100)
+    private String imagenTipo;
+
+    @Column(name = "id_bodega")
+    private Long idBodega;
+
+    @Column(name = "id_pasillo")
+    private Long idPasillo;
+
+    @Column(name = "id_estante")
+    private Long idEstante;
+
+    @Column(length = 100)
+    @Builder.Default
+    private String pais = "Chile";
 
     @Column(nullable = false)
     @Builder.Default

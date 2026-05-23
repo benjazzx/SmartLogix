@@ -26,4 +26,10 @@ public class ProductoRequestDTO {
     private UUID categoriaId;
 
     private String estadoNombre;
+
+    private Long idBodega;
+    private Long idPasillo;
+    private Long idEstante;
+
+    private String pais;
 }

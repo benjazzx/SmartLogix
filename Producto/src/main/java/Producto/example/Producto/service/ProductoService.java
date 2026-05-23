@@ -61,6 +61,12 @@ public class ProductoService {
                 .toList();
     }
 
+    public List<ProductoResponseDTO> getByPais(String pais) {
+        return productoRepository.findByActivoTrueAndPais(pais).stream()
+                .map(ProductoResponseDTO::from)
+                .toList();
+    }
+
     @Transactional
     public ProductoResponseDTO crear(ProductoRequestDTO dto) {
         CategoriaModel cat = categoriaRepository.findById(dto.getCategoriaId())
@@ -73,6 +79,10 @@ public class ProductoService {
                 .stock(dto.getStock())
                 .categoria(cat)
                 .estadoNombre(dto.getEstadoNombre() != null ? dto.getEstadoNombre() : "publicado")
+                .idBodega(dto.getIdBodega())
+                .idPasillo(dto.getIdPasillo())
+                .idEstante(dto.getIdEstante())
+                .pais(dto.getPais() != null ? dto.getPais() : "Chile")
                 .activo(true)
                 .build();
 
@@ -94,6 +104,10 @@ public class ProductoService {
         p.setPrecio(dto.getPrecio());
         p.setCategoria(cat);
         if (dto.getEstadoNombre() != null) p.setEstadoNombre(dto.getEstadoNombre());
+        p.setIdBodega(dto.getIdBodega());
+        p.setIdPasillo(dto.getIdPasillo());
+        p.setIdEstante(dto.getIdEstante());
+        if (dto.getPais() != null) p.setPais(dto.getPais());
 
         boolean stockCambio = !p.getStock().equals(dto.getStock());
         p.setStock(dto.getStock());

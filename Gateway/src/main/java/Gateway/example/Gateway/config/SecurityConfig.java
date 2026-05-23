@@ -72,9 +72,14 @@ public class SecurityConfig {
 
     private boolean isPublic(HttpServletRequest request) {
         String uri = request.getRequestURI();
+        String method = request.getMethod();
+        // GET de catálogo y categorías es público (el Producto service tiene su propio control)
+        boolean getCatalogo = "GET".equalsIgnoreCase(method)
+            && (uri.startsWith("/api/productos") || uri.startsWith("/api/categorias"));
         return uri.startsWith("/auth")
             || uri.startsWith("/actuator")
             || uri.startsWith("/fallback")
-            || uri.equals("/error");
+            || uri.equals("/error")
+            || getCatalogo;
     }
 }

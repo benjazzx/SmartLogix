@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface ComunaRepository extends JpaRepository<ComunaModel, UUID> {
     Optional<ComunaModel> findByNombre(String nombre);
+    java.util.List<ComunaModel> findByRegion_Id(UUID regionId);
 }

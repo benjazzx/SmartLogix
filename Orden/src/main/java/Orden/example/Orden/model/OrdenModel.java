@@ -21,7 +21,7 @@ public class OrdenModel {
     @Column(nullable = false)
     private LocalDateTime fechaOrden = LocalDateTime.now();
 
-    // FK al microservicio Users — direccion del cliente (UUID para coincidir con DireccionModel en Users)
+    // FK al microservicio Users — UUID de la dirección registrada del cliente
     @Column(name = "direccion_id", nullable = false)
     private UUID direccionId;
 

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +31,35 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Operation(summary = "Obtener mi perfil")
+    @ApiResponse(responseCode = "200", description = "Perfil obtenido correctamente")
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponseDto> getMe(Authentication auth) {
+        try {
+            return ResponseEntity.ok(UserResponseDto.from(userService.getUserByCorreo(auth.getName())));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Actualizar mi perfil — cualquier usuario autenticado puede actualizar su propia dirección")
+    @ApiResponse(responseCode = "200", description = "Perfil actualizado correctamente")
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponseDto> updateMe(Authentication auth, @RequestBody UserRequestDto dto) {
+        try {
+            var user = userService.getUserByCorreo(auth.getName());
+            // Solo permite actualizar datos propios no sensibles (rol y correo se ignoran)
+            dto.setRolNombre(null);
+            dto.setRolId(null);
+            dto.setCorreo(null);
+            return ResponseEntity.ok(UserResponseDto.from(userService.updateUser(user.getId(), dto)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
     @Operation(summary = "Listar todos los usuarios")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")

@@ -26,7 +26,27 @@ spring:
             - id: direcciones-service
               uri: http://users-service:8082
               predicates:
-                - Path=/api/direcciones/**
+                - Path=/api/direcciones,/api/direcciones/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: usersCircuitBreaker
+                    fallbackUri: forward:/fallback/users
+
+            - id: regiones-service
+              uri: http://users-service:8082
+              predicates:
+                - Path=/api/regiones,/api/regiones/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: usersCircuitBreaker
+                    fallbackUri: forward:/fallback/users
+
+            - id: comunas-service
+              uri: http://users-service:8082
+              predicates:
+                - Path=/api/comunas,/api/comunas/**
               filters:
                 - name: CircuitBreaker
                   args:

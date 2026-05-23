@@ -3,8 +3,10 @@ package User.example.Users.controller;
 import User.example.Users.dto.DireccionRequestDto;
 import User.example.Users.model.ComunaModel;
 import User.example.Users.model.DireccionModel;
+import User.example.Users.model.RegionModel;
 import User.example.Users.repository.ComunaRepository;
 import User.example.Users.repository.DireccionRepository;
+import User.example.Users.repository.RegionRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,22 +19,40 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/direcciones")
 @RequiredArgsConstructor
-@Tag(name = "Direcciones", description = "Consulta de direcciones disponibles para asignar a usuarios")
+@Tag(name = "Geo", description = "Regiones, comunas y direcciones")
 public class DireccionController {
 
     private final DireccionRepository direccionRepository;
     private final ComunaRepository comunaRepository;
+    private final RegionRepository regionRepository;
+
+    // ─── Regiones ────────────────────────────────────────────────────────────
+
+    @Operation(summary = "Listar todas las regiones")
+    @GetMapping("/api/regiones")
+    public List<RegionModel> getAllRegiones() {
+        return regionRepository.findAll();
+    }
+
+    // ─── Comunas ─────────────────────────────────────────────────────────────
+
+    @Operation(summary = "Listar comunas de una región")
+    @GetMapping("/api/comunas/por-region/{regionId}")
+    public List<ComunaModel> getComunasByRegion(@PathVariable UUID regionId) {
+        return comunaRepository.findByRegion_Id(regionId);
+    }
+
+    // ─── Direcciones ──────────────────────────────────────────────────────────
 
     @Operation(summary = "Listar todas las direcciones")
-    @GetMapping
+    @GetMapping("/api/direcciones")
     public List<DireccionModel> getAll() {
         return direccionRepository.findAll();
     }
 
     @Operation(summary = "Obtener dirección por ID")
-    @GetMapping("/{id}")
+    @GetMapping("/api/direcciones/{id}")
     public ResponseEntity<DireccionModel> getById(@PathVariable UUID id) {
         return direccionRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -40,7 +60,7 @@ public class DireccionController {
     }
 
     @Operation(summary = "Crear nueva dirección")
-    @PostMapping
+    @PostMapping("/api/direcciones")
     public DireccionModel create(@RequestBody DireccionRequestDto dto) {
         ComunaModel comuna = comunaRepository.findById(dto.getComunaId())
                 .orElseThrow(() -> new RuntimeException("Comuna no encontrada: " + dto.getComunaId()));

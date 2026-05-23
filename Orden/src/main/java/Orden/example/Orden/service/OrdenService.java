@@ -4,6 +4,7 @@ import Orden.example.Orden.client.EstadoClient;
 import Orden.example.Orden.client.ProductoClient;
 import Orden.example.Orden.client.UsersClient;
 import Orden.example.Orden.dto.*;
+import Orden.example.Orden.factory.OrdenFactory;
 import Orden.example.Orden.model.DetalleOrdenModel;
 import Orden.example.Orden.model.HistorialModel;
 import Orden.example.Orden.model.OrdenModel;
@@ -14,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,12 +37,7 @@ public class OrdenService {
             nombre = dto.getUserNombre();
         }
 
-        OrdenModel orden = new OrdenModel();
-        orden.setUserId(userId);
-        orden.setUserNombre(nombre);
-        orden.setDireccionId(dto.getDireccionId());
-        orden.setFechaOrden(LocalDateTime.now());
-        orden.setEstadoActual("pendiente");
+        OrdenModel orden = OrdenFactory.crearOrden(userId, nombre, dto.getDireccionId());
 
         List<DetalleOrdenModel> detalles = dto.getDetalles().stream().map(d -> {
             var productoData = productoClient.getProducto(d.getProductoId());
@@ -50,13 +45,12 @@ public class OrdenService {
                 throw new RuntimeException(
                     "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
             }
-            DetalleOrdenModel det = new DetalleOrdenModel();
-            det.setOrden(orden);
-            det.setProductoId(d.getProductoId());
-            det.setProductoNombre(ProductoClient.extraerNombre(productoData));
-            det.setPrecioUnitario(ProductoClient.extraerPrecio(productoData));
-            det.setCantidad(d.getCantidad());
-            return det;
+            return OrdenFactory.crearDetalle(
+                orden, d.getProductoId(),
+                ProductoClient.extraerNombre(productoData),
+                ProductoClient.extraerPrecio(productoData),
+                d.getCantidad()
+            );
         }).collect(Collectors.toList());
 
         orden.setDetalles(detalles);
@@ -109,12 +103,9 @@ public class OrdenService {
 
         estadoClient.existeEstado(dto.getEstadoId());
 
-        HistorialModel historial = new HistorialModel();
-        historial.setOrden(orden);
-        historial.setEstadoId(dto.getEstadoId());
-        historial.setEstadoNombre(dto.getEstadoNombre());
-        historial.setComentario(dto.getComentario());
-        historial.setFecha(LocalDateTime.now());
+        HistorialModel historial = OrdenFactory.crearHistorial(
+            orden, dto.getEstadoId(), dto.getEstadoNombre(), dto.getComentario()
+        );
 
         historialRepository.save(historial);
 
