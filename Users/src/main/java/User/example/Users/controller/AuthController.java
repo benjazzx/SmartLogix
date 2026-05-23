@@ -78,7 +78,7 @@ public class AuthController {
         String rut = body.get("rut");
         boolean valido = correo != null && rut != null
                 && userRepository.findByCorreo(correo)
-                        .map(u -> rut.equalsIgnoreCase(u.getRut()))
+                        .map(u -> userService.hashRut(rut).equals(u.getRut()))
                         .orElse(false);
         if (valido) {
             log.info("[Auth] Identidad validada para cambio de clave: {}", correo);
@@ -96,7 +96,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Datos incompletos o contraseña muy corta");
         }
         java.util.Optional<User.example.Users.model.UserModel> userOpt = userRepository.findByCorreo(correo);
-        if (userOpt.isEmpty() || !rut.equalsIgnoreCase(userOpt.get().getRut())) {
+        if (userOpt.isEmpty() || !userService.hashRut(rut).equals(userOpt.get().getRut())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
         }
         User.example.Users.model.UserModel user = userOpt.get();

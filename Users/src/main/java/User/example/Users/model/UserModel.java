@@ -27,8 +27,8 @@ public class UserModel {
     @Schema(description = "Apellido del usuario", example = "Pérez")
     private String apellido;
 
-    @Column(nullable = false, unique = true, length = 12)
-    @Schema(description = "RUT del usuario", example = "12345678-9")
+    @Column(nullable = false, unique = true, length = 255)
+    @Schema(description = "RUT del usuario (almacenado como hash SHA-256)", example = "<hash>")
     private String rut;
 
     @Column(nullable = false, unique = true, length = 150)

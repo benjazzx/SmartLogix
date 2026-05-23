@@ -59,6 +59,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/api/ordenes").hasAnyRole(ROL_ADMIN, ROL_BODEGUERO, ROL_TRANSPORTISTA)
                 // Cliente puede cancelar sus propias órdenes; servicio valida estado y propiedad
                 .requestMatchers(HttpMethod.POST, "/api/ordenes/*/historial").hasAnyRole(ROL_ADMIN, ROL_BODEGUERO, ROL_TRANSPORTISTA, ROL_CLIENTE)
+                // Transportista: tomar o liberar una ruta
+                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/tomar").hasRole(ROL_TRANSPORTISTA)
+                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/liberar").hasRole(ROL_TRANSPORTISTA)
                 // Ver orden por id e historial: cualquier autenticado (service filtra por propiedad)
                 .anyRequest().authenticated()
             )

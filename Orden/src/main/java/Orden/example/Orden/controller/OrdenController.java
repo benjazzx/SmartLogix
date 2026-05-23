@@ -28,6 +28,9 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 public class OrdenController {
 
+    private static final String ATTR_USER_ID = "userId";
+    private static final String KEY_ERROR    = "error";
+
     @Autowired
     private OrdenService ordenService;
 
@@ -37,18 +40,18 @@ public class OrdenController {
         @ApiResponse(responseCode = "400", description = "Datos inválidos")
     })
     @PostMapping
-    public ResponseEntity<?> createOrden(
+    public ResponseEntity<Object> createOrden(
             @Valid @RequestBody OrdenRequestDto dto,
             HttpServletRequest request) {
-        UUID userId = (UUID) request.getAttribute("userId");
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
         if (userId == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "Token inválido o expirado"));
+            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, "Token inválido o expirado"));
         }
         try {
             return ResponseEntity.ok(ordenService.createOrden(dto, userId));
         } catch (RuntimeException e) {
             log.error("Error al crear orden para userId={}: {}", userId, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         }
     }
 
@@ -56,7 +59,7 @@ public class OrdenController {
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
     @GetMapping("/mis-ordenes")
     public ResponseEntity<List<OrdenResponseDto>> getMisOrdenes(HttpServletRequest request) {
-        UUID userId = (UUID) request.getAttribute("userId");
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }
@@ -66,8 +69,9 @@ public class OrdenController {
     @Operation(summary = "Listar todas las órdenes (admin, bodeguero, transportista)")
     @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
     @GetMapping
-    public List<OrdenResponseDto> getAll() {
-        return ordenService.getAll();
+    public List<OrdenResponseDto> getAll(HttpServletRequest request, Authentication auth) {
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
+        return ordenService.getAll(extractRol(auth), userId);
     }
 
     @Operation(summary = "Obtener orden por ID")
@@ -81,12 +85,9 @@ public class OrdenController {
             @Parameter(description = "ID de la orden") @PathVariable Long id,
             HttpServletRequest request,
             Authentication auth) {
-        UUID userId = (UUID) request.getAttribute("userId");
-        String rolNombre = (auth != null && !auth.getAuthorities().isEmpty())
-                ? auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "")
-                : "";
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
         try {
-            return ResponseEntity.ok(ordenService.getById(id, userId, rolNombre));
+            return ResponseEntity.ok(ordenService.getById(id, userId, extractRol(auth)));
         } catch (RuntimeException e) {
             log.warn("getById id={}: {}", id, e.getMessage());
             if (e.getMessage().contains("Acceso denegado")) {
@@ -94,5 +95,34 @@ public class OrdenController {
             }
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Tomar orden como ruta (solo transportista)")
+    @PostMapping("/{id}/tomar")
+    public ResponseEntity<Object> tomarOrden(@PathVariable Long id, HttpServletRequest request) {
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, "Token inválido"));
+        try {
+            return ResponseEntity.ok(ordenService.tomarOrden(id, userId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of(KEY_ERROR, e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Liberar orden (solo el transportista que la tomó)")
+    @PostMapping("/{id}/liberar")
+    public ResponseEntity<Object> liberarOrden(@PathVariable Long id, HttpServletRequest request) {
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, "Token inválido"));
+        try {
+            return ResponseEntity.ok(ordenService.liberarOrden(id, userId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(403).body(Map.of(KEY_ERROR, e.getMessage()));
+        }
+    }
+
+    private String extractRol(Authentication auth) {
+        if (auth == null || auth.getAuthorities().isEmpty()) return "";
+        return auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
     }
 }
