@@ -20,21 +20,6 @@
     <!-- Card -->
     <div class="bg-white rounded-2xl shadow-2xl px-8 py-8">
 
-      @if (exitoso) {
-        <div class="text-center">
-          <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-          </div>
-          <h2 class="text-base font-semibold text-gray-800 mb-2">¡Cuenta creada exitosamente!</h2>
-          <p class="text-sm text-gray-500 mb-6">Tu cuenta fue registrada. Ya puedes iniciar sesión con tus credenciales.</p>
-          <a routerLink="/login"
-            class="block w-full py-2.5 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold rounded-xl transition-colors text-center">
-            Ir al inicio de sesión
-          </a>
-        </div>
-      } @else {
         <h2 class="text-lg font-semibold text-gray-800 mb-1">Crear cuenta</h2>
         <p class="text-sm text-gray-500 mb-5">Completa el formulario para registrarte en la plataforma.</p>
 
@@ -147,7 +132,6 @@
           </p>
 
         </form>
-      }
 
       <p class="text-center text-xs text-gray-400 mt-6">© 2025 Softyz Logistics Technology</p>
     </div>
