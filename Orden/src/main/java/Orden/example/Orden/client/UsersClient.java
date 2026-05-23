@@ -50,12 +50,12 @@ public class UsersClient {
                 if (user == null) return null;
                 Object dirObj = user.get("direccion");
                 if (!(dirObj instanceof Map<?, ?> dir)) return null;
-                String calle  = (String) dir.getOrDefault(KEY_CALLE, "");
-                String numero = (String) dir.getOrDefault(KEY_NUMERO, "");
+                String calle  = dir.get(KEY_CALLE)  instanceof String s ? s : "";
+                String numero = dir.get(KEY_NUMERO) instanceof String s ? s : "";
                 Object comunaObj = dir.get(KEY_COMUNA);
                 String ciudad = "";
                 if (comunaObj instanceof Map<?, ?> comuna) {
-                    ciudad = (String) comuna.getOrDefault(KEY_NOMBRE, "");
+                    ciudad = comuna.get(KEY_NOMBRE) instanceof String s ? s : "";
                 }
                 return (calle + " " + numero + (ciudad.isEmpty() ? "" : ", " + ciudad)).trim();
             },
