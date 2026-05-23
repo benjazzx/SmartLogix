@@ -97,8 +97,17 @@ public class OrdenService {
                                          UUID requestingUserId, String rolNombre) {
         OrdenModel orden = findOrdenOrThrow(ordenId);
 
-        if ("cliente".equals(rolNombre) && !orden.getUserId().equals(requestingUserId)) {
-            throw new RuntimeException("Acceso denegado: la orden no pertenece al usuario");
+        if ("cliente".equals(rolNombre)) {
+            if (!orden.getUserId().equals(requestingUserId)) {
+                throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
+            }
+            String estadoActual = orden.getEstadoActual() != null ? orden.getEstadoActual().toLowerCase() : "";
+            if (!estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
+                throw new IllegalStateException("Acceso denegado: solo se pueden cancelar órdenes en estado Pendiente o Procesando");
+            }
+            if (!"Cancelado".equalsIgnoreCase(dto.getEstadoNombre())) {
+                throw new IllegalStateException("Acceso denegado: el cliente solo puede cancelar órdenes");
+            }
         }
 
         estadoClient.existeEstado(dto.getEstadoId());
