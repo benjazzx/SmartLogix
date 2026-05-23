@@ -89,12 +89,12 @@ export class DashboardComponent implements OnInit {
       this.productoService.getAll().subscribe();
       this.usuarioService.getAll().subscribe();
 
-      this.inventarioService.bodegas$.subscribe(b => { this.bodegas = b; this.cdr.markForCheck(); });
-      this.productoService.productos$.subscribe(p => { this.productos = p; this.cdr.markForCheck(); });
-      this.usuarioService.usuarios$.subscribe(u => { this.usuarios = u; this.cdr.markForCheck(); });
+      this.inventarioService.bodegas$.subscribe(b => { this.bodegas = b; this.cdr.detectChanges(); });
+      this.productoService.productos$.subscribe(p => { this.productos = p; this.cdr.detectChanges(); });
+      this.usuarioService.usuarios$.subscribe(u => { this.usuarios = u; this.cdr.detectChanges(); });
     }
 
-    this.ordenService.ordenes$.subscribe(o => { this.ordenes = o; this.cargando = false; this.cdr.markForCheck(); });
+    this.ordenService.ordenes$.subscribe(o => { this.ordenes = o; this.cargando = false; this.cdr.detectChanges(); });
   }
 
   getEstadoBadge(estado?: string): string {

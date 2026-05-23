@@ -30,7 +30,7 @@ export class PerfilComponent implements OnInit {
     this.initForm();
     this.http.get<Region[]>(environment.services.regiones).pipe(
       catchError(() => of([])),
-    ).subscribe(r => { this.regiones = r; this.cdr.markForCheck(); });
+    ).subscribe(r => { this.regiones = r; this.cdr.detectChanges(); });
 
     this.http.get<Usuario>(`${environment.services.usuarios}/me`).pipe(
       catchError(() => of(null)),
@@ -39,7 +39,7 @@ export class PerfilComponent implements OnInit {
       if (u?.direccion) {
         this.prefillarDireccion(u);
       }
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 
@@ -54,7 +54,7 @@ export class PerfilComponent implements OnInit {
     ).subscribe(c => {
       this.comunas = c;
       this.form.patchValue({ comunaId: d.comuna?.id ?? '' });
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 
@@ -75,7 +75,7 @@ export class PerfilComponent implements OnInit {
     if (!regionId) return;
     this.http.get<Comuna[]>(`${environment.services.comunas}/por-region/${regionId}`).pipe(
       catchError(() => of([])),
-    ).subscribe(c => { this.comunas = c; this.cdr.markForCheck(); });
+    ).subscribe(c => { this.comunas = c; this.cdr.detectChanges(); });
   }
 
   onSubmit(): void {
@@ -97,9 +97,9 @@ export class PerfilComponent implements OnInit {
       if (result) {
         this.usuario = result;
         this.guardadoExitoso = true;
-        setTimeout(() => { this.guardadoExitoso = false; this.cdr.markForCheck(); }, 4000);
+        setTimeout(() => { this.guardadoExitoso = false; this.cdr.detectChanges(); }, 4000);
       }
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 

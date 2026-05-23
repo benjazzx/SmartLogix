@@ -67,8 +67,8 @@ export class ProductosComponent implements OnInit {
   ngOnInit(): void {
     this.productoService.getCategorias().subscribe();
     this.productoService.getAll().subscribe();
-    this.productoService.productos$.subscribe(p  => { this.productos  = p;  this.cdr.markForCheck(); });
-    this.productoService.categorias$.subscribe(c => { this.categorias = c;  this.cdr.markForCheck(); });
+    this.productoService.productos$.subscribe(p  => { this.productos  = p;  this.cdr.detectChanges(); });
+    this.productoService.categorias$.subscribe(c => { this.categorias = c;  this.cdr.detectChanges(); });
 
     this.inventarioService.getBodegas().subscribe();
     this.inventarioService.getPasillos().subscribe();
@@ -114,12 +114,12 @@ export class ProductosComponent implements OnInit {
     this.showModal = true;
     if (p.idBodega) {
       this.inventarioService.getPasillosByBodega(p.idBodega).subscribe(pasillos => {
-        this.pasillosFiltrados = pasillos; this.cdr.markForCheck();
+        this.pasillosFiltrados = pasillos; this.cdr.detectChanges();
       });
     }
     if (p.idPasillo) {
       this.inventarioService.getEstantesByPasillo(p.idPasillo).subscribe(estantes => {
-        this.estantesFiltrados = estantes; this.cdr.markForCheck();
+        this.estantesFiltrados = estantes; this.cdr.detectChanges();
       });
     }
   }
@@ -138,7 +138,7 @@ export class ProductosComponent implements OnInit {
     this.estantesFiltrados = [];
     if (bodegaId) {
       this.inventarioService.getPasillosByBodega(+bodegaId).subscribe(pasillos => {
-        this.pasillosFiltrados = pasillos; this.cdr.markForCheck();
+        this.pasillosFiltrados = pasillos; this.cdr.detectChanges();
       });
     }
   }
@@ -149,7 +149,7 @@ export class ProductosComponent implements OnInit {
     this.estantesFiltrados = [];
     if (pasilloId) {
       this.inventarioService.getEstantesByPasillo(+pasilloId).subscribe(estantes => {
-        this.estantesFiltrados = estantes; this.cdr.markForCheck();
+        this.estantesFiltrados = estantes; this.cdr.detectChanges();
       });
     }
   }
@@ -220,7 +220,7 @@ export class ProductosComponent implements OnInit {
     if (file.size > 5 * 1024 * 1024)    { alert('La imagen no puede superar 5 MB.'); return; }
     this.imagenFile = file;
     const reader = new FileReader();
-    reader.onload = (e) => { this.imagenPreview = e.target?.result as string; this.cdr.markForCheck(); };
+    reader.onload = (e) => { this.imagenPreview = e.target?.result as string; this.cdr.detectChanges(); };
     reader.readAsDataURL(file);
   }
 

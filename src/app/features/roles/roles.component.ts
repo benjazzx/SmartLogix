@@ -18,7 +18,7 @@ export class RolesComponent implements OnInit {
     this.rolService.getAll().subscribe();
     this.rolService.roles$.subscribe(r => {
       this.roles = r;
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 }

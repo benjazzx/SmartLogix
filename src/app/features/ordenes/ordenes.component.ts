@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -49,7 +49,7 @@ export class OrdenesComponent implements OnInit {
   paisModal = '';
 
   get paisesDisponibles(): string[] {
-    return [...new Set(this.productosDisponibles.map(p => p.pais ?? 'Chile').filter(Boolean))].sort();
+    return [...new Set(this.productosDisponibles.map(p => p.pais ?? 'Chile').filter(Boolean))].sort((a, b) => a.localeCompare(b));
   }
 
   get productosModalFiltrados(): Producto[] {
@@ -58,17 +58,18 @@ export class OrdenesComponent implements OnInit {
       : this.productosDisponibles;
   }
 
-  get esCliente(): boolean { return this.authService.hasRole('cliente'); }
+  get esCliente(): boolean   { return this.authService.hasRole('cliente'); }
+  get esBodeguero(): boolean { return this.authService.hasRole('bodeguero'); }
 
   constructor(
-    private ordenService: OrdenService,
-    private estadoOrdenService: EstadoOrdenService,
-    private authService: AuthService,
-    private toast: ToastService,
-    private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
-    private http: HttpClient,
-    private productoService: ProductoService,
+    private readonly ordenService: OrdenService,
+    private readonly estadoOrdenService: EstadoOrdenService,
+    private readonly authService: AuthService,
+    private readonly toast: ToastService,
+    private readonly fb: FormBuilder,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly http: HttpClient,
+    private readonly productoService: ProductoService,
   ) {}
 
   ngOnInit(): void {
@@ -83,7 +84,7 @@ export class OrdenesComponent implements OnInit {
     }
     this.ordenService.ordenes$.subscribe(o => {
       this.ordenes = o;
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 
@@ -182,7 +183,7 @@ export class OrdenesComponent implements OnInit {
     return this.esCliente && o.estadoActual === 'En tránsito';
   }
 
-  // ── Nuevo Pedido ──────────────────────────────────────────────────────────
+  // â”€â”€ Nuevo Pedido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   abrirNuevoPedido(): void {
     this.carrito = [];
@@ -192,11 +193,11 @@ export class OrdenesComponent implements OnInit {
       catchError(() => of(null)),
     ).subscribe(user => {
       this.direccionId = user?.direccion?.id ?? null;
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
     this.productoService.getAll().subscribe(productos => {
       this.productosDisponibles = productos.filter(p => p.activo !== false && (p.stock ?? 0) > 0);
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 
@@ -249,7 +250,7 @@ export class OrdenesComponent implements OnInit {
       return;
     }
     this.procesandoOrden = true;
-    const user = this.authService.getCurrentUser()!;
+    const user = this.authService.getCurrentUser();
     const dto: OrdenRequest = {
       direccionId: this.direccionId,
       userNombre: user.correo,
@@ -270,3 +271,4 @@ export class OrdenesComponent implements OnInit {
     });
   }
 }
+

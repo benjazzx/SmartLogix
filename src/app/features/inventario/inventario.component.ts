@@ -45,10 +45,10 @@ export class InventarioComponent implements OnInit {
     this.inventarioService.getEstantes().subscribe();
     this.inventarioService.getEstPasi().subscribe();
 
-    this.inventarioService.bodegas$.subscribe(b   => { this.bodegas      = b;  this.cdr.markForCheck(); });
-    this.inventarioService.pasillos$.subscribe(p  => { this.pasillos     = p;  this.cdr.markForCheck(); });
-    this.inventarioService.estantes$.subscribe(e  => { this.estantes     = e;  this.cdr.markForCheck(); });
-    this.inventarioService.estPasi$.subscribe(ep  => { this.estPasiList  = ep; this.cdr.markForCheck(); });
+    this.inventarioService.bodegas$.subscribe(b   => { this.bodegas      = b;  this.cdr.detectChanges(); });
+    this.inventarioService.pasillos$.subscribe(p  => { this.pasillos     = p;  this.cdr.detectChanges(); });
+    this.inventarioService.estantes$.subscribe(e  => { this.estantes     = e;  this.cdr.detectChanges(); });
+    this.inventarioService.estPasi$.subscribe(ep  => { this.estPasiList  = ep; this.cdr.detectChanges(); });
   }
 
   initForms(): void {

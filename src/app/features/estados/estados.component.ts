@@ -46,11 +46,11 @@ export class EstadosComponent implements OnInit {
     this.initForm();
     this.http.get<TipoDeEstado[]>(this.tiposUrl).pipe(
       catchError(() => of(this.mockTipos)),
-    ).subscribe(t => { this.tiposDeEstado = t; this.cdr.markForCheck(); });
+    ).subscribe(t => { this.tiposDeEstado = t; this.cdr.detectChanges(); });
 
     this.http.get<Estado[]>(this.estadosUrl).pipe(
       catchError(() => of(this.mockEstados)),
-    ).subscribe(e => { this.estados = e; this.cdr.markForCheck(); });
+    ).subscribe(e => { this.estados = e; this.cdr.detectChanges(); });
   }
 
   initForm(): void {
@@ -75,7 +75,7 @@ export class EstadosComponent implements OnInit {
     ).subscribe(created => {
       this.estados = [...this.estados, created];
       this.closeModal();
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 

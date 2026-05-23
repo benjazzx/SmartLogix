@@ -31,8 +31,8 @@ export class UsuariosComponent implements OnInit {
     this.initForm();
     this.usuarioService.getAll().subscribe();
     this.rolService.getAll().subscribe();
-    this.usuarioService.usuarios$.subscribe(u => { this.usuarios = u; this.cdr.markForCheck(); });
-    this.rolService.roles$.subscribe(r => { this.roles = r.filter(r => r.nombre !== 'admin'); this.cdr.markForCheck(); });
+    this.usuarioService.usuarios$.subscribe(u => { this.usuarios = u; this.cdr.detectChanges(); });
+    this.rolService.roles$.subscribe(r => { this.roles = r.filter(r => r.nombre !== 'admin'); this.cdr.detectChanges(); });
   }
 
   initForm(u?: Usuario): void {

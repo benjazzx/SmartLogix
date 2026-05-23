@@ -62,7 +62,7 @@ export class EnviosComponent implements OnInit {
     this.ordenService.getAll().subscribe();
     this.ordenService.ordenes$.subscribe(o => {
       this.ordenes = o;
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
   }
 
