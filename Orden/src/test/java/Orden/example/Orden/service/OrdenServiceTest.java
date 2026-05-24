@@ -223,7 +223,7 @@ class OrdenServiceTest {
                 ordenSample(UUID.randomUUID())
         ));
 
-        List<OrdenResponseDto> result = ordenService.getAll();
+        List<OrdenResponseDto> result = ordenService.getAll("admin", UUID.randomUUID());
 
         assertEquals(2, result.size());
     }

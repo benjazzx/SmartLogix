@@ -128,9 +128,11 @@ class OrdenControllerTest {
 
     @Test
     void getAll_retornaListaCompleta() {
-        when(ordenService.getAll()).thenReturn(List.of(sampleResponse));
+        MockHttpServletRequest request = requestConUserId(userId);
+        Authentication auth = authConRol("admin");
+        when(ordenService.getAll(anyString(), any(UUID.class))).thenReturn(List.of(sampleResponse));
 
-        List<OrdenResponseDto> result = controller.getAll();
+        List<OrdenResponseDto> result = controller.getAll(request, auth);
 
         assertEquals(1, result.size());
     }
