@@ -148,6 +148,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # SonarCloud necesita historial completo
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -156,6 +158,11 @@ jobs:
       - name: Tests + JaCoCo (≥60%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Orden
+      - name: SonarCloud Analysis
+        run: mvn sonar:sonar -B --no-transfer-progress -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+        working-directory: Orden
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
