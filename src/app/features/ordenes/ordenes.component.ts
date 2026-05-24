@@ -157,22 +157,34 @@ export class OrdenesComponent implements OnInit {
     if (!confirm('¿Cancelar esta orden? Esta acción no se puede deshacer.')) return;
     const estado = this.estadosDisponibles.find(e => e.nombre.toLowerCase() === 'cancelado');
     const dto: HistorialRequest = {
-      estadoId:    estado?.id ?? 'cancelado',
+      estadoId:    estado?.id ?? '00000000-0000-0000-0000-000000000006',
       estadoNombre: 'Cancelado',
       comentario:  'Cancelado por el cliente',
     };
-    this.ordenService.agregarHistorial(o.id, dto).subscribe();
+    this.ordenService.agregarHistorial(o.id, dto).subscribe({
+      next: () => {
+        this.toast.success('Orden cancelada', `La orden #${o.id} fue cancelada.`);
+        this.ordenService.getMisOrdenes().subscribe();
+      },
+      error: () => {},
+    });
   }
 
   confirmarEntrega(o: Orden): void {
     if (!confirm('¿Confirmar que recibiste este pedido?')) return;
     const estado = this.estadosDisponibles.find(e => e.nombre.toLowerCase() === 'entregado');
     const dto: HistorialRequest = {
-      estadoId:    estado?.id ?? 'entregado',
+      estadoId:    estado?.id ?? '00000000-0000-0000-0000-000000000005',
       estadoNombre: 'Entregado',
       comentario:  'Entrega confirmada por el cliente',
     };
-    this.ordenService.agregarHistorial(o.id, dto).subscribe();
+    this.ordenService.agregarHistorial(o.id, dto).subscribe({
+      next: () => {
+        this.toast.success('¡Recibo confirmado!', `Confirmaste la recepción del pedido #${o.id}.`);
+        this.ordenService.getMisOrdenes().subscribe();
+      },
+      error: () => {},
+    });
   }
 
   puedeCanCelar(o: Orden): boolean {
