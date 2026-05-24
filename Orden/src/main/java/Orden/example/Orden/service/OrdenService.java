@@ -107,12 +107,18 @@ public class OrdenService {
             if (!orden.getUserId().equals(requestingUserId)) {
                 throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
             }
-            String estadoActual = orden.getEstadoActual() != null ? orden.getEstadoActual().toLowerCase() : "";
-            if (!estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
+            String estadoActual = orden.getEstadoActual() != null ? orden.getEstadoActual().toLowerCase().trim() : "";
+            boolean esCancelacion   = "Cancelado".equalsIgnoreCase(dto.getEstadoNombre());
+            boolean esConfirmacion  = "Entregado".equalsIgnoreCase(dto.getEstadoNombre());
+
+            if (!esCancelacion && !esConfirmacion) {
+                throw new IllegalStateException("Acceso denegado: el cliente solo puede cancelar o confirmar entrega de órdenes");
+            }
+            if (esCancelacion && !estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
                 throw new IllegalStateException("Acceso denegado: solo se pueden cancelar órdenes en estado Pendiente o Procesando");
             }
-            if (!"Cancelado".equalsIgnoreCase(dto.getEstadoNombre())) {
-                throw new IllegalStateException("Acceso denegado: el cliente solo puede cancelar órdenes");
+            if (esConfirmacion && !estadoActual.equals("en tránsito") && !estadoActual.equals("en transito")) {
+                throw new IllegalStateException("Acceso denegado: solo se puede confirmar recibo en estado En tránsito");
             }
         }
 
