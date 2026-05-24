@@ -45,6 +45,9 @@ public class OrdenModel {
     @Column(name = "transportista_id")
     private UUID transportistaId;
 
+    @Column(name = "transportista_nombre", length = 200)
+    private String transportistaNombre;
+
     @Column(name = "tomada", nullable = false)
     private boolean tomada = false;
 

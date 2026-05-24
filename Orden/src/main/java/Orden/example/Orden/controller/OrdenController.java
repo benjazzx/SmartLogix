@@ -106,6 +106,9 @@ public class OrdenController {
             return ResponseEntity.ok(ordenService.tomarOrden(id, userId));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error al tomar orden id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(KEY_ERROR, "Error interno al procesar la solicitud"));
         }
     }
 

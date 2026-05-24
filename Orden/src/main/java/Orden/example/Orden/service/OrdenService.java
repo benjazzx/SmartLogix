@@ -11,6 +11,7 @@ import Orden.example.Orden.model.OrdenModel;
 import Orden.example.Orden.messaging.OrdenEventProducer;
 import Orden.example.Orden.repository.HistorialRepository;
 import Orden.example.Orden.repository.OrdenRepository;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -155,10 +156,15 @@ public class OrdenService {
         if (orden.isTomada()) {
             throw new IllegalStateException("La orden ya fue tomada por otro transportista");
         }
+        Hibernate.initialize(orden.getDetalles());
+        Hibernate.initialize(orden.getHistorial());
+
+        String nombre = usersClient.getNombreUsuario(transportistaId);
         orden.setTomada(true);
         orden.setTransportistaId(transportistaId);
-        OrdenModel saved = ordenRepository.save(orden);
-        return OrdenResponseDto.from(saved, ROL_TRANSPORTISTA, transportistaId);
+        orden.setTransportistaNombre(nombre);
+        ordenRepository.save(orden);
+        return OrdenResponseDto.from(orden, ROL_TRANSPORTISTA, transportistaId);
     }
 
     @Transactional
@@ -167,10 +173,14 @@ public class OrdenService {
         if (!orden.isTomada() || !transportistaId.equals(orden.getTransportistaId())) {
             throw new IllegalStateException("No puedes liberar esta orden");
         }
+        orden.getDetalles().size();
+        orden.getHistorial().size();
+
         orden.setTomada(false);
         orden.setTransportistaId(null);
-        OrdenModel saved = ordenRepository.save(orden);
-        return OrdenResponseDto.from(saved, ROL_TRANSPORTISTA, transportistaId);
+        orden.setTransportistaNombre(null);
+        ordenRepository.save(orden);
+        return OrdenResponseDto.from(orden, ROL_TRANSPORTISTA, transportistaId);
     }
 
     private OrdenModel findOrdenOrThrow(Long id) {

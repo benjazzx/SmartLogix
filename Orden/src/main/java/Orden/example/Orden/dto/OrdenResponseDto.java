@@ -22,6 +22,7 @@ public class OrdenResponseDto {
     private String estadoActual;
     private boolean tomada;
     private UUID transportistaId;
+    private String transportistaNombre;
     private List<DetalleDto> detalles;
     private List<HistorialDto> historial;
 
@@ -36,6 +37,7 @@ public class OrdenResponseDto {
         dto.setEstadoActual(orden.getEstadoActual());
         dto.setTomada(orden.isTomada());
         dto.setTransportistaId(orden.getTransportistaId());
+        dto.setTransportistaNombre(orden.getTransportistaNombre());
         dto.setDetalles(orden.getDetalles().stream().map(DetalleDto::from).toList());
         dto.setHistorial(orden.getHistorial().stream().map(HistorialDto::from).toList());
         return dto;
@@ -53,6 +55,10 @@ public class OrdenResponseDto {
                     && requestingUserId.equals(orden.getTransportistaId());
             if (!esPropiaDelTransportista) {
                 dto.setTransportistaId(null);
+            }
+            // Bodeguero no ve el nombre del transportista
+            if ("bodeguero".equals(rolNombre)) {
+                dto.setTransportistaNombre(null);
             }
         }
         return dto;
