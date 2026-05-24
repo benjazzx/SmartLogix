@@ -85,6 +85,7 @@ export class EnviosComponent implements OnInit {
     this.showModal = false;
     this.ordenSeleccionada = null;
     this.guardando = false;
+    this.cdr.detectChanges();
   }
 
   onSubmit(): void {
