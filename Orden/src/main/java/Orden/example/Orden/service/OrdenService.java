@@ -117,8 +117,8 @@ public class OrdenService {
             if (esCancelacion && !estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
                 throw new IllegalStateException("Acceso denegado: solo se pueden cancelar órdenes en estado Pendiente o Procesando");
             }
-            if (esConfirmacion && !estadoActual.equals("en tránsito") && !estadoActual.equals("en transito")) {
-                throw new IllegalStateException("Acceso denegado: solo se puede confirmar recibo en estado En tránsito");
+            if (esConfirmacion && !estadoActual.equals("entregado")) {
+                throw new IllegalStateException("Acceso denegado: solo se puede confirmar recibo cuando el transportista ya marcó la orden como Entregada");
             }
         }
 
@@ -179,8 +179,8 @@ public class OrdenService {
         if (!orden.isTomada() || !transportistaId.equals(orden.getTransportistaId())) {
             throw new IllegalStateException("No puedes liberar esta orden");
         }
-        orden.getDetalles().size();
-        orden.getHistorial().size();
+        Hibernate.initialize(orden.getDetalles());
+        Hibernate.initialize(orden.getHistorial());
 
         orden.setTomada(false);
         orden.setTransportistaId(null);
