@@ -17,6 +17,8 @@
 		<java.version>21</java.version>
 		<spring-cloud.version>2025.1.1</spring-cloud.version>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.exclusions>**/config/**,**/OrdenApplication.java</sonar.exclusions>
+		<sonar.coverage.exclusions>**/config/**,**/OrdenApplication.java</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -155,6 +157,14 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.12</version>
+				<configuration>
+					<excludes>
+						<!-- Clases de configuración Spring: requieren contexto completo, no unit tests -->
+						<exclude>Orden/example/Orden/config/**</exclude>
+						<!-- Clase principal de arranque -->
+						<exclude>Orden/example/Orden/OrdenApplication.class</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
