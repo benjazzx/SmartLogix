@@ -32,13 +32,13 @@ export const routes: Routes = [
       {
         path: 'ordenes',
         loadComponent: () => import('./features/ordenes/ordenes.component').then(m => m.OrdenesComponent),
-        data: { roles: ['admin', 'bodeguero', 'transportista', 'cliente'] },
+        data: { roles: ['admin', 'bodeguero', 'cliente'] },
         canActivate: [roleGuard],
       },
       {
         path: 'envios',
         loadComponent: () => import('./features/envios/envios.component').then(m => m.EnviosComponent),
-        data: { roles: ['admin', 'bodeguero', 'transportista'] },
+        data: { roles: ['admin', 'transportista'] },
         canActivate: [roleGuard],
       },
       {

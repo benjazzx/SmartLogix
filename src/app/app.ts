@@ -55,12 +55,12 @@ export class AppComponent implements OnInit, OnDestroy {
     },
     {
       label: 'Órdenes', route: '/ordenes',
-      roles: ['admin', 'bodeguero', 'transportista', 'cliente'],
+      roles: ['admin', 'bodeguero', 'cliente'],
       iconPath: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
     },
     {
       label: 'Envíos', route: '/envios',
-      roles: ['admin', 'bodeguero', 'transportista'],
+      roles: ['admin', 'transportista'],
       iconPath: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
     },
     {
@@ -83,6 +83,10 @@ export class AppComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (this.authService.isLoggedIn()) {
+      this.themeService.loadFromServer();
+    }
+
     this.notifSub = combineLatest([
       this.ordenService.ordenes$,
       this.productoService.productos$,
@@ -121,7 +125,7 @@ export class AppComponent implements OnInit, OnDestroy {
         ruta: '/productos',
       });
 
-      this.notificacionesList = lista;
+      Promise.resolve().then(() => { this.notificacionesList = lista; });
     });
   }
 
