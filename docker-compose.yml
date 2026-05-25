@@ -48,9 +48,7 @@ services:
   # Users: autenticación JWT, registro y gestión de usuarios.
   # Produce: user-created-topic | Consume: role-assigned-topic, estado-assigned-topic
   users-service:
-    build:
-      context: ./Users
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:users
     container_name: users-service
     restart: on-failure
     ports:
@@ -78,9 +76,7 @@ services:
   # Rol: asignación automática de roles por dominio de email.
   # Produce: role-assigned-topic | Consume: user-created-topic
   rol-service:
-    build:
-      context: ./Rol
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:rol
     container_name: rol-service
     restart: on-failure
     ports:
@@ -110,9 +106,7 @@ services:
   # Puerto interno 8082, expuesto como 8086 para evitar conflicto con Users.
   # Produce: estado-assigned-topic | Consume: role-assigned-topic
   estado-service:
-    build:
-      context: ./Estado
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:estado
     container_name: estado-service
     restart: on-failure
     ports:
@@ -140,9 +134,7 @@ services:
   # Consume: orden-creada-topic, producto-actualizado-topic
   # Llama sincrónicamente a Producto (validar existencia) con Circuit Breaker.
   inventario-service:
-    build:
-      context: ./Inventario
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:inventario
     container_name: inventario-service
     restart: on-failure
     ports:
@@ -172,9 +164,7 @@ services:
   # Producto: catálogo de productos del eCommerce.
   # Produce: producto-actualizado-topic
   producto-service:
-    build:
-      context: ./Producto
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:producto
     container_name: producto-service
     restart: on-failure
     ports:
@@ -204,9 +194,7 @@ services:
   # Produce: orden-creada-topic, estado-orden-topic
   # Llama sincrónicamente a Users, Estado y Producto con Circuit Breaker.
   orden-service:
-    build:
-      context: ./Orden
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:orden
     container_name: orden-service
     restart: on-failure
     ports:
@@ -241,9 +229,7 @@ services:
   # Configuracion: preferencias de usuario (tema, idioma, etc.) por userId.
   # Almacena pares clave-valor en PostgreSQL; el Gateway inyecta X-User-Id.
   configuracion-service:
-    build:
-      context: ./Configuracion
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:configuracion
     container_name: configuracion-service
     restart: on-failure
     ports:
@@ -267,9 +253,7 @@ services:
   # Valida JWT globalmente (excepto /auth/login y /auth/register).
   # Circuit Breaker por ruta — fallback en /fallback/{servicio}.
   gateway-service:
-    build:
-      context: ./Gateway
-      dockerfile: Dockerfile
+    image: contenedorbenjaxio/smartlogix:gateway
     container_name: gateway-service
     restart: on-failure
     ports:
