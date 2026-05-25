@@ -6,17 +6,16 @@ services:
   # PostgreSQL: base de datos compartida por todos los microservicios.
   # Las 7 bases de datos se crean automáticamente con el script init.sql.
   postgres:
-    image: postgres:15
+    image: contenedorbenjaxio/smartlogix:postgres
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
