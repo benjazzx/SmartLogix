@@ -111,6 +111,7 @@
         <configuration>
           <excludes>
             <exclude>Configuracion/example/Configuracion/config/**</exclude>
+            <exclude>Configuracion/example/Configuracion/security/**</exclude>
             <exclude>Configuracion/example/Configuracion/ConfiguracionApplication.class</exclude>
           </excludes>
         </configuration>
