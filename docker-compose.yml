@@ -29,6 +29,21 @@ services:
       timeout: 10s
       retries: 10
 
+  # Kafdrop: interfaz web para explorar topics y mensajes de Kafka.
+  # Disponible en http://localhost:9002
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    restart: on-failure
+    ports:
+      - "9002:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+      JVM_OPTS: "-Xms32M -Xmx64M"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   # ─── MICROSERVICIOS ─────────────────────────────────────────────────────────
   # Users: autenticación JWT, registro y gestión de usuarios.
   # Produce: user-created-topic | Consume: role-assigned-topic, estado-assigned-topic
@@ -223,6 +238,30 @@ services:
       retries: 8
       start_period: 60s
 
+  # Configuracion: preferencias de usuario (tema, idioma, etc.) por userId.
+  # Almacena pares clave-valor en PostgreSQL; el Gateway inyecta X-User-Id.
+  configuracion-service:
+    build:
+      context: ./Configuracion
+      dockerfile: Dockerfile
+    container_name: configuracion-service
+    restart: on-failure
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Configuracion
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8087/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
+
   # ─── API GATEWAY / BFF ──────────────────────────────────────────────────────
   # Spring Cloud Gateway: enruta /api/* y /auth/* al microservicio correcto.
   # Valida JWT globalmente (excepto /auth/login y /auth/register).
@@ -249,6 +288,8 @@ services:
       orden-service:
         condition: service_healthy
       estado-service:
+        condition: service_healthy
+      configuracion-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
