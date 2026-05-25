@@ -164,6 +164,7 @@ jobs:
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.organization=benjazzx
           -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
         working-directory: Orden
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
