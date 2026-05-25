@@ -3,6 +3,47 @@ SMARTLOGIX — EVALUACIÓN PARCIAL N°2
 DSY1106 Desarrollo de Software Fullstack III
 ===================================================================
 
+APLICACIÓN AL CASO SEMESTRAL
+===================================================================
+SmartLogix es una plataforma para PYMEs de eCommerce que reemplaza
+sistemas monolíticos con una arquitectura de microservicios. El caso
+semestral identifica tres problemas principales y esta solución los
+aborda con patrones de diseño específicos:
+
+PROBLEMA 1 — Sincronización deficiente de inventarios
+  Solución: Microservicio Inventario con Repository Pattern
+  → JpaRepository abstrae el acceso a PostgreSQL permitiendo
+    sincronizar stock en tiempo real entre múltiples bodegas y
+    pasillos sin acoplar la lógica de negocio a la base de datos.
+  → Kafka publica eventos de cambio de stock para notificar a otros
+    servicios de forma asíncrona y desacoplada.
+
+PROBLEMA 2 — Errores en la asignación de pedidos
+  Solución: Microservicio Orden con Factory Method (OrdenFactory)
+  → OrdenFactory centraliza y estandariza la creación de órdenes,
+    eliminando inconsistencias al instanciar pedidos desde distintos
+    flujos (cliente, admin, transportista).
+  → Repository Pattern en OrdenRepository garantiza trazabilidad
+    completa del ciclo de vida del pedido en PostgreSQL via JPA.
+
+PROBLEMA 3 — Demoras en coordinación con transportistas
+  Solución: Gateway con Circuit Breaker (Resilience4j)
+  → El Circuit Breaker en el Gateway detecta fallos en microservicios
+    downstream (Orden, Inventario) y activa un fallback automático,
+    evitando que un servicio caído bloquee toda la plataforma.
+  → El BFF (Gateway) centraliza la comunicación entre el frontend
+    Angular y los microservicios, reduciendo latencia y simplificando
+    la integración con transportistas.
+
+PATRÓN TRANSVERSAL — Escalabilidad y desacoplamiento
+  → Cada microservicio es independiente (puerto propio, BD propia),
+    permitiendo escalar Inventario u Orden ante picos de demanda sin
+    afectar el resto del sistema.
+  → Arquetipos Maven (Spring Boot) garantizan estructura uniforme en
+    todos los servicios, facilitando mantenimiento y extensibilidad.
+
+===================================================================
+
 REPOSITORIO PRINCIPAL (Backend — Monorepo)
 -------------------------------------------------------------------
 URL:      https://github.com/benjazzx/SmartLogix
