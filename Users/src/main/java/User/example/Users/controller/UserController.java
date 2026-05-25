@@ -44,20 +44,22 @@ public class UserController {
         }
     }
 
-    @Operation(summary = "Actualizar mi perfil — cualquier usuario autenticado puede actualizar su propia dirección")
+    @Operation(summary = "Actualizar mi perfil — cualquier usuario autenticado puede actualizar su nombre, apellido y dirección")
     @ApiResponse(responseCode = "200", description = "Perfil actualizado correctamente")
     @PutMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserResponseDto> updateMe(Authentication auth, @RequestBody UserRequestDto dto) {
+    public ResponseEntity<Object> updateMe(Authentication auth, @RequestBody UserRequestDto dto) {
         try {
             var user = userService.getUserByCorreo(auth.getName());
-            // Solo permite actualizar datos propios no sensibles (rol y correo se ignoran)
             dto.setRolNombre(null);
             dto.setRolId(null);
             dto.setCorreo(null);
+            dto.setClave(null);
             return ResponseEntity.ok(UserResponseDto.from(userService.updateUser(user.getId(), dto)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body("Usuario no encontrado");
         }
     }
 
@@ -140,12 +142,14 @@ public class UserController {
         @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDto> updateUser(
+    public ResponseEntity<Object> updateUser(
             @PathVariable UUID id, @RequestBody UserRequestDto dto) {
         try {
             return ResponseEntity.ok(UserResponseDto.from(userService.updateUser(id, dto)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body("Usuario no encontrado");
         }
     }
 

@@ -22,7 +22,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("java:S100")
 class OrdenServiceTest {
+
+    private static final String ROL_CLIENTE   = "cliente";
+    private static final String ROL_ADMIN     = "admin";
+    private static final String ROL_BODEGUERO = "bodeguero";
 
     @InjectMocks
     private OrdenService ordenService;
@@ -149,7 +154,7 @@ class OrdenServiceTest {
         OrdenModel orden = ordenSample(otroUsuarioId);
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
 
-        OrdenResponseDto result = ordenService.getById(1L, adminId, "admin");
+        OrdenResponseDto result = ordenService.getById(1L, adminId, ROL_ADMIN);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
@@ -161,7 +166,7 @@ class OrdenServiceTest {
         OrdenModel orden = ordenSample(UUID.randomUUID());
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
 
-        OrdenResponseDto result = ordenService.getById(1L, bodegueroId, "bodeguero");
+        OrdenResponseDto result = ordenService.getById(1L, bodegueroId, ROL_BODEGUERO);
 
         assertNotNull(result);
     }
@@ -172,7 +177,7 @@ class OrdenServiceTest {
         OrdenModel orden = ordenSample(userId);
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
 
-        OrdenResponseDto result = ordenService.getById(1L, userId, "cliente");
+        OrdenResponseDto result = ordenService.getById(1L, userId, ROL_CLIENTE);
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
@@ -185,14 +190,14 @@ class OrdenServiceTest {
         OrdenModel orden = ordenSample(otroId);
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
 
-        assertThrows(RuntimeException.class, () -> ordenService.getById(1L, clienteId, "cliente"));
+        assertThrows(RuntimeException.class, () -> ordenService.getById(1L, clienteId, ROL_CLIENTE));
     }
 
     @Test
     void getById_ordenNoExistente_debeLanzarRuntimeException() {
         when(ordenRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> ordenService.getById(99L, UUID.randomUUID(), "admin"));
+        assertThrows(RuntimeException.class, () -> ordenService.getById(99L, UUID.randomUUID(), ROL_ADMIN));
     }
 
     @Test
@@ -223,7 +228,7 @@ class OrdenServiceTest {
                 ordenSample(UUID.randomUUID())
         ));
 
-        List<OrdenResponseDto> result = ordenService.getAll();
+        List<OrdenResponseDto> result = ordenService.getAll(ROL_ADMIN, UUID.randomUUID());
 
         assertEquals(2, result.size());
     }
@@ -251,7 +256,7 @@ class OrdenServiceTest {
         when(ordenRepository.save(any())).thenReturn(orden);
         doNothing().when(eventProducer).publishEstadoOrden(any());
 
-        OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, "admin");
+        OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, ROL_ADMIN);
 
         assertNotNull(result);
         assertEquals("enviado", orden.getEstadoActual());
@@ -260,15 +265,15 @@ class OrdenServiceTest {
     }
 
     @Test
-    void addHistorial_clienteOrdenPropia_debePermitir() {
+    void addHistorial_clienteCancelaOrdenPendiente_debePermitir() {
         UUID userId = UUID.randomUUID();
         UUID estadoId = UUID.randomUUID();
-        OrdenModel orden = ordenSample(userId);
+        OrdenModel orden = ordenSample(userId); // estadoActual = "pendiente"
 
         HistorialRequestDto dto = new HistorialRequestDto();
         dto.setEstadoId(estadoId);
-        dto.setEstadoNombre("recibido");
-        dto.setComentario("Orden recibida");
+        dto.setEstadoNombre("Cancelado");
+        dto.setComentario("Cancelado por el cliente");
 
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
         when(estadoClient.existeEstado(estadoId)).thenReturn(true);
@@ -279,9 +284,72 @@ class OrdenServiceTest {
         when(ordenRepository.save(any())).thenReturn(orden);
         doNothing().when(eventProducer).publishEstadoOrden(any());
 
-        OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, "cliente");
+        OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, ROL_CLIENTE);
 
         assertNotNull(result);
+        verify(historialRepository, times(1)).save(any());
+    }
+
+    @Test
+    void addHistorial_clienteConfirmaEntrega_debePermitir() {
+        UUID userId = UUID.randomUUID();
+        UUID estadoId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+        orden.setEstadoActual("entregado");
+
+        HistorialRequestDto dto = new HistorialRequestDto();
+        dto.setEstadoId(estadoId);
+        dto.setEstadoNombre("Entregado");
+        dto.setComentario("Entrega confirmada por el cliente");
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(estadoClient.existeEstado(estadoId)).thenReturn(true);
+
+        HistorialModel historial = new HistorialModel();
+        historial.setFecha(LocalDateTime.now());
+        when(historialRepository.save(any())).thenReturn(historial);
+        when(ordenRepository.save(any())).thenReturn(orden);
+        doNothing().when(eventProducer).publishEstadoOrden(any());
+
+        OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, ROL_CLIENTE);
+
+        assertNotNull(result);
+        verify(historialRepository, times(1)).save(any());
+    }
+
+    @Test
+    void addHistorial_clienteAccionNoPermitida_debeLanzarExcepcion() {
+        UUID userId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+
+        HistorialRequestDto dto = new HistorialRequestDto();
+        dto.setEstadoId(UUID.randomUUID());
+        dto.setEstadoNombre("Procesando");
+        dto.setComentario("intento inválido");
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.addHistorial(1L, dto, userId, ROL_CLIENTE));
+        verify(historialRepository, never()).save(any());
+    }
+
+    @Test
+    void addHistorial_clienteCancelaOrdenEntregada_debeLanzarExcepcion() {
+        UUID userId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+        orden.setEstadoActual("entregado");
+
+        HistorialRequestDto dto = new HistorialRequestDto();
+        dto.setEstadoId(UUID.randomUUID());
+        dto.setEstadoNombre("Cancelado");
+        dto.setComentario("Cancelado por el cliente");
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.addHistorial(1L, dto, userId, ROL_CLIENTE));
+        verify(historialRepository, never()).save(any());
     }
 
     @Test
@@ -297,7 +365,7 @@ class OrdenServiceTest {
         dto.setEstadoNombre("test");
 
         assertThrows(RuntimeException.class,
-                () -> ordenService.addHistorial(1L, dto, clienteId, "cliente"));
+                () -> ordenService.addHistorial(1L, dto, clienteId, ROL_CLIENTE));
         verify(historialRepository, never()).save(any());
     }
 
@@ -319,7 +387,7 @@ class OrdenServiceTest {
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
         when(historialRepository.findByOrden(orden)).thenReturn(List.of(h1, h2));
 
-        List<OrdenResponseDto.HistorialDto> result = ordenService.getHistorial(1L, userId, "admin");
+        List<OrdenResponseDto.HistorialDto> result = ordenService.getHistorial(1L, userId, ROL_ADMIN);
 
         assertEquals(2, result.size());
     }
@@ -332,6 +400,6 @@ class OrdenServiceTest {
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
 
         assertThrows(RuntimeException.class,
-                () -> ordenService.getHistorial(1L, clienteId, "cliente"));
+                () -> ordenService.getHistorial(1L, clienteId, ROL_CLIENTE));
     }
 }

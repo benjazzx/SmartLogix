@@ -1,0 +1,158 @@
+===================================================================
+SMARTLOGIX — EVALUACIÓN PARCIAL N°2
+DSY1106 Desarrollo de Software Fullstack III
+===================================================================
+
+REPOSITORIO PRINCIPAL (Backend — Monorepo)
+-------------------------------------------------------------------
+URL:      https://github.com/benjazzx/SmartLogix
+Rama principal:   main
+Rama de trabajo:  develop
+
+Descripción:
+  Monorepo que contiene el API Gateway (BFF) y todos los microservicios
+  backend de la plataforma SmartLogix. Construido con Spring Boot 3.x,
+  Maven, PostgreSQL y Docker Compose. Incluye pipeline CI/CD con GitHub
+  Actions, cobertura JaCoCo (mínimo 60%) y análisis de calidad SonarCloud.
+
+Ramas de trabajo:
+  main                         → Producción (versión estable)
+  develop                      → Integración continua
+  feature/bff-gateway          → Gateway/BFF: enrutamiento y validación JWT
+  feature/inventario           → Microservicio Inventario: bodegas y stock
+  feature/orden                → Microservicio Orden: ciclo de vida de pedidos
+  feature/tests-unitarios      → Tests JUnit 5 + Mockito + JaCoCo
+  feature/sonar-ci             → Integración SonarCloud en GitHub Actions
+
+
+FRONTEND (Angular SPA)
+-------------------------------------------------------------------
+URL:      https://github.com/vvillalobos7/SmartLogix
+Integrante: Vicente Villalobos
+Rama principal: main
+Descripción:
+  Aplicación frontend construida con Angular 17 (standalone components).
+  Consume la API del Gateway vía REST. Incluye módulos para Dashboard,
+  Inventario, Órdenes, Productos, Usuarios y Configuración. Estilizado
+  con Tailwind CSS.
+
+
+COMPONENTES BACKEND — Detalle
+===================================================================
+
+1. Gateway / BFF (Backend For Frontend)
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Gateway
+Puerto: 8080
+Patrón: API Gateway + Backend For Frontend (BFF)
+Descripción:
+  Punto de entrada único de la plataforma. Enruta todas las solicitudes
+  del frontend hacia los microservicios correspondientes. Valida el token
+  JWT en cada petición mediante un filtro global (JwtFilter). Implementa
+  Circuit Breaker con Resilience4j para manejar fallos entre servicios.
+  Incluye GlobalExceptionHandler para respuestas de error unificadas.
+
+2. Microservicio Users
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Users
+Puerto: 8082
+Patrón: Repository Pattern + MVC + JWT Authentication
+Descripción:
+  Gestión de usuarios: registro, autenticación y generación de tokens JWT.
+  Almacena contraseñas con BCrypt. Encripta el RUT para privacidad. Expone
+  endpoints de login, registro, cambio de clave y perfil de usuario.
+  Base de datos: PostgreSQL con JPA/Hibernate.
+
+3. Microservicio Rol
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Rol
+Puerto: 8081
+Patrón: Repository Pattern + MVC
+Descripción:
+  Catálogo de roles del sistema (admin, cliente, transportista, bodeguero).
+  Asigna roles automáticamente según el dominio del email durante el registro.
+  Consultado por Users para determinar permisos en el JWT.
+
+4. Microservicio Inventario
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Inventario
+Puerto: 8083
+Patrón: Repository Pattern + MVC + Mensajería asíncrona (Kafka)
+Descripción:
+  Gestión de stock en tiempo real. Organiza el inventario en Bodegas,
+  Pasillos y Estantes. Publica eventos Kafka cuando el stock cambia.
+  Conectado a PostgreSQL con JPA. Incluye pruebas unitarias con cobertura
+  mínima del 60%.
+
+5. Microservicio Orden
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Orden
+Puerto: 8084
+Patrón: Repository Pattern + Factory Method (OrdenFactory) + MVC
+Descripción:
+  Gestión del ciclo de vida de pedidos: creación, asignación a transportista,
+  entrega y confirmación. Implementa OrdenFactory para centralizar la
+  creación de órdenes. Mantiene historial completo de estados. Consume
+  usuarios y productos vía RestTemplate (HTTP client). Pruebas unitarias
+  con JUnit 5 y Mockito.
+
+6. Microservicio Producto
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Producto
+Puerto: 8085
+Patrón: Repository Pattern + MVC
+Descripción:
+  Catálogo de productos con imágenes almacenadas en base de datos.
+  Permite filtrar por categoría y país de origen. Expone endpoint GET
+  público para consulta desde el frontend sin autenticación.
+
+7. Microservicio Estado
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Estado
+Puerto: 8086
+Patrón: Repository Pattern + MVC
+Descripción:
+  Catálogo de estados de orden (Pendiente, En tránsito, Entregado, etc.).
+  Asigna estados según el rol del usuario. Incluye DataInitializer para
+  sembrar los estados base al iniciar la aplicación.
+
+8. Microservicio Configuracion
+-------------------------------------------------------------------
+URL:  https://github.com/benjazzx/SmartLogix/tree/main/Configuracion
+Puerto: 8087
+Patrón: Repository Pattern + MVC + JWT Filter
+Descripción:
+  Gestión de preferencias de usuario por clave-valor (tema, idioma, etc.).
+  Valida el JWT localmente mediante JwtFilter propio. Requiere autenticación
+  para todas las operaciones. Tests unitarios para JwtUtil, JwtFilter y
+  Controller (18 tests, cobertura >60%).
+
+
+INSTRUCCIONES PARA LEVANTAR EL SISTEMA
+===================================================================
+
+Requisitos previos:
+  - Docker Desktop instalado y corriendo
+  - Puerto 5432 libre (PostgreSQL) o usar el contenedor del compose
+
+Levantar todo con Docker Compose:
+  cd Smart/
+  docker-compose up --build
+  → API disponible en http://localhost:8080
+
+Levantar microservicio individual (desarrollo):
+  cd Smart/<Microservicio>/
+  mvn spring-boot:run
+
+Levantar frontend:
+  cd SmartLogix-main/SmartLogix-main/SmartLogix/
+  npm install
+  npm start
+  → http://localhost:4200
+
+Ejecutar tests y cobertura:
+  cd Smart/<Microservicio>/
+  mvn verify
+  → Reporte en target/site/jacoco/index.html
+
+===================================================================

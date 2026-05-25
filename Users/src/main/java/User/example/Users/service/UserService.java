@@ -67,13 +67,24 @@ public class UserService {
         return userRepository.findByEstadoId(estadoId);
     }
 
+    public String hashRut(String rut) {
+        try {
+            String normalizado = rut.trim().toLowerCase().replaceAll("[.\\s]", "");
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest((normalizado + "SLX2025").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.Base64.getEncoder().encodeToString(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Error al procesar RUT", e);
+        }
+    }
+
     @Transactional
     public UserModel createUser(UserRequestDto dto) {
         if (userRepository.existsByCorreo(dto.getCorreo())) {
             throw new RuntimeException("Ya existe un usuario con ese correo: " + dto.getCorreo());
         }
-        if (userRepository.existsByRut(dto.getRut())) {
-            throw new RuntimeException("Ya existe un usuario con ese RUT: " + dto.getRut());
+        if (userRepository.existsByRut(hashRut(dto.getRut()))) {
+            throw new RuntimeException("Ya existe un usuario con ese RUT");
         }
 
         // Factory Method: selecciona la fábrica correcta según el rol
@@ -105,8 +116,9 @@ public class UserService {
             }
         }
 
-        // Encriptar la clave antes de persistir
+        // Encriptar la clave y el RUT antes de persistir
         user.setClave(passwordEncoder.encode(user.getClave()));
+        user.setRut(hashRut(user.getRut()));
 
         // Asociar dirección si se provee
         if (dto.getDireccionId() != null) {
@@ -131,10 +143,16 @@ public class UserService {
         UserModel user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
 
+        if (dto.getCorreo() != null) {
+            throw new IllegalStateException("El correo de un usuario no puede ser modificado");
+        }
+        if (dto.getClave() != null) {
+            throw new IllegalStateException("La contraseña debe cambiarse mediante el proceso de recuperación");
+        }
+
         if (dto.getNombre() != null)    user.setNombre(dto.getNombre());
         if (dto.getApellido() != null)  user.setApellido(dto.getApellido());
         if (dto.getCargo() != null)     user.setCargo(dto.getCargo());
-        if (dto.getClave() != null)     user.setClave(passwordEncoder.encode(dto.getClave()));
         if (dto.getRolId() != null)     user.setRolId(dto.getRolId());
         if (dto.getRolNombre() != null) user.setRolNombre(dto.getRolNombre());
 

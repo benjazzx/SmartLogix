@@ -37,6 +37,20 @@ public class OrdenModel {
     @Column(name = "estado_actual", length = 100)
     private String estadoActual = "pendiente";
 
+    // Dirección de entrega desnormalizada (texto) para no depender de Users en cada consulta
+    @Column(name = "direccion_texto", length = 300)
+    private String direccionTexto;
+
+    // Gestión de rutas: transportista que tomó la orden
+    @Column(name = "transportista_id")
+    private UUID transportistaId;
+
+    @Column(name = "transportista_nombre", length = 200)
+    private String transportistaNombre;
+
+    @Column(name = "tomada", nullable = false)
+    private boolean tomada = false;
+
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

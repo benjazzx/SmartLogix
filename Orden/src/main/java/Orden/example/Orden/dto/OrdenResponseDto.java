@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Data
 public class OrdenResponseDto {
@@ -17,9 +16,13 @@ public class OrdenResponseDto {
     private Long id;
     private LocalDateTime fechaOrden;
     private UUID direccionId;
+    private String direccionTexto;
     private UUID userId;
     private String userNombre;
     private String estadoActual;
+    private boolean tomada;
+    private UUID transportistaId;
+    private String transportistaNombre;
     private List<DetalleDto> detalles;
     private List<HistorialDto> historial;
 
@@ -28,15 +31,36 @@ public class OrdenResponseDto {
         dto.setId(orden.getId());
         dto.setFechaOrden(orden.getFechaOrden());
         dto.setDireccionId(orden.getDireccionId());
+        dto.setDireccionTexto(orden.getDireccionTexto());
         dto.setUserId(orden.getUserId());
         dto.setUserNombre(orden.getUserNombre());
         dto.setEstadoActual(orden.getEstadoActual());
-        dto.setDetalles(orden.getDetalles().stream()
-                .map(DetalleDto::from)
-                .collect(Collectors.toList()));
-        dto.setHistorial(orden.getHistorial().stream()
-                .map(HistorialDto::from)
-                .collect(Collectors.toList()));
+        dto.setTomada(orden.isTomada());
+        dto.setTransportistaId(orden.getTransportistaId());
+        dto.setTransportistaNombre(orden.getTransportistaNombre());
+        dto.setDetalles(orden.getDetalles().stream().map(DetalleDto::from).toList());
+        dto.setHistorial(orden.getHistorial().stream().map(HistorialDto::from).toList());
+        return dto;
+    }
+
+    public static OrdenResponseDto from(OrdenModel orden, String rolNombre, UUID requestingUserId) {
+        OrdenResponseDto dto = from(orden);
+        if ("bodeguero".equals(rolNombre)) {
+            dto.setUserId(null);
+            dto.setUserNombre(null);
+        }
+        if (!"admin".equals(rolNombre)) {
+            boolean esPropiaDelTransportista = "transportista".equals(rolNombre)
+                    && requestingUserId != null
+                    && requestingUserId.equals(orden.getTransportistaId());
+            if (!esPropiaDelTransportista) {
+                dto.setTransportistaId(null);
+            }
+            // Bodeguero no ve el nombre del transportista
+            if ("bodeguero".equals(rolNombre)) {
+                dto.setTransportistaNombre(null);
+            }
+        }
         return dto;
     }
 

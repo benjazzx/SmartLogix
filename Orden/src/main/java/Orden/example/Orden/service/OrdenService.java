@@ -11,16 +11,20 @@ import Orden.example.Orden.model.OrdenModel;
 import Orden.example.Orden.messaging.OrdenEventProducer;
 import Orden.example.Orden.repository.HistorialRepository;
 import Orden.example.Orden.repository.OrdenRepository;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class OrdenService {
+
+    private static final String ROL_CLIENTE       = "cliente";
+    private static final String ROL_TRANSPORTISTA = "transportista";
 
     @Autowired private OrdenRepository ordenRepository;
     @Autowired private HistorialRepository historialRepository;
@@ -31,27 +35,29 @@ public class OrdenService {
 
     @Transactional
     public OrdenResponseDto createOrden(OrdenRequestDto dto, UUID userId) {
-        // Intenta enriquecer userNombre desde Users; usa el del request si falla
         String nombre = usersClient.getNombreUsuario(userId);
         if (nombre == null) {
             nombre = dto.getUserNombre();
         }
+        String direccionTexto = usersClient.getDireccionTexto(userId);
 
         OrdenModel orden = OrdenFactory.crearOrden(userId, nombre, dto.getDireccionId());
+        orden.setDireccionTexto(direccionTexto);
 
-        List<DetalleOrdenModel> detalles = dto.getDetalles().stream().map(d -> {
+        List<DetalleOrdenModel> detalles = new ArrayList<>();
+        for (OrdenRequestDto.DetalleDto d : dto.getDetalles()) {
             var productoData = productoClient.getProducto(d.getProductoId());
             if (productoData == null) {
-                throw new RuntimeException(
+                throw new IllegalStateException(
                     "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
             }
-            return OrdenFactory.crearDetalle(
+            detalles.add(OrdenFactory.crearDetalle(
                 orden, d.getProductoId(),
                 ProductoClient.extraerNombre(productoData),
                 ProductoClient.extraerPrecio(productoData),
                 d.getCantidad()
-            );
-        }).collect(Collectors.toList());
+            ));
+        }
 
         orden.setDetalles(detalles);
         OrdenModel saved = ordenRepository.save(orden);
@@ -62,7 +68,7 @@ public class OrdenService {
                 .map(d -> new OrdenCreadaEvent.DetalleDto(
                         d.getProductoId(), d.getCantidad(),
                         d.getProductoNombre(), d.getPrecioUnitario()))
-                .collect(Collectors.toList())
+                .toList()
         );
         eventProducer.publishOrdenCreada(event);
 
@@ -72,24 +78,24 @@ public class OrdenService {
     @Transactional(readOnly = true)
     public OrdenResponseDto getById(Long id, UUID requestingUserId, String rolNombre) {
         OrdenModel orden = findOrdenOrThrow(id);
-        if ("cliente".equals(rolNombre) && !orden.getUserId().equals(requestingUserId)) {
-            throw new RuntimeException("Acceso denegado: la orden no pertenece al usuario");
+        if (ROL_CLIENTE.equals(rolNombre) && !orden.getUserId().equals(requestingUserId)) {
+            throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
         }
-        return OrdenResponseDto.from(orden);
+        return OrdenResponseDto.from(orden, rolNombre, requestingUserId);
     }
 
     @Transactional(readOnly = true)
     public List<OrdenResponseDto> getMisOrdenes(UUID userId) {
         return ordenRepository.findByUserId(userId).stream()
                 .map(OrdenResponseDto::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<OrdenResponseDto> getAll() {
+    public List<OrdenResponseDto> getAll(String rolNombre, UUID requestingUserId) {
         return ordenRepository.findAll().stream()
-                .map(OrdenResponseDto::from)
-                .collect(Collectors.toList());
+                .map(o -> OrdenResponseDto.from(o, rolNombre, requestingUserId))
+                .toList();
     }
 
     @Transactional
@@ -97,8 +103,23 @@ public class OrdenService {
                                          UUID requestingUserId, String rolNombre) {
         OrdenModel orden = findOrdenOrThrow(ordenId);
 
-        if ("cliente".equals(rolNombre) && !orden.getUserId().equals(requestingUserId)) {
-            throw new RuntimeException("Acceso denegado: la orden no pertenece al usuario");
+        if (ROL_CLIENTE.equals(rolNombre)) {
+            if (!orden.getUserId().equals(requestingUserId)) {
+                throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
+            }
+            String estadoActual = orden.getEstadoActual() != null ? orden.getEstadoActual().toLowerCase().trim() : "";
+            boolean esCancelacion   = "Cancelado".equalsIgnoreCase(dto.getEstadoNombre());
+            boolean esConfirmacion  = "Entregado".equalsIgnoreCase(dto.getEstadoNombre());
+
+            if (!esCancelacion && !esConfirmacion) {
+                throw new IllegalStateException("Acceso denegado: el cliente solo puede cancelar o confirmar entrega de órdenes");
+            }
+            if (esCancelacion && !estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
+                throw new IllegalStateException("Acceso denegado: solo se pueden cancelar órdenes en estado Pendiente o Procesando");
+            }
+            if (esConfirmacion && !estadoActual.equals("entregado")) {
+                throw new IllegalStateException("Acceso denegado: solo se puede confirmar recibo cuando el transportista ya marcó la orden como Entregada");
+            }
         }
 
         estadoClient.existeEstado(dto.getEstadoId());
@@ -119,7 +140,7 @@ public class OrdenService {
         );
         eventProducer.publishEstadoOrden(event);
 
-        return OrdenResponseDto.from(orden);
+        return OrdenResponseDto.from(orden, rolNombre, requestingUserId);
     }
 
     @Transactional(readOnly = true)
@@ -127,16 +148,49 @@ public class OrdenService {
                                                              UUID requestingUserId,
                                                              String rolNombre) {
         OrdenModel orden = findOrdenOrThrow(ordenId);
-        if ("cliente".equals(rolNombre) && !orden.getUserId().equals(requestingUserId)) {
-            throw new RuntimeException("Acceso denegado: la orden no pertenece al usuario");
+        if (ROL_CLIENTE.equals(rolNombre) && !orden.getUserId().equals(requestingUserId)) {
+            throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
         }
         return historialRepository.findByOrden(orden).stream()
                 .map(OrdenResponseDto.HistorialDto::from)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    @Transactional
+    public OrdenResponseDto tomarOrden(Long ordenId, UUID transportistaId) {
+        OrdenModel orden = findOrdenOrThrow(ordenId);
+        if (orden.isTomada()) {
+            throw new IllegalStateException("La orden ya fue tomada por otro transportista");
+        }
+        Hibernate.initialize(orden.getDetalles());
+        Hibernate.initialize(orden.getHistorial());
+
+        String nombre = usersClient.getNombreUsuario(transportistaId);
+        orden.setTomada(true);
+        orden.setTransportistaId(transportistaId);
+        orden.setTransportistaNombre(nombre);
+        ordenRepository.save(orden);
+        return OrdenResponseDto.from(orden, ROL_TRANSPORTISTA, transportistaId);
+    }
+
+    @Transactional
+    public OrdenResponseDto liberarOrden(Long ordenId, UUID transportistaId) {
+        OrdenModel orden = findOrdenOrThrow(ordenId);
+        if (!orden.isTomada() || !transportistaId.equals(orden.getTransportistaId())) {
+            throw new IllegalStateException("No puedes liberar esta orden");
+        }
+        Hibernate.initialize(orden.getDetalles());
+        Hibernate.initialize(orden.getHistorial());
+
+        orden.setTomada(false);
+        orden.setTransportistaId(null);
+        orden.setTransportistaNombre(null);
+        ordenRepository.save(orden);
+        return OrdenResponseDto.from(orden, ROL_TRANSPORTISTA, transportistaId);
     }
 
     private OrdenModel findOrdenOrThrow(Long id) {
         return ordenRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Orden no encontrada: " + id));
+                .orElseThrow(() -> new IllegalStateException("Orden no encontrada: " + id));
     }
 }

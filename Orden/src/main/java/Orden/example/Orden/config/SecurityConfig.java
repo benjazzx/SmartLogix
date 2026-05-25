@@ -24,6 +24,11 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final String ROL_CLIENTE       = "cliente";
+    private static final String ROL_ADMIN         = "admin";
+    private static final String ROL_BODEGUERO     = "bodeguero";
+    private static final String ROL_TRANSPORTISTA = "transportista";
+
     @Autowired
     private JwtFilter jwtFilter;
 
@@ -48,11 +53,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
                 // Solo cliente crea ordenes y ve las suyas
-                .requestMatchers(HttpMethod.POST, "/api/ordenes").hasRole("cliente")
-                .requestMatchers(HttpMethod.GET,  "/api/ordenes/mis-ordenes").hasRole("cliente")
+                .requestMatchers(HttpMethod.POST, "/api/ordenes").hasRole(ROL_CLIENTE)
+                .requestMatchers(HttpMethod.GET,  "/api/ordenes/mis-ordenes").hasRole(ROL_CLIENTE)
                 // Admin, bodeguero y transportista ven todas las ordenes y gestionan historial
-                .requestMatchers(HttpMethod.GET,  "/api/ordenes").hasAnyRole("admin", "bodeguero", "transportista")
-                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/historial").hasAnyRole("admin", "bodeguero", "transportista")
+                .requestMatchers(HttpMethod.GET,  "/api/ordenes").hasAnyRole(ROL_ADMIN, ROL_BODEGUERO, ROL_TRANSPORTISTA)
+                // Cliente puede cancelar sus propias órdenes; servicio valida estado y propiedad
+                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/historial").hasAnyRole(ROL_ADMIN, ROL_BODEGUERO, ROL_TRANSPORTISTA, ROL_CLIENTE)
+                // Transportista: tomar o liberar una ruta
+                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/tomar").hasRole(ROL_TRANSPORTISTA)
+                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/liberar").hasRole(ROL_TRANSPORTISTA)
                 // Ver orden por id e historial: cualquier autenticado (service filtra por propiedad)
                 .anyRequest().authenticated()
             )
