@@ -97,6 +97,30 @@ src/app/
 | Transportista | transportista@smartlogix.cl | trans123 |
 | Cliente | cliente@smartlogix.cl | cliente123 |
 
+## Flujo de trabajo Git (Git Flow)
+
+```
+main      ──●──────────────────────────────────●── (producción)
+             \                                /
+develop        ●──●──●──●──●──●──●──●──●──●    (integración)
+                \__/    \__/    \__/
+              feature  feature  feature         (desarrollo)
+```
+
+| Rama | Propósito |
+|---|---|
+| `main` | Código estable listo para producción. |
+| `develop` | Integración de features. Base de trabajo del equipo. |
+| `feature/*` | Una rama por funcionalidad (ej: `feature/dashboard-transportista`). |
+
+**Convención de commits:**
+```
+feat(modulo):  nueva funcionalidad
+fix(modulo):   corrección de bug
+docs:          documentación / README
+chore:         tareas de mantenimiento
+```
+
 ## Patrones aplicados
 
 - **BFF** — toda comunicación pasa por el Gateway; el frontend nunca llama microservicios directamente.
