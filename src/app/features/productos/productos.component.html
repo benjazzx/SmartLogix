@@ -1,11 +1,26 @@
 <div class="space-y-4">
 
-  <!-- Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-    <div>
-      <h2 class="text-base font-semibold text-gray-800">Catálogo de Productos</h2>
-      <p class="text-xs text-gray-400 mt-0.5">{{ productos.length }} productos · {{ categorias.length }} categorías</p>
+  <!-- Banner header -->
+  <div class="bg-gradient-to-r from-blue-800 to-indigo-700 rounded-2xl p-5 text-white">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-sm font-bold tracking-wide">Catálogo de Productos</h2>
+          <p class="text-xs text-blue-200 mt-0.5">{{ productos.length }} productos · {{ categorias.length }} categorías</p>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Acciones / Filtros -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div></div>
     <div class="flex flex-wrap items-center gap-2">
       @if (activeTab === 'productos') {
         <div class="relative">
@@ -25,7 +40,7 @@
         </select>
         <select [(ngModel)]="filtroBodegaId" [ngModelOptions]="{standalone: true}"
           class="px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option [value]="null">Todas las bodegas</option>
+          <option value="">Todas las bodegas</option>
           @for (b of bodegas; track b.idBodega) {
             <option [value]="b.idBodega">{{ b.nombre }}</option>
           }
@@ -51,16 +66,22 @@
   </div>
 
   <!-- Tabs -->
-  <div class="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+  <div class="flex gap-1 bg-gray-100/80 rounded-xl p-1 w-fit border border-gray-200">
     <button (click)="activeTab = 'productos'"
-      class="px-4 py-1.5 text-xs font-semibold rounded-md transition-colors"
-      [class]="activeTab === 'productos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-      Productos ({{ productos.length }})
+      class="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all"
+      [class]="activeTab === 'productos' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+      </svg>
+      Productos <span class="bg-blue-100 text-blue-700 px-1.5 rounded-full text-xs">{{ productos.length }}</span>
     </button>
     <button (click)="activeTab = 'categorias'"
-      class="px-4 py-1.5 text-xs font-semibold rounded-md transition-colors"
-      [class]="activeTab === 'categorias' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-      Categorías ({{ categorias.length }})
+      class="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all"
+      [class]="activeTab === 'categorias' ? 'bg-white text-purple-700 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+      </svg>
+      Categorías <span class="bg-purple-100 text-purple-700 px-1.5 rounded-full text-xs">{{ categorias.length }}</span>
     </button>
   </div>
 
@@ -69,21 +90,21 @@
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="bg-gray-50 border-b border-gray-100">
+        <thead class="bg-gray-50/80 border-b border-gray-100">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">Img</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoría</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ubicación</th>
-            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock</th>
-            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Precio</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-            <th class="px-4 py-3"></th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest w-12">Img</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">Nombre</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">Categoría</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">Ubicación</th>
+            <th class="px-4 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-widest">Stock</th>
+            <th class="px-4 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-widest">Precio</th>
+            <th class="px-4 py-3.5 text-center text-xs font-semibold text-gray-400 uppercase tracking-widest">Estado</th>
+            <th class="px-4 py-3.5"></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody class="divide-y divide-gray-50">
           @for (p of productosFiltrados; track p.id) {
-            <tr class="hover:bg-gray-50 transition-colors" [class.opacity-50]="!p.activo">
+            <tr class="hover:bg-blue-50/30 transition-colors" [class.opacity-50]="!p.activo">
 
               <!-- Imagen miniatura -->
               <td class="px-4 py-3">
@@ -161,7 +182,17 @@
             </tr>
           }
           @empty {
-            <tr><td colspan="8" class="px-4 py-8 text-center text-xs text-gray-400">Sin resultados.</td></tr>
+            <tr>
+              <td colspan="8" class="px-4 py-14 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                  </svg>
+                </div>
+                <p class="text-sm font-semibold text-gray-400">Sin resultados</p>
+                <p class="text-xs text-gray-300 mt-1">Intenta cambiar los filtros</p>
+              </td>
+            </tr>
           }
         </tbody>
       </table>
@@ -174,17 +205,17 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-gray-50 border-b border-gray-100">
+          <thead class="bg-gray-50/80 border-b border-gray-100">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nombre</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Descripción</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Productos</th>
-              <th class="px-4 py-3"></th>
+              <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">Nombre</th>
+              <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">Descripción</th>
+              <th class="px-4 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-widest">Productos</th>
+              <th class="px-4 py-3.5"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody class="divide-y divide-gray-50">
             @for (c of categorias; track c.id) {
-              <tr class="hover:bg-gray-50 transition-colors">
+              <tr class="hover:bg-purple-50/30 transition-colors">
                 <td class="px-4 py-3">
                   <span class="text-xs font-semibold text-gray-800 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{{ c.nombre }}</span>
                 </td>
