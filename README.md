@@ -76,6 +76,67 @@ docker compose down
 | Transportista | transportista@smartlogix.cl | trans123 |
 | Cliente | cliente@smartlogix.cl | cliente123 |
 
+## Flujo de trabajo Git (Git Flow)
+
+```
+main      ──●────────────────────────────────────●── (producción)
+             \                                  /
+develop        ●──●──●──●──●──●──●──●──●──●──●    (integración)
+                \__/    \__/    \__/    \__/
+              feature  feature  feature  feature   (desarrollo)
+```
+
+| Rama | Propósito |
+|---|---|
+| `main` | Código estable. Solo recibe merges desde `develop` tras revisión. |
+| `develop` | Integración continua. Todas las features se fusionan aquí. |
+| `feature/*` | Una rama por funcionalidad (ej: `feature/autenticacion-jwt`). |
+
+**Convención de commits:**
+```
+feat(servicio):  nueva funcionalidad
+fix(servicio):   corrección de bug
+test(servicio):  pruebas unitarias / integración
+ci:              cambios en pipeline GitHub Actions
+docs:            documentación
+chore:           tareas de mantenimiento (deps, config)
+```
+
+## Cobertura de tests (JaCoCo)
+
+El CI ejecuta `mvn verify` en cada microservicio. El reporte HTML se genera en:
+```
+<Microservicio>/target/site/jacoco/index.html
+```
+
+Para ejecutar localmente en cualquier microservicio:
+```bash
+cd Orden        # o Gateway, Users, Producto, etc.
+mvn verify
+# Abre: target/site/jacoco/index.html
+```
+
+Cobertura mínima exigida: **60%** por microservicio. SonarCloud analiza el servicio Orden.
+
+## CI/CD — GitHub Actions
+
+El pipeline corre automáticamente en cada push a `develop` o `main`:
+
+```
+push / PR
+    │
+    ├── gateway     mvn verify (JaCoCo ≥60%)
+    ├── users       mvn verify (JaCoCo ≥60%)
+    ├── rol         mvn verify (JaCoCo ≥60%)
+    ├── estado      mvn verify (JaCoCo ≥60%)
+    ├── inventario  mvn verify (JaCoCo ≥60%)
+    ├── producto    mvn verify (JaCoCo ≥60%)
+    ├── orden       mvn verify + SonarCloud
+    └── config      mvn verify (JaCoCo ≥60%)
+            │
+            └── quality-gate  (falla si alguno falla)
+```
+
 ## Patrones de diseño aplicados
 
 - **BFF (Backend for Frontend)** — Gateway centraliza acceso y seguridad
