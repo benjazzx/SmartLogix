@@ -22,11 +22,13 @@ public class ProductoClient {
     @Autowired private RestTemplate restTemplate;
     @Autowired private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
 
+    private static final String CB_PRODUCTO = "productoClient";
+
     @Value("${producto.service.url}")
     private String productoUrl;
 
     public boolean existeProducto(UUID productoId) {
-        return circuitBreakerFactory.create("productoClient").run(
+        return circuitBreakerFactory.create(CB_PRODUCTO).run(
             () -> {
                 Map<?, ?> producto = restTemplate.getForObject(
                     productoUrl + "/api/productos/" + productoId, Map.class);
@@ -39,8 +41,25 @@ public class ProductoClient {
         );
     }
 
+    public int getStockPorEstante(Long idEstante) {
+        return circuitBreakerFactory.create(CB_PRODUCTO).run(
+            () -> {
+                Map<?, ?> res = restTemplate.getForObject(
+                    productoUrl + "/api/productos/estante/" + idEstante + "/stock", Map.class);
+                if (res != null && res.get("stockActual") instanceof Number n) {
+                    return n.intValue();
+                }
+                return 0;
+            },
+            throwable -> {
+                log.warn("[CircuitBreaker][Inventario→Producto] stockPorEstante fallback: {}", throwable.getMessage());
+                return 0;
+            }
+        );
+    }
+
     public boolean decrementarStock(UUID productoId, int cantidad) {
-        return circuitBreakerFactory.create("productoClient").run(
+        return circuitBreakerFactory.create(CB_PRODUCTO).run(
             () -> {
                 String url = productoUrl + "/api/productos/" + productoId
                         + "/decrementar-stock?cantidad=" + cantidad;

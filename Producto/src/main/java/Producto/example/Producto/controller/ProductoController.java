@@ -114,4 +114,11 @@ public class ProductoController {
         productoService.desactivar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/estante/{idEstante}/stock")
+    @Operation(summary = "Stock total activo por estante — usado por Inventario para porcentaje de uso")
+    public ResponseEntity<Map<String, Integer>> stockPorEstante(@PathVariable Long idEstante) {
+        Integer stock = productoService.getStockPorEstante(idEstante);
+        return ResponseEntity.ok(Map.of("stockActual", stock != null ? stock : 0));
+    }
 }

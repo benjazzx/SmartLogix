@@ -12,6 +12,12 @@ spring:
               predicates:
                 - Path=/auth/**
 
+            # ── Preguntas de seguridad y solicitudes de recuperación ─────────────
+            - id: preguntas-seguridad-route
+              uri: http://users-service:8082
+              predicates:
+                - Path=/preguntas-seguridad/**
+
             # ── Users ────────────────────────────────────────────────────────────
             - id: users-service
               uri: http://users-service:8082
@@ -158,6 +164,17 @@ spring:
                     id: productoCircuitBreaker
                     fallbackUri: forward:/fallback/producto
 
+            # ── Configuracion ────────────────────────────────────────────────────
+            - id: configuracion-service
+              uri: http://configuracion-service:8087
+              predicates:
+                - Path=/api/config/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: configuracionCircuitBreaker
+                    fallbackUri: forward:/fallback/configuracion
+
 server:
   port: 8080
 
@@ -182,6 +199,8 @@ resilience4j:
         baseConfig: default
       productoCircuitBreaker:
         baseConfig: default
+      configuracionCircuitBreaker:
+        baseConfig: default
   circuitbreaker:
     configs:
       default:
@@ -203,6 +222,8 @@ resilience4j:
       ordenCircuitBreaker:
         baseConfig: default
       productoCircuitBreaker:
+        baseConfig: default
+      configuracionCircuitBreaker:
         baseConfig: default
 
 management:

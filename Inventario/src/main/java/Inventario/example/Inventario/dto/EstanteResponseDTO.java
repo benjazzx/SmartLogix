@@ -17,6 +17,8 @@ public class EstanteResponseDTO {
     private Integer numNiveles;
     private Double capacidadPorNivel;
     private Double capacidadTotal;
+    private Integer stockActual;
+    private Double porcentajeUso;
     private Boolean activo;
     private Integer totalPasillosAsignados;
     private LocalDateTime fechaCreacion;

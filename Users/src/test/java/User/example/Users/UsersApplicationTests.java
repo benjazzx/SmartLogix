@@ -6,7 +6,7 @@ class UsersApplicationTests {
 
 	@Test
 	void contextLoads() {
-		// Verificación básica sin contexto Spring (evita conexión a BD en CI)
+		
 	}
 
 }

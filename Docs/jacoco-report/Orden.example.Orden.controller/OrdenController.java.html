@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrdenController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">Orden.example.Orden.controller</a> &gt; <span class="el_source">OrdenController.java</span></div><h1>OrdenController.java</h1><pre class="source lang-java linenums">package Orden.example.Orden.controller;
+
+import Orden.example.Orden.dto.OrdenRequestDto;
+import Orden.example.Orden.dto.OrdenResponseDto;
+import Orden.example.Orden.service.OrdenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+<span class="fc" id="L24">@Slf4j</span>
+@RestController
+@RequestMapping(&quot;/api/ordenes&quot;)
+@Tag(name = &quot;Ordenes&quot;, description = &quot;Gestión de órdenes en SmartLogix&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+<span class="fc" id="L29">public class OrdenController {</span>
+
+    private static final String ATTR_USER_ID = &quot;userId&quot;;
+    private static final String KEY_ERROR    = &quot;error&quot;;
+
+    @Autowired
+    private OrdenService ordenService;
+
+    @Operation(summary = &quot;Crear nueva orden (solo cliente)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Orden creada correctamente&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Datos inválidos&quot;)
+    })
+    @PostMapping
+    public ResponseEntity&lt;Object&gt; createOrden(
+            @Valid @RequestBody OrdenRequestDto dto,
+            HttpServletRequest request) {
+<span class="fc" id="L46">        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (userId == null) {</span>
+<span class="fc" id="L48">            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, &quot;Token inválido o expirado&quot;));</span>
+        }
+        try {
+<span class="fc" id="L51">            return ResponseEntity.ok(ordenService.createOrden(dto, userId));</span>
+<span class="fc" id="L52">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L53">            log.error(&quot;Error al crear orden para userId={}: {}&quot;, userId, e.getMessage());</span>
+<span class="fc" id="L54">            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));</span>
+        }
+    }
+
+    @Operation(summary = &quot;Ver mis órdenes (solo cliente)&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista obtenida correctamente&quot;)
+    @GetMapping(&quot;/mis-ordenes&quot;)
+    public ResponseEntity&lt;List&lt;OrdenResponseDto&gt;&gt; getMisOrdenes(HttpServletRequest request) {
+<span class="fc" id="L62">        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (userId == null) {</span>
+<span class="fc" id="L64">            return ResponseEntity.status(401).build();</span>
+        }
+<span class="fc" id="L66">        return ResponseEntity.ok(ordenService.getMisOrdenes(userId));</span>
+    }
+
+    @Operation(summary = &quot;Listar todas las órdenes (admin, bodeguero, transportista)&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista obtenida correctamente&quot;)
+    @GetMapping
+    public List&lt;OrdenResponseDto&gt; getAll(HttpServletRequest request, Authentication auth) {
+<span class="fc" id="L73">        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);</span>
+<span class="fc" id="L74">        return ordenService.getAll(extractRol(auth), userId);</span>
+    }
+
+    @Operation(summary = &quot;Obtener orden por ID&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Orden encontrada&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acceso denegado&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Orden no encontrada&quot;)
+    })
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;OrdenResponseDto&gt; getById(
+            @Parameter(description = &quot;ID de la orden&quot;) @PathVariable Long id,
+            HttpServletRequest request,
+            Authentication auth) {
+<span class="fc" id="L88">        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);</span>
+        try {
+<span class="fc" id="L90">            return ResponseEntity.ok(ordenService.getById(id, userId, extractRol(auth)));</span>
+<span class="fc" id="L91">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L92">            log.warn(&quot;getById id={}: {}&quot;, id, e.getMessage());</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            if (e.getMessage().contains(&quot;Acceso denegado&quot;)) {</span>
+<span class="fc" id="L94">                return ResponseEntity.status(403).build();</span>
+            }
+<span class="fc" id="L96">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    @Operation(summary = &quot;Tomar orden como ruta (solo transportista)&quot;)
+    @PostMapping(&quot;/{id}/tomar&quot;)
+    public ResponseEntity&lt;Object&gt; tomarOrden(@PathVariable Long id, HttpServletRequest request) {
+<span class="nc" id="L103">        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, &quot;Token inválido&quot;));</span>
+        try {
+<span class="nc" id="L106">            return ResponseEntity.ok(ordenService.tomarOrden(id, userId));</span>
+<span class="nc" id="L107">        } catch (IllegalStateException e) {</span>
+<span class="nc" id="L108">            return ResponseEntity.status(409).body(Map.of(KEY_ERROR, e.getMessage()));</span>
+<span class="nc" id="L109">        } catch (Exception e) {</span>
+<span class="nc" id="L110">            log.error(&quot;Error al tomar orden id={}: {}&quot;, id, e.getMessage(), e);</span>
+<span class="nc" id="L111">            return ResponseEntity.status(500).body(Map.of(KEY_ERROR, &quot;Error interno al procesar la solicitud&quot;));</span>
+        }
+    }
+
+    @Operation(summary = &quot;Liberar orden (solo el transportista que la tomó)&quot;)
+    @PostMapping(&quot;/{id}/liberar&quot;)
+    public ResponseEntity&lt;Object&gt; liberarOrden(@PathVariable Long id, HttpServletRequest request) {
+<span class="nc" id="L118">        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, &quot;Token inválido&quot;));</span>
+        try {
+<span class="nc" id="L121">            return ResponseEntity.ok(ordenService.liberarOrden(id, userId));</span>
+<span class="nc" id="L122">        } catch (IllegalStateException e) {</span>
+<span class="nc" id="L123">            return ResponseEntity.status(403).body(Map.of(KEY_ERROR, e.getMessage()));</span>
+        }
+    }
+
+    private String extractRol(Authentication auth) {
+<span class="pc bpc" id="L128" title="2 of 4 branches missed.">        if (auth == null || auth.getAuthorities().isEmpty()) return &quot;&quot;;</span>
+<span class="fc" id="L129">        return auth.getAuthorities().iterator().next().getAuthority().replace(&quot;ROLE_&quot;, &quot;&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

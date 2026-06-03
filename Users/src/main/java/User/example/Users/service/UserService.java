@@ -78,8 +78,22 @@ public class UserService {
         }
     }
 
+    public static void validarContraseña(String password) {
+        if (password == null || password.length() < 8) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos una letra mayúscula");
+        }
+        if (!password.matches(".*[!@#$%^&*()\\-_=+\\[\\]{}|;:'\",.<>?/\\\\~`].*")) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos un símbolo especial (!@#$%...)");
+        }
+    }
+
     @Transactional
     public UserModel createUser(UserRequestDto dto) {
+        validarContraseña(dto.getClave());
+
         if (userRepository.existsByCorreo(dto.getCorreo())) {
             throw new RuntimeException("Ya existe un usuario con ese correo: " + dto.getCorreo());
         }

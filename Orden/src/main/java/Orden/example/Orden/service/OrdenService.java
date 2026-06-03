@@ -104,28 +104,20 @@ public class OrdenService {
         OrdenModel orden = findOrdenOrThrow(ordenId);
 
         if (ROL_CLIENTE.equals(rolNombre)) {
-            if (!orden.getUserId().equals(requestingUserId)) {
-                throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
-            }
-            String estadoActual = orden.getEstadoActual() != null ? orden.getEstadoActual().toLowerCase().trim() : "";
-            boolean esCancelacion   = "Cancelado".equalsIgnoreCase(dto.getEstadoNombre());
-            boolean esConfirmacion  = "Entregado".equalsIgnoreCase(dto.getEstadoNombre());
-
-            if (!esCancelacion && !esConfirmacion) {
-                throw new IllegalStateException("Acceso denegado: el cliente solo puede cancelar o confirmar entrega de órdenes");
-            }
-            if (esCancelacion && !estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
-                throw new IllegalStateException("Acceso denegado: solo se pueden cancelar órdenes en estado Pendiente o Procesando");
-            }
-            if (esConfirmacion && !estadoActual.equals("entregado")) {
-                throw new IllegalStateException("Acceso denegado: solo se puede confirmar recibo cuando el transportista ya marcó la orden como Entregada");
-            }
+            validarPermisosCliente(orden, dto, requestingUserId);
         }
 
         estadoClient.existeEstado(dto.getEstadoId());
 
+        // Si el DTO trae quién lo hizo, usarlo; si no, resolver desde Users
+        UUID realizadoPorId = dto.getRealizadoPorId() != null ? dto.getRealizadoPorId() : requestingUserId;
+        String realizadoPorNombre = dto.getRealizadoPorNombre() != null
+            ? dto.getRealizadoPorNombre()
+            : usersClient.getNombreUsuario(requestingUserId);
+
         HistorialModel historial = OrdenFactory.crearHistorial(
-            orden, dto.getEstadoId(), dto.getEstadoNombre(), dto.getComentario()
+            orden, dto.getEstadoId(), dto.getEstadoNombre(), dto.getComentario(),
+            realizadoPorId, realizadoPorNombre
         );
 
         historialRepository.save(historial);
@@ -187,6 +179,83 @@ public class OrdenService {
         orden.setTransportistaNombre(null);
         ordenRepository.save(orden);
         return OrdenResponseDto.from(orden, ROL_TRANSPORTISTA, transportistaId);
+    }
+
+    @Transactional
+    public OrdenResponseDto solicitarDevolucion(Long ordenId, UUID userId, String motivo) {
+        OrdenModel orden = findOrdenOrThrow(ordenId);
+        if (!orden.getUserId().equals(userId)) {
+            throw new IllegalStateException("Acceso denegado");
+        }
+        if (!"Entregado".equals(orden.getEstadoActual())) {
+            throw new IllegalStateException("Solo se puede solicitar devolución de órdenes entregadas");
+        }
+        Hibernate.initialize(orden.getDetalles());
+        Hibernate.initialize(orden.getHistorial());
+
+        orden.setEstadoActual("Devolución solicitada");
+        orden.setMotivoDevolucion(motivo);
+        ordenRepository.save(orden);
+
+        HistorialModel h = new HistorialModel();
+        h.setOrden(orden);
+        h.setEstadoNombre("Devolución solicitada");
+        h.setComentario("Cliente solicitó devolución: " + motivo);
+        h.setFecha(java.time.LocalDateTime.now());
+        historialRepository.save(h);
+
+        return OrdenResponseDto.from(orden, ROL_CLIENTE, userId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<java.util.Map<String, Object>> getResumenEmpleados() {
+        List<HistorialModel> todos = historialRepository.findAll();
+        java.util.Map<String, java.util.Map<String, Object>> resumen = new java.util.LinkedHashMap<>();
+
+        for (HistorialModel h : todos) {
+            if (h.getRealizadoPorNombre() == null || h.getRealizadoPorNombre().isBlank()) continue;
+            String nombre = h.getRealizadoPorNombre();
+            resumen.computeIfAbsent(nombre, k -> {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("empleado", nombre);
+                m.put("totalAcciones", 0);
+                m.put("ordenesProcesadas", new java.util.HashSet<Long>());
+                return m;
+            });
+            java.util.Map<String, Object> emp = resumen.get(nombre);
+            emp.put("totalAcciones", (int) emp.get("totalAcciones") + 1);
+            @SuppressWarnings("unchecked")
+            java.util.Set<Long> ids = (java.util.Set<Long>) emp.get("ordenesProcesadas");
+            if (h.getOrden() != null) ids.add(h.getOrden().getId());
+        }
+
+        // Convertir set a count
+        return resumen.values().stream().map(m -> {
+            java.util.Map<String, Object> out = new java.util.LinkedHashMap<>(m);
+            @SuppressWarnings("unchecked")
+            java.util.Set<Long> ids = (java.util.Set<Long>) m.get("ordenesProcesadas");
+            out.put("ordenesProcesadas", ids.size());
+            return out;
+        }).toList();
+    }
+
+    private void validarPermisosCliente(OrdenModel orden, HistorialRequestDto dto, UUID userId) {
+        if (!orden.getUserId().equals(userId)) {
+            throw new IllegalStateException("Acceso denegado: la orden no pertenece al usuario");
+        }
+        String estadoActual  = orden.getEstadoActual() != null ? orden.getEstadoActual().toLowerCase().trim() : "";
+        boolean esCancelacion  = "Cancelado".equalsIgnoreCase(dto.getEstadoNombre());
+        boolean esConfirmacion = "Entregado".equalsIgnoreCase(dto.getEstadoNombre());
+
+        if (!esCancelacion && !esConfirmacion) {
+            throw new IllegalStateException("Acceso denegado: el cliente solo puede cancelar o confirmar entrega");
+        }
+        if (esCancelacion && !estadoActual.equals("pendiente") && !estadoActual.equals("procesando")) {
+            throw new IllegalStateException("Solo se pueden cancelar órdenes en estado Pendiente o Procesando");
+        }
+        if (esConfirmacion && !estadoActual.equals("entregado")) {
+            throw new IllegalStateException("Solo se puede confirmar recibo cuando el transportista marcó la orden como Entregada");
+        }
     }
 
     private OrdenModel findOrdenOrThrow(Long id) {

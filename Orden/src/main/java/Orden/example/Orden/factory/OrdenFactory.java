@@ -36,12 +36,20 @@ public final class OrdenFactory {
 
     public static HistorialModel crearHistorial(OrdenModel orden, UUID estadoId,
                                                  String estadoNombre, String comentario) {
+        return crearHistorial(orden, estadoId, estadoNombre, comentario, null, null);
+    }
+
+    public static HistorialModel crearHistorial(OrdenModel orden, UUID estadoId,
+                                                 String estadoNombre, String comentario,
+                                                 UUID realizadoPorId, String realizadoPorNombre) {
         HistorialModel historial = new HistorialModel();
         historial.setOrden(orden);
         historial.setEstadoId(estadoId);
         historial.setEstadoNombre(estadoNombre);
         historial.setComentario(comentario);
         historial.setFecha(LocalDateTime.now());
+        historial.setRealizadoPorId(realizadoPorId);
+        historial.setRealizadoPorNombre(realizadoPorNombre);
         return historial;
     }
 }

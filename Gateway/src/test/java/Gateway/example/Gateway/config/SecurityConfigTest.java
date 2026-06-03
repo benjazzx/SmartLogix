@@ -8,7 +8,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.util.ReflectionTestUtils;
-
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,77 +25,13 @@ class SecurityConfigTest {
         ReflectionTestUtils.setField(securityConfig, "jwtSecret", SECRET);
     }
 
-    private boolean isPublic(String uri) {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRequestURI(uri);
-        return ReflectionTestUtils.<Boolean>invokeMethod(securityConfig, "isPublic", request);
-    }
-
     @Test
-    void rutaAuth_esPublica() {
-        assertTrue(isPublic("/auth/login"));
-        assertTrue(isPublic("/auth/register"));
-    }
-
-    @Test
-    void rutaActuator_esPublica() {
-        assertTrue(isPublic("/actuator/health"));
-        assertTrue(isPublic("/actuator/info"));
-    }
-
-    @Test
-    void rutaFallback_esPublica() {
-        assertTrue(isPublic("/fallback/users"));
-        assertTrue(isPublic("/fallback/rol"));
-        assertTrue(isPublic("/fallback/orden"));
-    }
-
-    @Test
-    void rutaErrorExacta_esPublica() {
-        assertTrue(isPublic("/error"));
-    }
-
-    @Test
-    void rutaErrorConSufijo_noEsPublica() {
-        assertFalse(isPublic("/error/detalle"));
-    }
-
-    @Test
-    void rutaApi_noEsPublica() {
-        assertFalse(isPublic("/api/usuarios"));
-        assertFalse(isPublic("/api/ordenes"));
-        assertFalse(isPublic("/api/productos"));
-    }
-
-    @Test
-    void rutaRaiz_noEsPublica() {
-        assertFalse(isPublic("/"));
-    }
-
-    @Test
-    void rutaArbitraria_noEsPublica() {
-        assertFalse(isPublic("/privado/datos"));
-    }
-
-    @Test
-    void publicFilterChain_retornaChain() throws Exception {
+    void filterChain_retornaChain() throws Exception {
         HttpSecurity http = mock(HttpSecurity.class, Answers.RETURNS_SELF);
         DefaultSecurityFilterChain chain = mock(DefaultSecurityFilterChain.class);
         when(http.build()).thenReturn(chain);
 
-        SecurityFilterChain result = securityConfig.publicFilterChain(http);
-
-        assertNotNull(result);
-        verify(http).build();
-    }
-
-    @Test
-    void protectedFilterChain_retornaChain() throws Exception {
-        HttpSecurity http = mock(HttpSecurity.class, Answers.RETURNS_SELF);
-        DefaultSecurityFilterChain chain = mock(DefaultSecurityFilterChain.class);
-        when(http.build()).thenReturn(chain);
-
-        SecurityFilterChain result = securityConfig.protectedFilterChain(http);
+        SecurityFilterChain result = securityConfig.filterChain(http);
 
         assertNotNull(result);
         verify(http).build();
@@ -113,5 +48,23 @@ class SecurityConfigTest {
         assertTrue(config.getAllowedMethods().contains("POST"));
         assertTrue(config.getAllowedMethods().contains("GET"));
         assertTrue(Boolean.TRUE.equals(config.getAllowCredentials()));
+    }
+
+    @Test
+    void corsConfigurationSource_permiteTodosLosHeaders() {
+        CorsConfigurationSource source = securityConfig.corsConfigurationSource();
+        var config = source.getCorsConfiguration(new MockHttpServletRequest());
+        assertNotNull(config);
+        assertTrue(config.getAllowedHeaders().contains("*"));
+    }
+
+    @Test
+    void corsConfigurationSource_permiteMetodosPatch() {
+        CorsConfigurationSource source = securityConfig.corsConfigurationSource();
+        var config = source.getCorsConfiguration(new MockHttpServletRequest());
+        assertNotNull(config);
+        assertTrue(config.getAllowedMethods().contains("PATCH"));
+        assertTrue(config.getAllowedMethods().contains("DELETE"));
+        assertTrue(config.getAllowedMethods().contains("PUT"));
     }
 }

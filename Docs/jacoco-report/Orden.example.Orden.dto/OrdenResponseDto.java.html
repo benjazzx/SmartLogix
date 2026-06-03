@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrdenResponseDto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">Orden.example.Orden.dto</a> &gt; <span class="el_source">OrdenResponseDto.java</span></div><h1>OrdenResponseDto.java</h1><pre class="source lang-java linenums">package Orden.example.Orden.dto;
+
+import Orden.example.Orden.model.DetalleOrdenModel;
+import Orden.example.Orden.model.HistorialModel;
+import Orden.example.Orden.model.OrdenModel;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Data
+public class OrdenResponseDto {
+
+    private Long id;
+    private LocalDateTime fechaOrden;
+    private UUID direccionId;
+    private String direccionTexto;
+    private UUID userId;
+    private String userNombre;
+    private String estadoActual;
+    private boolean tomada;
+    private UUID transportistaId;
+    private String transportistaNombre;
+    private List&lt;DetalleDto&gt; detalles;
+    private List&lt;HistorialDto&gt; historial;
+
+    public static OrdenResponseDto from(OrdenModel orden) {
+<span class="fc" id="L30">        OrdenResponseDto dto = new OrdenResponseDto();</span>
+<span class="fc" id="L31">        dto.setId(orden.getId());</span>
+<span class="fc" id="L32">        dto.setFechaOrden(orden.getFechaOrden());</span>
+<span class="fc" id="L33">        dto.setDireccionId(orden.getDireccionId());</span>
+<span class="fc" id="L34">        dto.setDireccionTexto(orden.getDireccionTexto());</span>
+<span class="fc" id="L35">        dto.setUserId(orden.getUserId());</span>
+<span class="fc" id="L36">        dto.setUserNombre(orden.getUserNombre());</span>
+<span class="fc" id="L37">        dto.setEstadoActual(orden.getEstadoActual());</span>
+<span class="fc" id="L38">        dto.setTomada(orden.isTomada());</span>
+<span class="fc" id="L39">        dto.setTransportistaId(orden.getTransportistaId());</span>
+<span class="fc" id="L40">        dto.setTransportistaNombre(orden.getTransportistaNombre());</span>
+<span class="fc" id="L41">        dto.setDetalles(orden.getDetalles().stream().map(DetalleDto::from).toList());</span>
+<span class="fc" id="L42">        dto.setHistorial(orden.getHistorial().stream().map(HistorialDto::from).toList());</span>
+<span class="fc" id="L43">        return dto;</span>
+    }
+
+    public static OrdenResponseDto from(OrdenModel orden, String rolNombre, UUID requestingUserId) {
+<span class="fc" id="L47">        OrdenResponseDto dto = from(orden);</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (&quot;bodeguero&quot;.equals(rolNombre)) {</span>
+<span class="fc" id="L49">            dto.setUserId(null);</span>
+<span class="fc" id="L50">            dto.setUserNombre(null);</span>
+        }
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (!&quot;admin&quot;.equals(rolNombre)) {</span>
+<span class="pc bpc" id="L53" title="3 of 4 branches missed.">            boolean esPropiaDelTransportista = &quot;transportista&quot;.equals(rolNombre)</span>
+                    &amp;&amp; requestingUserId != null
+<span class="pc bnc" id="L55" title="All 2 branches missed.">                    &amp;&amp; requestingUserId.equals(orden.getTransportistaId());</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">            if (!esPropiaDelTransportista) {</span>
+<span class="fc" id="L57">                dto.setTransportistaId(null);</span>
+            }
+            // Bodeguero no ve el nombre del transportista
+<span class="fc bfc" id="L60" title="All 2 branches covered.">            if (&quot;bodeguero&quot;.equals(rolNombre)) {</span>
+<span class="fc" id="L61">                dto.setTransportistaNombre(null);</span>
+            }
+        }
+<span class="fc" id="L64">        return dto;</span>
+    }
+
+    @Data
+    public static class DetalleDto {
+        private Long id;
+        private UUID productoId;
+        private String productoNombre;
+        private BigDecimal precioUnitario;
+        private Integer cantidad;
+
+        public static DetalleDto from(DetalleOrdenModel d) {
+<span class="fc" id="L76">            DetalleDto dto = new DetalleDto();</span>
+<span class="fc" id="L77">            dto.setId(d.getId());</span>
+<span class="fc" id="L78">            dto.setProductoId(d.getProductoId());</span>
+<span class="fc" id="L79">            dto.setProductoNombre(d.getProductoNombre());</span>
+<span class="fc" id="L80">            dto.setPrecioUnitario(d.getPrecioUnitario());</span>
+<span class="fc" id="L81">            dto.setCantidad(d.getCantidad());</span>
+<span class="fc" id="L82">            return dto;</span>
+        }
+    }
+
+    @Data
+    public static class HistorialDto {
+        private Long id;
+        private LocalDateTime fecha;
+        private UUID estadoId;
+        private String estadoNombre;
+        private String comentario;
+
+        public static HistorialDto from(HistorialModel h) {
+<span class="fc" id="L95">            HistorialDto dto = new HistorialDto();</span>
+<span class="fc" id="L96">            dto.setId(h.getId());</span>
+<span class="fc" id="L97">            dto.setFecha(h.getFecha());</span>
+<span class="fc" id="L98">            dto.setEstadoId(h.getEstadoId());</span>
+<span class="fc" id="L99">            dto.setEstadoNombre(h.getEstadoNombre());</span>
+<span class="fc" id="L100">            dto.setComentario(h.getComentario());</span>
+<span class="fc" id="L101">            return dto;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HistorialController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">Orden.example.Orden.controller</a> &gt; <span class="el_source">HistorialController.java</span></div><h1>HistorialController.java</h1><pre class="source lang-java linenums">package Orden.example.Orden.controller;
+
+import Orden.example.Orden.dto.HistorialRequestDto;
+import Orden.example.Orden.dto.OrdenResponseDto;
+import Orden.example.Orden.service.OrdenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+<span class="fc" id="L23">@Slf4j</span>
+@RestController
+@RequestMapping(&quot;/api/ordenes/{ordenId}/historial&quot;)
+@Tag(name = &quot;Historial de Orden&quot;, description = &quot;Gestión del historial de estados de una orden&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+<span class="fc" id="L28">public class HistorialController {</span>
+
+    @Autowired
+    private OrdenService ordenService;
+
+    @Operation(summary = &quot;Agregar cambio de estado a una orden (admin, bodeguero, transportista)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Estado agregado correctamente&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Orden no encontrada&quot;)
+    })
+    @PostMapping
+    public ResponseEntity&lt;OrdenResponseDto&gt; addHistorial(
+            @Parameter(description = &quot;ID de la orden&quot;) @PathVariable Long ordenId,
+            @Valid @RequestBody HistorialRequestDto dto,
+            HttpServletRequest request,
+            Authentication auth) {
+<span class="fc" id="L44">        UUID userId = (UUID) request.getAttribute(&quot;userId&quot;);</span>
+<span class="pc bpc" id="L45" title="2 of 4 branches missed.">        String rolNombre = (auth != null &amp;&amp; !auth.getAuthorities().isEmpty())</span>
+<span class="fc" id="L46">                ? auth.getAuthorities().iterator().next().getAuthority().replace(&quot;ROLE_&quot;, &quot;&quot;)</span>
+<span class="pc" id="L47">                : &quot;&quot;;</span>
+        try {
+<span class="fc" id="L49">            return ResponseEntity.ok(ordenService.addHistorial(ordenId, dto, userId, rolNombre));</span>
+<span class="fc" id="L50">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L51">            log.warn(&quot;addHistorial ordenId={}: {}&quot;, ordenId, e.getMessage());</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">            if (e.getMessage().contains(&quot;Acceso denegado&quot;)) {</span>
+<span class="fc" id="L53">                return ResponseEntity.status(403).build();</span>
+            }
+<span class="fc" id="L55">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    @Operation(summary = &quot;Ver historial de una orden&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Historial obtenido correctamente&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acceso denegado&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Orden no encontrada&quot;)
+    })
+    @GetMapping
+    public ResponseEntity&lt;List&lt;OrdenResponseDto.HistorialDto&gt;&gt; getHistorial(
+            @Parameter(description = &quot;ID de la orden&quot;) @PathVariable Long ordenId,
+            HttpServletRequest request,
+            Authentication auth) {
+<span class="fc" id="L70">        UUID userId = (UUID) request.getAttribute(&quot;userId&quot;);</span>
+<span class="pc bpc" id="L71" title="2 of 4 branches missed.">        String rolNombre = (auth != null &amp;&amp; !auth.getAuthorities().isEmpty())</span>
+<span class="fc" id="L72">                ? auth.getAuthorities().iterator().next().getAuthority().replace(&quot;ROLE_&quot;, &quot;&quot;)</span>
+<span class="pc" id="L73">                : &quot;&quot;;</span>
+        try {
+<span class="fc" id="L75">            return ResponseEntity.ok(ordenService.getHistorial(ordenId, userId, rolNombre));</span>
+<span class="fc" id="L76">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L77">            log.warn(&quot;getHistorial ordenId={}: {}&quot;, ordenId, e.getMessage());</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">            if (e.getMessage().contains(&quot;Acceso denegado&quot;)) {</span>
+<span class="nc" id="L79">                return ResponseEntity.status(403).build();</span>
+            }
+<span class="fc" id="L81">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

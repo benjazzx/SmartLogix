@@ -3,6 +3,7 @@ package Inventario.example.Inventario.service;
 import Inventario.example.Inventario.dto.EstanteRequestDTO;
 import Inventario.example.Inventario.dto.EstanteResponseDTO;
 import Inventario.example.Inventario.model.EstanteModel;
+import Inventario.example.Inventario.client.ProductoClient;
 import Inventario.example.Inventario.repository.EstanteRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EstanteService {
 
+    private static final String ESTANTE_NO_ENCONTRADO = "EstanteModel no encontrado con id: ";
+
     private final EstanteRepository estanteRepository;
+    private final ProductoClient productoClient;
 
     @Transactional(readOnly = true)
     public List<EstanteResponseDTO> listarTodos() {
@@ -37,7 +41,7 @@ public class EstanteService {
     @Transactional(readOnly = true)
     public EstanteResponseDTO obtenerPorId(Long id) {
         EstanteModel estante = estanteRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("EstanteModel no encontrado con id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(ESTANTE_NO_ENCONTRADO + id));
         return toResponseDTO(estante);
     }
 
@@ -68,7 +72,7 @@ public class EstanteService {
                 .descripcion(dto.getDescripcion())
                 .numNiveles(dto.getNumNiveles())
                 .capacidadPorNivel(dto.getCapacidadPorNivel())
-                .activo(dto.getActivo() != null ? dto.getActivo() : true)
+                .activo(dto.getActivo() == null || dto.getActivo())
                 .build();
         EstanteModel guardado = estanteRepository.save(estante);
         log.info("EstanteModel creado con id: {}", guardado.getIdEstante());
@@ -79,7 +83,7 @@ public class EstanteService {
     public EstanteResponseDTO actualizar(Long id, EstanteRequestDTO dto) {
         log.info("Actualizando estante con id: {}", id);
         EstanteModel estante = estanteRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("EstanteModel no encontrado con id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(ESTANTE_NO_ENCONTRADO + id));
 
         if (!estante.getCodigo().equalsIgnoreCase(dto.getCodigo())
                 && estanteRepository.existsByCodigoIgnoreCase(dto.getCodigo())) {
@@ -99,7 +103,7 @@ public class EstanteService {
     public void eliminar(Long id) {
         log.info("Eliminando (lógico) estante con id: {}", id);
         EstanteModel estante = estanteRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("EstanteModel no encontrado con id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(ESTANTE_NO_ENCONTRADO + id));
         estante.setActivo(false);
         estanteRepository.save(estante);
     }
@@ -108,6 +112,10 @@ public class EstanteService {
         Double capTotal = (e.getNumNiveles() != null && e.getCapacidadPorNivel() != null)
                 ? e.getNumNiveles() * e.getCapacidadPorNivel()
                 : null;
+        int stockActual = productoClient.getStockPorEstante(e.getIdEstante());
+        Double porcentaje = (capTotal != null && capTotal > 0)
+                ? Math.min(100.0, (stockActual / capTotal) * 100.0)
+                : null;
         return EstanteResponseDTO.builder()
                 .idEstante(e.getIdEstante())
                 .codigo(e.getCodigo())
@@ -115,6 +123,8 @@ public class EstanteService {
                 .numNiveles(e.getNumNiveles())
                 .capacidadPorNivel(e.getCapacidadPorNivel())
                 .capacidadTotal(capTotal)
+                .stockActual(stockActual)
+                .porcentajeUso(porcentaje)
                 .activo(e.getActivo())
                 .totalPasillosAsignados(e.getPasillos() != null ? e.getPasillos().size() : 0)
                 .fechaCreacion(e.getFechaCreacion())

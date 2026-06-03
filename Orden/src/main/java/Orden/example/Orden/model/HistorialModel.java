@@ -28,6 +28,12 @@ public class HistorialModel {
     @Column(length = 500)
     private String comentario;
 
+    @Column(name = "realizado_por_id")
+    private UUID realizadoPorId;
+
+    @Column(name = "realizado_por_nombre", length = 200)
+    private String realizadoPorNombre;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "orden_id", nullable = false)
     @ToString.Exclude

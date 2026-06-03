@@ -51,6 +51,9 @@ public class OrdenModel {
     @Column(name = "tomada", nullable = false)
     private boolean tomada = false;
 
+    @Column(name = "motivo_devolucion", length = 500)
+    private String motivoDevolucion;
+
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

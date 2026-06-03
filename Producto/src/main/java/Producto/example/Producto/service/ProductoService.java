@@ -21,6 +21,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductoService {
 
+    private static final String PRODUCTO_NO_ENCONTRADO = "Producto no encontrado: ";
+    private static final String ESTADO_PUBLICADO       = "publicado";
+    private static final String ESTADO_DESCONTINUADO   = "descontinuado";
+
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
     private final ProductoEventProducer eventProducer;
@@ -39,7 +43,7 @@ public class ProductoService {
 
     public ProductoResponseDTO getById(UUID id) {
         ProductoModel p = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCTO_NO_ENCONTRADO + id));
         return ProductoResponseDTO.from(p);
     }
 
@@ -78,7 +82,7 @@ public class ProductoService {
                 .precio(dto.getPrecio())
                 .stock(dto.getStock())
                 .categoria(cat)
-                .estadoNombre(dto.getEstadoNombre() != null ? dto.getEstadoNombre() : "publicado")
+                .estadoNombre(dto.getEstadoNombre() != null ? dto.getEstadoNombre() : ESTADO_PUBLICADO)
                 .idBodega(dto.getIdBodega())
                 .idPasillo(dto.getIdPasillo())
                 .idEstante(dto.getIdEstante())
@@ -94,7 +98,7 @@ public class ProductoService {
     @Transactional
     public ProductoResponseDTO actualizar(UUID id, ProductoRequestDTO dto) {
         ProductoModel p = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCTO_NO_ENCONTRADO + id));
 
         CategoriaModel cat = categoriaRepository.findById(dto.getCategoriaId())
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + dto.getCategoriaId()));
@@ -123,11 +127,11 @@ public class ProductoService {
     @Transactional
     public ProductoResponseDTO actualizarStock(UUID id, Integer nuevoStock) {
         ProductoModel p = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCTO_NO_ENCONTRADO + id));
         p.setStock(nuevoStock);
         if (nuevoStock == 0) p.setEstadoNombre("sin_stock");
         else if (nuevoStock <= 10) p.setEstadoNombre("bajo_stock");
-        else p.setEstadoNombre("publicado");
+        else p.setEstadoNombre(ESTADO_PUBLICADO);
         ProductoModel saved = productoRepository.save(p);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
         return ProductoResponseDTO.from(saved);
@@ -136,12 +140,12 @@ public class ProductoService {
     @Transactional
     public ProductoResponseDTO decrementarStock(UUID id, int cantidad) {
         ProductoModel p = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCTO_NO_ENCONTRADO + id));
         int nuevoStock = Math.max(0, p.getStock() - cantidad);
         p.setStock(nuevoStock);
         if (nuevoStock == 0) p.setEstadoNombre("sin_stock");
         else if (nuevoStock <= 10) p.setEstadoNombre("bajo_stock");
-        else p.setEstadoNombre("publicado");
+        else p.setEstadoNombre(ESTADO_PUBLICADO);
         ProductoModel saved = productoRepository.save(p);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
         return ProductoResponseDTO.from(saved);
@@ -150,9 +154,9 @@ public class ProductoService {
     @Transactional
     public void desactivar(UUID id) {
         ProductoModel p = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCTO_NO_ENCONTRADO + id));
         p.setActivo(false);
-        p.setEstadoNombre("descontinuado");
+        p.setEstadoNombre(ESTADO_DESCONTINUADO);
         ProductoModel saved = productoRepository.save(p);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.DESACTIVADO);
     }
@@ -160,14 +164,19 @@ public class ProductoService {
     @Transactional
     public ProductoResponseDTO toggleActivo(UUID id) {
         ProductoModel p = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCTO_NO_ENCONTRADO + id));
         p.setActivo(!p.getActivo());
-        p.setEstadoNombre(p.getActivo() ? "publicado" : "descontinuado");
+        p.setEstadoNombre(p.getActivo() ? ESTADO_PUBLICADO : ESTADO_DESCONTINUADO);
         ProductoModel saved = productoRepository.save(p);
         ProductoActualizadoEvent.TipoEvento tipo = p.getActivo()
                 ? ProductoActualizadoEvent.TipoEvento.ACTUALIZADO
                 : ProductoActualizadoEvent.TipoEvento.DESACTIVADO;
         eventProducer.publishProductoActualizado(saved, tipo);
         return ProductoResponseDTO.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public Integer getStockPorEstante(Long idEstante) {
+        return productoRepository.sumStockByIdEstante(idEstante);
     }
 }

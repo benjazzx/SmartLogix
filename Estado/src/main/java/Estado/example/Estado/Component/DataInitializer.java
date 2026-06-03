@@ -78,7 +78,8 @@ public class DataInitializer implements CommandLineRunner {
                 new Estado(null, "Aprobado",    "Orden aprobada y lista para despacho",           orden),
                 new Estado(null, "En tránsito", "Orden en camino al destino",                     orden),
                 new Estado(null, "Entregado",   "Orden entregada exitosamente al cliente",        orden),
-                new Estado(null, "Cancelado",   "Orden cancelada",                                orden)
+                new Estado(null, "Cancelado",            "Orden cancelada",                                          orden),
+                new Estado(null, "Devolución solicitada", "Cliente solicitó devolución por producto en mal estado",  orden)
             ));
             log.info("[DataInitializer] Estados de ciclo de vida de orden insertados.");
         }

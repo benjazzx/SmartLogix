@@ -16,4 +16,7 @@ public class HistorialRequestDto {
     private String estadoNombre;
 
     private String comentario;
+
+    private java.util.UUID realizadoPorId;
+    private String realizadoPorNombre;
 }

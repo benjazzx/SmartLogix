@@ -28,8 +28,9 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 public class OrdenController {
 
-    private static final String ATTR_USER_ID = "userId";
-    private static final String KEY_ERROR    = "error";
+    private static final String ATTR_USER_ID  = "userId";
+    private static final String KEY_ERROR     = "error";
+    private static final String TOKEN_INVALIDO = "Token inválido o expirado";
 
     @Autowired
     private OrdenService ordenService;
@@ -45,7 +46,7 @@ public class OrdenController {
             HttpServletRequest request) {
         UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
         if (userId == null) {
-            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, "Token inválido o expirado"));
+            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, TOKEN_INVALIDO));
         }
         try {
             return ResponseEntity.ok(ordenService.createOrden(dto, userId));
@@ -101,7 +102,7 @@ public class OrdenController {
     @PostMapping("/{id}/tomar")
     public ResponseEntity<Object> tomarOrden(@PathVariable Long id, HttpServletRequest request) {
         UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, "Token inválido"));
+        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, TOKEN_INVALIDO));
         try {
             return ResponseEntity.ok(ordenService.tomarOrden(id, userId));
         } catch (IllegalStateException e) {
@@ -116,12 +117,36 @@ public class OrdenController {
     @PostMapping("/{id}/liberar")
     public ResponseEntity<Object> liberarOrden(@PathVariable Long id, HttpServletRequest request) {
         UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, "Token inválido"));
+        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, TOKEN_INVALIDO));
         try {
             return ResponseEntity.ok(ordenService.liberarOrden(id, userId));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(403).body(Map.of(KEY_ERROR, e.getMessage()));
         }
+    }
+
+    @Operation(summary = "Solicitar devolución (solo cliente, orden Entregado)")
+    @PostMapping("/{id}/solicitar-devolucion")
+    public ResponseEntity<Object> solicitarDevolucion(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            HttpServletRequest request) {
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, TOKEN_INVALIDO));
+        String motivo = body.getOrDefault("motivo", "Sin motivo especificado");
+        try {
+            return ResponseEntity.ok(ordenService.solicitarDevolucion(id, userId, motivo));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(Map.of(KEY_ERROR, e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Resumen de actividad por empleado (solo admin)")
+    @GetMapping("/resumen-empleados")
+    public ResponseEntity<?> resumenEmpleados() {
+        return ResponseEntity.ok(ordenService.getResumenEmpleados());
     }
 
     private String extractRol(Authentication auth) {

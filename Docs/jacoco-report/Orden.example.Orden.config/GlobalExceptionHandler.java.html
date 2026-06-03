@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">Orden.example.Orden.config</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package Orden.example.Orden.config;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+<span class="nc" id="L16">@Slf4j</span>
+@RestControllerAdvice
+<span class="nc" id="L18">public class GlobalExceptionHandler {</span>
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleNotFound(EntityNotFoundException ex) {
+<span class="nc" id="L22">        log.warn(&quot;[Orden] Recurso no encontrado: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L23">        return buildError(HttpStatus.NOT_FOUND, ex.getMessage());</span>
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleConflict(IllegalArgumentException ex) {
+<span class="nc" id="L28">        log.warn(&quot;[Orden] Argumento inválido: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L29">        return buildError(HttpStatus.CONFLICT, ex.getMessage());</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleValidation(MethodArgumentNotValidException ex) {
+<span class="nc" id="L34">        Map&lt;String, String&gt; errores = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L35">        ex.getBindingResult().getAllErrors().forEach(error -&gt; {</span>
+<span class="nc" id="L36">            String campo = ((FieldError) error).getField();</span>
+<span class="nc" id="L37">            String mensaje = error.getDefaultMessage();</span>
+<span class="nc" id="L38">            errores.put(campo, mensaje);</span>
+<span class="nc" id="L39">        });</span>
+<span class="nc" id="L40">        log.info(&quot;[Orden] Validación fallida para campos: {}&quot;, errores.keySet());</span>
+<span class="nc" id="L41">        Map&lt;String, Object&gt; body = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L42">        body.put(&quot;timestamp&quot;, LocalDateTime.now().toString());</span>
+<span class="nc" id="L43">        body.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L44">        body.put(&quot;error&quot;, &quot;Validación fallida&quot;);</span>
+<span class="nc" id="L45">        body.put(&quot;errores&quot;, errores);</span>
+<span class="nc" id="L46">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);</span>
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleRuntime(RuntimeException ex) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        String msg = ex.getMessage() != null ? ex.getMessage() : &quot;&quot;;</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (msg.contains(&quot;Acceso denegado&quot;)) {</span>
+<span class="nc" id="L53">            log.warn(&quot;[Orden] Acceso denegado: {}&quot;, msg);</span>
+<span class="nc" id="L54">            return buildError(HttpStatus.FORBIDDEN, msg);</span>
+        }
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        if (msg.contains(&quot;no encontrada&quot;) || msg.contains(&quot;not found&quot;)) {</span>
+<span class="nc" id="L57">            log.warn(&quot;[Orden] No encontrado: {}&quot;, msg);</span>
+<span class="nc" id="L58">            return buildError(HttpStatus.NOT_FOUND, msg);</span>
+        }
+<span class="nc bnc" id="L60" title="All 4 branches missed.">        if (msg.contains(&quot;no disponible&quot;) || msg.contains(&quot;Producto no disponible&quot;)) {</span>
+<span class="nc" id="L61">            log.warn(&quot;[Orden] Recurso externo no disponible: {}&quot;, msg);</span>
+<span class="nc" id="L62">            return buildError(HttpStatus.SERVICE_UNAVAILABLE, msg);</span>
+        }
+<span class="nc" id="L64">        log.error(&quot;[Orden] RuntimeException inesperada: {}&quot;, msg);</span>
+<span class="nc" id="L65">        return buildError(HttpStatus.BAD_REQUEST, msg);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleGeneric(Exception ex) {
+<span class="nc" id="L70">        log.error(&quot;[Orden] Error interno no controlado: {}&quot;, ex.getMessage(), ex);</span>
+<span class="nc" id="L71">        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error interno del servidor&quot;);</span>
+    }
+
+    private ResponseEntity&lt;Map&lt;String, Object&gt;&gt; buildError(HttpStatus status, String mensaje) {
+<span class="nc" id="L75">        Map&lt;String, Object&gt; body = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L76">        body.put(&quot;timestamp&quot;, LocalDateTime.now().toString());</span>
+<span class="nc" id="L77">        body.put(&quot;status&quot;, status.value());</span>
+<span class="nc" id="L78">        body.put(&quot;error&quot;, status.getReasonPhrase());</span>
+<span class="nc" id="L79">        body.put(&quot;mensaje&quot;, mensaje);</span>
+<span class="nc" id="L80">        return ResponseEntity.status(status).body(body);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

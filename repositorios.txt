@@ -169,17 +169,35 @@ Descripción:
   Controller (18 tests, cobertura >60%).
 
 
+RECURSOS ADICIONALES
+===================================================================
+
+Docker Hub (imágenes preconstruidas):
+  https://hub.docker.com/r/contenedorbenjaxio/smartlogix/tags
+  Contiene las imágenes de todos los microservicios + PostgreSQL con las
+  7 bases de datos precreadas. El docker-compose las descarga automáticamente.
+
+SonarCloud (calidad de código — Microservicio Orden):
+  https://sonarcloud.io/project/overview?id=Orden.example:Orden
+  Análisis estático, cobertura JaCoCo y Quality Gate: PASSED (78% cobertura).
+
+
 INSTRUCCIONES PARA LEVANTAR EL SISTEMA
 ===================================================================
 
 Requisitos previos:
   - Docker Desktop instalado y corriendo
-  - Puerto 5432 libre (PostgreSQL) o usar el contenedor del compose
+  - No se necesita PostgreSQL instalado (viene en el contenedor)
 
 Levantar todo con Docker Compose:
   cd Smart/
-  docker-compose up --build
+  docker compose up -d
   → API disponible en http://localhost:8080
+  → PostgreSQL disponible en localhost:5433 (usuario: postgres / postgres)
+  → pgAdmin para ver BD: conectar a localhost:5433
+
+Levantar todo incluyendo reconstrucción de imágenes locales:
+  docker compose up -d --build
 
 Levantar microservicio individual (desarrollo):
   cd Smart/<Microservicio>/
