@@ -44,7 +44,7 @@ class SecurityConfigTest {
         assertNotNull(source);
         var config = source.getCorsConfiguration(new MockHttpServletRequest());
         assertNotNull(config);
-        assertTrue(config.getAllowedOrigins().contains("http://localhost:4200"));
+        assertTrue(config.getAllowedOriginPatterns().contains("http://localhost:*"));
         assertTrue(config.getAllowedMethods().contains("POST"));
         assertTrue(config.getAllowedMethods().contains("GET"));
         assertTrue(Boolean.TRUE.equals(config.getAllowCredentials()));
