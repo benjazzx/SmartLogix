@@ -1,5 +1,6 @@
 package Inventario.example.Inventario.service;
 
+import Inventario.example.Inventario.client.ProductoClient;
 import Inventario.example.Inventario.dto.EstanteRequestDTO;
 import Inventario.example.Inventario.dto.EstanteResponseDTO;
 import Inventario.example.Inventario.model.EstanteModel;
@@ -25,9 +26,13 @@ class EstanteServiceTest {
     @Mock
     private EstanteRepository estanteRepository;
 
+    @Mock
+    private ProductoClient productoClient;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(productoClient.getStockPorEstante(any())).thenReturn(0);
     }
 
     private EstanteModel estanteSample() {

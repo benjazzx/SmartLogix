@@ -4,6 +4,7 @@ import User.example.Users.client.RolClient;
 import User.example.Users.dto.LoginRequestDto;
 import User.example.Users.dto.RolDto;
 import User.example.Users.model.UserModel;
+import User.example.Users.repository.PreguntaSeguridadRepository;
 import User.example.Users.repository.UserRepository;
 import User.example.Users.security.JwtUtil;
 import User.example.Users.service.UserService;
@@ -36,6 +37,8 @@ class AuthControllerTest {
     @Mock private UserRepository userRepository;
     @Mock private UserService userService;
     @Mock private RolClient rolClient;
+    @Mock private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @Mock private PreguntaSeguridadRepository preguntaRepo;
 
     @InjectMocks private AuthController authController;
 
@@ -56,6 +59,7 @@ class AuthControllerTest {
         user.setActivo(true);
 
         when(userRepository.findByCorreo("user@test.cl")).thenReturn(Optional.of(user));
+        when(preguntaRepo.findByUserId(user.getId())).thenReturn(java.util.List.of());
         when(jwtUtil.generateToken(user)).thenReturn("fake-jwt-token");
 
         LoginRequestDto req = new LoginRequestDto();

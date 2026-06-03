@@ -102,7 +102,7 @@ class UserServiceTest {
         dto.setApellido("Torres");
         dto.setRut("44444444-4");
         dto.setCorreo("ana@test.cl");
-        dto.setClave("pass");
+        dto.setClave("Pass123!");
         dto.setRolNombre("cliente");
 
         when(userRepository.existsByCorreo(dto.getCorreo())).thenReturn(false);
