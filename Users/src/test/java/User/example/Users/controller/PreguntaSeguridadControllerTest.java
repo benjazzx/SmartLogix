@@ -155,24 +155,7 @@ class PreguntaSeguridadControllerTest {
     }
 
     @Test
-    void solicitarRecuperacion_sinPreguntas_retorna400() throws Exception {
-        UUID uid = UUID.randomUUID();
-        UserModel user = new UserModel();
-        user.setId(uid);
-        user.setNombre("Juan");
-        user.setApellido("Perez");
-
-        when(userRepo.findByCorreo("juan@test.cl")).thenReturn(Optional.of(user));
-        when(preguntaRepo.existsByUserId(uid)).thenReturn(false);
-
-        mockMvc.perform(post("/auth/solicitar-recuperacion")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(Map.of("correo", "juan@test.cl"))))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void solicitarRecuperacion_conPreguntas_retorna200() throws Exception {
+    void solicitarRecuperacion_correoExiste_retorna200() throws Exception {
         UUID uid = UUID.randomUUID();
         UserModel user = new UserModel();
         user.setId(uid);
@@ -180,7 +163,6 @@ class PreguntaSeguridadControllerTest {
         user.setApellido("Lopez");
 
         when(userRepo.findByCorreo("ana@test.cl")).thenReturn(Optional.of(user));
-        when(preguntaRepo.existsByUserId(uid)).thenReturn(true);
         when(solicitudRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         mockMvc.perform(post("/auth/solicitar-recuperacion")
@@ -188,6 +170,14 @@ class PreguntaSeguridadControllerTest {
                 .content(mapper.writeValueAsString(Map.of("correo", "ana@test.cl"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mensaje").exists());
+    }
+
+    @Test
+    void solicitarRecuperacion_sinCampoCorreo_retorna400() throws Exception {
+        mockMvc.perform(post("/auth/solicitar-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of())))
+                .andExpect(status().isBadRequest());
     }
 
     // ── GET /auth/solicitudes-recuperacion ──────────────────────────────────

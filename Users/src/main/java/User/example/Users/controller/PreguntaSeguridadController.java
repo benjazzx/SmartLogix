@@ -88,10 +88,6 @@ public class PreguntaSeguridadController {
         }
 
         return userRepo.findByCorreo(correo).map(user -> {
-            if (!preguntaRepo.existsByUserId(user.getId())) {
-                return ResponseEntity.badRequest().<Map<String, String>>body(Map.of(
-                    ERROR, "Este usuario no tiene preguntas de seguridad. Contacte al administrador."));
-            }
             SolicitudRecuperacionModel sol = new SolicitudRecuperacionModel();
             sol.setUserId(user.getId());
             sol.setCorreo(correo);
