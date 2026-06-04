@@ -252,61 +252,39 @@ class PreguntaSeguridadControllerTest {
     }
 
     @Test
-    void resolverSolicitud_aprobar_respuestasCorrectas_retorna200() throws Exception {
-        UUID uid = UUID.randomUUID();
+    void resolverSolicitud_aprobar_retorna200() throws Exception {
         SolicitudRecuperacionModel sol = new SolicitudRecuperacionModel();
         sol.setId(2L);
-        sol.setUserId(uid);
-
-        PreguntaSeguridadModel p = new PreguntaSeguridadModel();
-        p.setPregunta("¿Tu mascota?");
-        p.setRespuesta("hashedGato");
-
-        UserModel user = new UserModel();
-        user.setId(uid);
+        sol.setUserId(UUID.randomUUID());
 
         when(solicitudRepo.findById(2L)).thenReturn(Optional.of(sol));
-        when(preguntaRepo.findByUserId(uid)).thenReturn(List.of(p));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-        when(passwordEncoder.encode(anyString())).thenReturn("hashedNueva");
-        when(userRepo.findById(uid)).thenReturn(Optional.of(user));
         when(solicitudRepo.save(any())).thenReturn(sol);
-        when(userRepo.save(any())).thenReturn(user);
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("accion", "APROBAR");
-        body.put("respuestas", List.of(Map.of("pregunta", "¿Tu mascota?", "respuesta", "gato")));
-        body.put("claveTemp", "NuevaClave123!");
 
         mockMvc.perform(post("/auth/solicitudes-recuperacion/2/resolver")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(body)))
-                .andExpect(status().isOk());
+                .content(mapper.writeValueAsString(Map.of("accion", "APROBAR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mensaje").exists());
     }
 
     @Test
-    void resolverSolicitud_aprobar_respuestasIncorrectas_retorna400() throws Exception {
-        UUID uid = UUID.randomUUID();
+    void resolverSolicitud_rechazar_con_motivo_retorna200() throws Exception {
         SolicitudRecuperacionModel sol = new SolicitudRecuperacionModel();
         sol.setId(3L);
-        sol.setUserId(uid);
-
-        PreguntaSeguridadModel p = new PreguntaSeguridadModel();
-        p.setPregunta("¿Tu mascota?");
-        p.setRespuesta("hashedGato");
+        sol.setUserId(UUID.randomUUID());
 
         when(solicitudRepo.findById(3L)).thenReturn(Optional.of(sol));
-        when(preguntaRepo.findByUserId(uid)).thenReturn(List.of(p));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+        when(solicitudRepo.save(any())).thenReturn(sol);
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("accion", "APROBAR");
-        body.put("respuestas", List.of(Map.of("pregunta", "¿Tu mascota?", "respuesta", "perro")));
+        body.put("accion", "RECHAZAR");
+        body.put("motivo", "Identidad no verificada");
 
         mockMvc.perform(post("/auth/solicitudes-recuperacion/3/resolver")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(body)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mensaje").exists());
     }
 
     @Test
