@@ -23,8 +23,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SuppressWarnings("java:S100")
-@SuppressWarnings("java:S1192")
+@SuppressWarnings({"java:S100", "java:S1192"})
 class OrdenControllerTest {
 
     private static final String ROL_ADMIN    = "admin";
