@@ -171,4 +171,192 @@ class UserServiceTest {
         assertFalse(user.getActivo());
         assertEquals("inactivo", user.getEstadoNombre());
     }
+
+    @Test
+    void actualizarEstadoPorCorreo_estadoActivo_debeActivarUsuario() {
+        String correo = "test@test.cl";
+        UUID estadoId = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setActivo(false);
+
+        when(userRepository.findByCorreo(correo)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenReturn(user);
+
+        userService.actualizarEstadoPorCorreo(correo, estadoId, "activo");
+
+        assertTrue(user.getActivo());
+    }
+
+    @Test
+    void getUserByCorreo_existente_debeRetornarUsuario() {
+        UserModel user = new UserModel();
+        user.setCorreo("test@test.cl");
+        when(userRepository.findByCorreo("test@test.cl")).thenReturn(Optional.of(user));
+
+        UserModel result = userService.getUserByCorreo("test@test.cl");
+
+        assertEquals("test@test.cl", result.getCorreo());
+    }
+
+    @Test
+    void getUserByCorreo_noExistente_debeLanzarExcepcion() {
+        when(userRepository.findByCorreo("noexiste@test.cl")).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> userService.getUserByCorreo("noexiste@test.cl"));
+    }
+
+    @Test
+    void getUsersByRol_debeRetornarLista() {
+        UUID rolId = UUID.randomUUID();
+        when(userRepository.findByRolId(rolId)).thenReturn(List.of(new UserModel()));
+
+        List<UserModel> result = userService.getUsersByRol(rolId);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void getUsersByEstado_debeRetornarLista() {
+        UUID estadoId = UUID.randomUUID();
+        when(userRepository.findByEstadoId(estadoId)).thenReturn(List.of(new UserModel()));
+
+        List<UserModel> result = userService.getUsersByEstado(estadoId);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void hashRut_debeRetornarHashConsistente() {
+        String hash1 = userService.hashRut("12345678-9");
+        String hash2 = userService.hashRut("12345678-9");
+
+        assertEquals(hash1, hash2);
+        assertNotNull(hash1);
+    }
+
+    @Test
+    void validarContraseña_nula_lanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> UserService.validarContraseña(null));
+    }
+
+    @Test
+    void validarContraseña_cortaLanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> UserService.validarContraseña("Abc!1"));
+    }
+
+    @Test
+    void validarContraseña_sinMayuscula_lanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> UserService.validarContraseña("abcdefg!"));
+    }
+
+    @Test
+    void validarContraseña_sinSimbolo_lanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> UserService.validarContraseña("Abcdefgh"));
+    }
+
+    @Test
+    void validarContraseña_valida_noLanzaExcepcion() {
+        assertDoesNotThrow(() -> UserService.validarContraseña("Pass123!"));
+    }
+
+    @Test
+    void updateUser_existente_debeActualizar() {
+        UUID id = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(id);
+        user.setNombre("Viejo");
+
+        UserRequestDto dto = new UserRequestDto();
+        dto.setNombre("Nuevo");
+        dto.setApellido("Apellido");
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenReturn(user);
+
+        UserModel result = userService.updateUser(id, dto);
+
+        assertEquals("Nuevo", user.getNombre());
+        assertNotNull(result);
+    }
+
+    @Test
+    void updateUser_noExistente_debeLanzarExcepcion() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> userService.updateUser(id, new UserRequestDto()));
+    }
+
+    @Test
+    void updateUser_intentaCambiarCorreo_debeLanzarExcepcion() {
+        UUID id = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+
+        UserRequestDto dto = new UserRequestDto();
+        dto.setCorreo("nuevo@test.cl");
+
+        assertThrows(IllegalStateException.class, () -> userService.updateUser(id, dto));
+    }
+
+    @Test
+    void toggleActivo_debeInvertirEstado() {
+        UUID id = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(id);
+        user.setActivo(true);
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenReturn(user);
+
+        userService.toggleActivo(id);
+
+        assertFalse(user.getActivo());
+        assertEquals("inactivo", user.getEstadoNombre());
+    }
+
+    @Test
+    void asignarRol_exitoso_debeActualizarRol() {
+        UUID userId = UUID.randomUUID();
+        UUID rolId = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(userId);
+
+        RolDto rol = new RolDto();
+        rol.setId(rolId);
+        rol.setNombre("admin");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(rolClient.getRolById(rolId)).thenReturn(rol);
+        when(userRepository.save(any())).thenReturn(user);
+
+        userService.asignarRol(userId, rolId, "admin");
+
+        assertEquals(rolId, user.getRolId());
+        assertEquals("admin", user.getRolNombre());
+    }
+
+    @Test
+    void asignarRol_rolNoEncontrado_debeLanzarExcepcion() {
+        UUID userId = UUID.randomUUID();
+        UUID rolId = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(rolClient.getRolById(rolId)).thenReturn(null);
+
+        assertThrows(RuntimeException.class, () -> userService.asignarRol(userId, rolId, "admin"));
+    }
+
+    @Test
+    void deleteUser_existente_debeEliminar() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.existsById(id)).thenReturn(true);
+        doNothing().when(userRepository).deleteById(id);
+
+        assertDoesNotThrow(() -> userService.deleteUser(id));
+        verify(userRepository).deleteById(id);
+    }
 }
