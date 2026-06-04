@@ -21,6 +21,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import User.example.Users.model.PreguntaSeguridadModel;
+
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -157,5 +160,76 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void verificarPregunta_tokenInvalido_retorna401() throws Exception {
+        when(jwtUtil.isChallengeToken("bad-token")).thenReturn(false);
+
+        String body = mapper.writeValueAsString(Map.of(
+            "challengeToken", "bad-token",
+            "respuesta", "cualquiera"
+        ));
+
+        mockMvc.perform(post("/auth/verificar-pregunta")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void verificarPregunta_respuestaCorrecta_retornaToken() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(userId);
+        user.setCorreo("user@test.cl");
+        user.setRolNombre("cliente");
+
+        PreguntaSeguridadModel pregunta = new PreguntaSeguridadModel();
+        pregunta.setId(1L);
+        pregunta.setRespuesta("hashed-gato");
+
+        when(jwtUtil.isChallengeToken("challenge-tok")).thenReturn(true);
+        when(jwtUtil.extractPreguntaId("challenge-tok")).thenReturn(1L);
+        when(jwtUtil.extractUserIdClaim("challenge-tok")).thenReturn(userId.toString());
+        when(preguntaRepo.findById(1L)).thenReturn(Optional.of(pregunta));
+        when(passwordEncoder.matches("gato", "hashed-gato")).thenReturn(true);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user)).thenReturn("jwt-final");
+
+        String body = mapper.writeValueAsString(Map.of(
+            "challengeToken", "challenge-tok",
+            "respuesta", "gato"
+        ));
+
+        mockMvc.perform(post("/auth/verificar-pregunta")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt-final"));
+    }
+
+    @Test
+    void verificarPregunta_respuestaIncorrecta_retorna401() throws Exception {
+        UUID userId = UUID.randomUUID();
+        PreguntaSeguridadModel pregunta = new PreguntaSeguridadModel();
+        pregunta.setId(2L);
+        pregunta.setRespuesta("hashed-gato");
+
+        when(jwtUtil.isChallengeToken("challenge-tok2")).thenReturn(true);
+        when(jwtUtil.extractPreguntaId("challenge-tok2")).thenReturn(2L);
+        when(jwtUtil.extractUserIdClaim("challenge-tok2")).thenReturn(userId.toString());
+        when(preguntaRepo.findById(2L)).thenReturn(Optional.of(pregunta));
+        when(passwordEncoder.matches("perro", "hashed-gato")).thenReturn(false);
+
+        String body = mapper.writeValueAsString(Map.of(
+            "challengeToken", "challenge-tok2",
+            "respuesta", "perro"
+        ));
+
+        mockMvc.perform(post("/auth/verificar-pregunta")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isUnauthorized());
     }
 }
