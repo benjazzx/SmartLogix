@@ -139,55 +139,58 @@ public class PreguntaSeguridadController {
             }
 
             if ("APROBAR".equalsIgnoreCase(accion)) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, String>> respuestas = (List<Map<String, String>>) body.get("respuestas");
-                if (respuestas == null || respuestas.isEmpty()) {
-                    return ResponseEntity.badRequest()
-                            .<Map<String, String>>body(Map.of(ERROR, "Se requieren las respuestas verificadas"));
-                }
-
-                List<PreguntaSeguridadModel> preguntas = preguntaRepo.findByUserId(sol.getUserId());
-                boolean todasCorrectas = preguntas.stream().allMatch(p ->
-                    respuestas.stream().anyMatch(r ->
-                        p.getPregunta().equals(r.get("pregunta")) &&
-                        passwordEncoder.matches(
-                            r.getOrDefault("respuesta", "").trim().toLowerCase(),
-                            p.getRespuesta()
-                        )
-                    )
-                );
-
-                if (!todasCorrectas) {
-                    return ResponseEntity.badRequest()
-                            .<Map<String, String>>body(Map.of(ERROR, "Respuestas incorrectas"));
-                }
-
-                String claveTemp = body.getOrDefault("claveTemp", "Smart2024!").toString();
-                try {
-                    UserService.validarContraseña(claveTemp);
-                } catch (IllegalArgumentException e) {
-                    return ResponseEntity.badRequest()
-                            .<Map<String, String>>body(Map.of(ERROR, e.getMessage()));
-                }
-
-                userRepo.findById(sol.getUserId()).ifPresent(user -> {
-                    user.setClave(passwordEncoder.encode(claveTemp));
-                    userRepo.save(user);
-                });
-
                 sol.setEstado("APROBADA");
-                sol.setClaveTemporal(claveTemp);
                 sol.setFechaResolucion(LocalDateTime.now());
                 solicitudRepo.save(sol);
-                log.info("[Recuperacion] Contraseña reseteada para userId: {}", sol.getUserId());
-                return ResponseEntity.ok(Map.of(
-                    MENSAJE, "Contraseña reseteada correctamente",
-                    "claveTemp", claveTemp
-                ));
+                log.info("[Recuperacion] Solicitud aprobada para userId: {}", sol.getUserId());
+                return ResponseEntity.ok(Map.of(MENSAJE, "Solicitud aprobada. El usuario puede cambiar su contraseña."));
             }
 
             return ResponseEntity.badRequest().<Map<String, String>>body(Map.of(ERROR, "Acción inválida"));
         }).orElse(ResponseEntity.notFound().<Map<String, String>>build());
+    }
+
+    @PostMapping("/auth/cambiar-clave-recuperacion")
+    public ResponseEntity<Map<String, String>> cambiarClaveRecuperacion(
+            @RequestBody Map<String, String> body) {
+
+        String correo     = body.get("correo");
+        String nuevaClave = body.get("nuevaClave");
+
+        if (correo == null || nuevaClave == null) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR, "correo y nuevaClave son requeridos"));
+        }
+        try {
+            UserService.validarContraseña(nuevaClave);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR, e.getMessage()));
+        }
+
+        return userRepo.findByCorreo(correo).map(user -> {
+            boolean tieneAprobada = solicitudRepo.findByUserIdOrderByFechaSolicitudDesc(user.getId())
+                    .stream().anyMatch(s -> "APROBADA".equals(s.getEstado()));
+
+            if (!tieneAprobada) {
+                return ResponseEntity.badRequest()
+                        .<Map<String, String>>body(Map.of(ERROR,
+                            "No tienes una solicitud de recuperación aprobada. Espera la aprobación del administrador."));
+            }
+
+            user.setClave(passwordEncoder.encode(nuevaClave));
+            userRepo.save(user);
+
+            solicitudRepo.findByUserIdOrderByFechaSolicitudDesc(user.getId())
+                    .stream().filter(s -> "APROBADA".equals(s.getEstado()))
+                    .forEach(s -> {
+                        s.setEstado("COMPLETADA");
+                        s.setFechaResolucion(LocalDateTime.now());
+                        solicitudRepo.save(s);
+                    });
+
+            log.info("[Recuperacion] Contraseña cambiada para: {}", correo);
+            return ResponseEntity.ok(Map.of(MENSAJE, "Contraseña actualizada correctamente"));
+        }).orElse(ResponseEntity.badRequest().<Map<String, String>>body(
+            Map.of(ERROR, "Correo no registrado en el sistema")));
     }
 
     @PostMapping("/auth/cambiar-clave")
