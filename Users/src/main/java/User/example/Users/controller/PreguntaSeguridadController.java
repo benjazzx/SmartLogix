@@ -155,10 +155,11 @@ public class PreguntaSeguridadController {
             @RequestBody Map<String, String> body) {
 
         String correo     = body.get("correo");
+        String rut        = body.get("rut");
         String nuevaClave = body.get("nuevaClave");
 
-        if (correo == null || nuevaClave == null) {
-            return ResponseEntity.badRequest().body(Map.of(ERROR, "correo y nuevaClave son requeridos"));
+        if (correo == null || rut == null || nuevaClave == null) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR, "correo, rut y nuevaClave son requeridos"));
         }
         try {
             UserService.validarContraseña(nuevaClave);
@@ -167,6 +168,13 @@ public class PreguntaSeguridadController {
         }
 
         return userRepo.findByCorreo(correo).map(user -> {
+            String rutNormalizado  = rut.replaceAll("[.\\s]", "").toUpperCase();
+            String rutUsuario      = user.getRut() == null ? "" : user.getRut().replaceAll("[.\\s]", "").toUpperCase();
+            if (!rutNormalizado.equals(rutUsuario)) {
+                return ResponseEntity.badRequest()
+                        .<Map<String, String>>body(Map.of(ERROR, "El RUT no coincide con el registrado."));
+            }
+
             boolean tieneAprobada = solicitudRepo.findByUserIdOrderByFechaSolicitudDesc(user.getId())
                     .stream().anyMatch(s -> "APROBADA".equals(s.getEstado()));
 
