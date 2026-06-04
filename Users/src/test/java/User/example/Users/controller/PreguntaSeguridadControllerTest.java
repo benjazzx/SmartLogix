@@ -363,4 +363,69 @@ class PreguntaSeguridadControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mensaje").exists());
     }
+
+    // ── POST /auth/cambiar-clave-recuperacion ────────────────────────────────
+
+    @Test
+    void cambiarClaveRecuperacion_camposFaltantes_retorna400() throws Exception {
+        mockMvc.perform(post("/auth/cambiar-clave-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of("correo", "test@test.cl"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cambiarClaveRecuperacion_correoNoExiste_retorna400() throws Exception {
+        when(userRepo.findByCorreo("noexiste@test.cl")).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/auth/cambiar-clave-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of(
+                    "correo", "noexiste@test.cl",
+                    "nuevaClave", "NuevaClave1!"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cambiarClaveRecuperacion_sinSolicitudAprobada_retorna400() throws Exception {
+        UUID uid = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(uid);
+
+        when(userRepo.findByCorreo("user@test.cl")).thenReturn(Optional.of(user));
+        when(solicitudRepo.findByUserIdOrderByFechaSolicitudDesc(uid)).thenReturn(List.of());
+
+        mockMvc.perform(post("/auth/cambiar-clave-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of(
+                    "correo", "user@test.cl",
+                    "nuevaClave", "NuevaClave1!"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cambiarClaveRecuperacion_exitosa_retorna200() throws Exception {
+        UUID uid = UUID.randomUUID();
+        UserModel user = new UserModel();
+        user.setId(uid);
+
+        SolicitudRecuperacionModel sol = new SolicitudRecuperacionModel();
+        sol.setId(10L);
+        sol.setUserId(uid);
+        sol.setEstado("APROBADA");
+
+        when(userRepo.findByCorreo("user@test.cl")).thenReturn(Optional.of(user));
+        when(solicitudRepo.findByUserIdOrderByFechaSolicitudDesc(uid)).thenReturn(List.of(sol));
+        when(passwordEncoder.encode(anyString())).thenReturn("hashedNueva");
+        when(userRepo.save(any())).thenReturn(user);
+        when(solicitudRepo.save(any())).thenReturn(sol);
+
+        mockMvc.perform(post("/auth/cambiar-clave-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of(
+                    "correo", "user@test.cl",
+                    "nuevaClave", "NuevaClave1!"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mensaje").exists());
+    }
 }
