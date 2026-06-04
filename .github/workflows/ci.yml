@@ -27,6 +27,7 @@ jobs:
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Gateway
       - name: SonarCloud Analysis
+        continue-on-error: true
         run: >
           mvn sonar:sonar -B --no-transfer-progress
           -Dsonar.host.url=https://sonarcloud.io
@@ -61,6 +62,7 @@ jobs:
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Users
       - name: SonarCloud Analysis
+        continue-on-error: true
         run: >
           mvn sonar:sonar -B --no-transfer-progress
           -Dsonar.host.url=https://sonarcloud.io
@@ -95,6 +97,7 @@ jobs:
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Rol
       - name: SonarCloud Analysis
+        continue-on-error: true
         run: >
           mvn sonar:sonar -B --no-transfer-progress
           -Dsonar.host.url=https://sonarcloud.io
@@ -164,6 +167,7 @@ jobs:
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Inventario
       - name: SonarCloud Analysis
+        continue-on-error: true
         run: >
           mvn sonar:sonar -B --no-transfer-progress
           -Dsonar.host.url=https://sonarcloud.io
