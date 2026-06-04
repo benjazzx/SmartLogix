@@ -25,9 +25,11 @@ import static org.mockito.Mockito.*;
 @SuppressWarnings("java:S100")
 class OrdenServiceTest {
 
-    private static final String ROL_CLIENTE   = "cliente";
-    private static final String ROL_ADMIN     = "admin";
-    private static final String ROL_BODEGUERO = "bodeguero";
+    private static final String ROL_CLIENTE    = "cliente";
+    private static final String ROL_ADMIN      = "admin";
+    private static final String ROL_BODEGUERO  = "bodeguero";
+    private static final String ESTADO_PENDIENTE = "pendiente";
+    private static final String EMPLEADO_ANA   = "Ana López";
 
     @InjectMocks
     private OrdenService ordenService;
@@ -50,7 +52,7 @@ class OrdenServiceTest {
         orden.setUserId(userId);
         orden.setUserNombre("Juan García");
         orden.setDireccionId(UUID.randomUUID());
-        orden.setEstadoActual("pendiente");
+        orden.setEstadoActual(ESTADO_PENDIENTE);
         orden.setFechaOrden(LocalDateTime.now());
         return orden;
     }
@@ -376,7 +378,7 @@ class OrdenServiceTest {
 
         HistorialModel h1 = new HistorialModel();
         h1.setId(1L);
-        h1.setEstadoNombre("pendiente");
+        h1.setEstadoNombre(ESTADO_PENDIENTE);
         h1.setFecha(LocalDateTime.now().minusDays(1));
 
         HistorialModel h2 = new HistorialModel();
@@ -401,5 +403,188 @@ class OrdenServiceTest {
 
         assertThrows(RuntimeException.class,
                 () -> ordenService.getHistorial(1L, clienteId, ROL_CLIENTE));
+    }
+
+    // ── tomarOrden ───────────────────────────────────────────────────────────
+
+    @Test
+    void tomarOrden_exitoso_debeAsignarTransportista() {
+        UUID transportistaId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(usersClient.getNombreUsuario(transportistaId)).thenReturn("Carlos Trans");
+        when(ordenRepository.save(any())).thenReturn(orden);
+
+        OrdenResponseDto result = ordenService.tomarOrden(1L, transportistaId);
+
+        assertNotNull(result);
+        assertTrue(orden.isTomada());
+        assertEquals(transportistaId, orden.getTransportistaId());
+        assertEquals("Carlos Trans", orden.getTransportistaNombre());
+    }
+
+    @Test
+    void tomarOrden_yaFueTomada_debeLanzarExcepcion() {
+        UUID transportistaId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setTomada(true);
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.tomarOrden(1L, transportistaId));
+    }
+
+    // ── liberarOrden ─────────────────────────────────────────────────────────
+
+    @Test
+    void liberarOrden_exitoso_debeDesasignarTransportista() {
+        UUID transportistaId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setTomada(true);
+        orden.setTransportistaId(transportistaId);
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(ordenRepository.save(any())).thenReturn(orden);
+
+        OrdenResponseDto result = ordenService.liberarOrden(1L, transportistaId);
+
+        assertNotNull(result);
+        assertFalse(orden.isTomada());
+        assertNull(orden.getTransportistaId());
+        assertNull(orden.getTransportistaNombre());
+    }
+
+    @Test
+    void liberarOrden_noEsElTransportista_debeLanzarExcepcion() {
+        UUID transportistaId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setTomada(true);
+        orden.setTransportistaId(UUID.randomUUID()); // otro transportista
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.liberarOrden(1L, transportistaId));
+    }
+
+    @Test
+    void liberarOrden_noEstaTomada_debeLanzarExcepcion() {
+        UUID transportistaId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setTomada(false);
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.liberarOrden(1L, transportistaId));
+    }
+
+    // ── solicitarDevolucion ──────────────────────────────────────────────────
+
+    @Test
+    void solicitarDevolucion_exitoso_debeActualizarEstado() {
+        UUID userId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+        orden.setEstadoActual("Entregado");
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(ordenRepository.save(any())).thenReturn(orden);
+        when(historialRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        OrdenResponseDto result = ordenService.solicitarDevolucion(1L, userId, "Producto dañado");
+
+        assertNotNull(result);
+        assertEquals("Devolución solicitada", orden.getEstadoActual());
+        assertEquals("Producto dañado", orden.getMotivoDevolucion());
+        verify(historialRepository).save(any());
+    }
+
+    @Test
+    void solicitarDevolucion_noEsDueño_debeLanzarExcepcion() {
+        UUID userId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(UUID.randomUUID()); // orden de otro usuario
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.solicitarDevolucion(1L, userId, "motivo"));
+    }
+
+    @Test
+    void solicitarDevolucion_noEntregado_debeLanzarExcepcion() {
+        UUID userId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+        orden.setEstadoActual(ESTADO_PENDIENTE);
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        assertThrows(IllegalStateException.class,
+                () -> ordenService.solicitarDevolucion(1L, userId, "motivo"));
+    }
+
+    // ── getResumenEmpleados ──────────────────────────────────────────────────
+
+    @Test
+    void getResumenEmpleados_conHistorial_retornaResumenAgrupado() {
+        UUID userId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+
+        HistorialModel h1 = new HistorialModel();
+        h1.setRealizadoPorNombre(EMPLEADO_ANA);
+        h1.setOrden(orden);
+
+        HistorialModel h2 = new HistorialModel();
+        h2.setRealizadoPorNombre(EMPLEADO_ANA);
+        h2.setOrden(orden);
+
+        HistorialModel h3 = new HistorialModel();
+        h3.setRealizadoPorNombre(null); // debe ignorarse
+
+        when(historialRepository.findAll()).thenReturn(List.of(h1, h2, h3));
+
+        List<java.util.Map<String, Object>> result = ordenService.getResumenEmpleados();
+
+        assertEquals(1, result.size());
+        assertEquals(EMPLEADO_ANA, result.get(0).get("empleado"));
+        assertEquals(2, result.get(0).get("totalAcciones"));
+    }
+
+    @Test
+    void getResumenEmpleados_sinHistorial_retornaListaVacia() {
+        when(historialRepository.findAll()).thenReturn(List.of());
+
+        List<java.util.Map<String, Object>> result = ordenService.getResumenEmpleados();
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void addHistorial_conRealizadoPorEnDto_usaDatosDelDto() {
+        UUID userId = UUID.randomUUID();
+        UUID realizadoPorId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+
+        HistorialRequestDto dto = new HistorialRequestDto();
+        dto.setEstadoId(UUID.randomUUID());
+        dto.setEstadoNombre("Procesando");
+        dto.setComentario("En bodega");
+        dto.setRealizadoPorId(realizadoPorId);
+        dto.setRealizadoPorNombre("Bodeguero Juan");
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(estadoClient.existeEstado(any())).thenReturn(true);
+
+        HistorialModel historial = new HistorialModel();
+        historial.setFecha(LocalDateTime.now());
+        when(historialRepository.save(any())).thenReturn(historial);
+        when(ordenRepository.save(any())).thenReturn(orden);
+        doNothing().when(eventProducer).publishEstadoOrden(any());
+
+        OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, ROL_ADMIN);
+
+        assertNotNull(result);
+        verify(usersClient, never()).getNombreUsuario(any()); // no debería llamar si ya viene en el dto
     }
 }

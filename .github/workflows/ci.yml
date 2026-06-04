@@ -16,14 +16,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Gateway
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Gateway
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -38,14 +50,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Users
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Users
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -60,14 +84,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Rol
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Rol
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -82,14 +118,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Estado
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Estado
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -104,14 +152,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Inventario
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Inventario
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -126,14 +186,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Producto
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Producto
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -182,14 +254,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Tests + JaCoCo (≥60%)
+      - name: Tests + JaCoCo (≥80%)
         run: mvn verify -B --no-transfer-progress -s $GITHUB_WORKSPACE/settings.xml
         working-directory: Configuracion
+      - name: SonarCloud Analysis
+        run: >
+          mvn sonar:sonar -B --no-transfer-progress
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=benjazzx
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.branch.name=main
+        working-directory: Configuracion
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -213,7 +297,7 @@ jobs:
         run: |
           echo "========================================"
           echo " QUALITY GATE — SmartLogix CI"
-          echo " Cobertura mínima exigida: 60%"
+          echo " Cobertura mínima exigida: 80%"
           echo "========================================"
           echo " Gateway    listo"
           echo " Users      listo"

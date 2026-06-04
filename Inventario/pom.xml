@@ -17,6 +17,11 @@
 		<java.version>21</java.version>
 		<spring-cloud.version>2025.1.1</spring-cloud.version>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.organization>benjazzx</sonar.organization>
+		<sonar.projectKey>Inventario.example:Inventario</sonar.projectKey>
+		<sonar.exclusions>**/config/**,**/InventarioApplication.java</sonar.exclusions>
+		<sonar.coverage.exclusions>**/config/**,**/InventarioApplication.java</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>
