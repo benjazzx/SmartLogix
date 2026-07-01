@@ -1,0 +1,67 @@
+package Orden.example.Orden.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Data
+@Entity
+@Table(name = "orden", indexes = {
+    @Index(name = "idx_orden_user_id",   columnList = "user_id"),
+    @Index(name = "idx_orden_estado",    columnList = "estado_actual"),
+    @Index(name = "idx_orden_transportista", columnList = "transportista_id")
+})
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrdenModel {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private LocalDateTime fechaOrden = LocalDateTime.now();
+
+    // FK al microservicio Users — UUID de la dirección registrada del cliente
+    @Column(name = "direccion_id", nullable = false)
+    private UUID direccionId;
+
+    // FK al microservicio Users — solo clientes crean ordenes
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    // Desnormalizado para evitar llamadas HTTP en cada consulta
+    @Column(name = "user_nombre", length = 200)
+    private String userNombre;
+
+    // Estado actual desnormalizado desde el ultimo historial
+    @Column(name = "estado_actual", length = 100)
+    private String estadoActual = "pendiente";
+
+    // Dirección de entrega desnormalizada (texto) para no depender de Users en cada consulta
+    @Column(name = "direccion_texto", length = 300)
+    private String direccionTexto;
+
+    // Gestión de rutas: transportista que tomó la orden
+    @Column(name = "transportista_id")
+    private UUID transportistaId;
+
+    @Column(name = "transportista_nombre", length = 200)
+    private String transportistaNombre;
+
+    @Column(name = "tomada", nullable = false)
+    private boolean tomada = false;
+
+    @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<HistorialModel> historial = new ArrayList<>();
+
+    @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<DetalleOrdenModel> detalles = new ArrayList<>();
+}

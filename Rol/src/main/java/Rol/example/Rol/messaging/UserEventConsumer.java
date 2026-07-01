@@ -1,0 +1,27 @@
+package Rol.example.Rol.messaging;
+
+import Rol.example.Rol.dto.UserRegisteredEvent;
+import Rol.example.Rol.model.RolModel;
+import Rol.example.Rol.service.RolService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.function.Consumer;
+
+@Slf4j
+@Configuration
+public class UserEventConsumer {
+
+    @Autowired private RolService rolService;
+
+    @Bean
+    public Consumer<UserRegisteredEvent> userRegisteredConsumer() {
+        return event -> {
+            log.info("[Rol CONSUMER] user-created-topic → email={} rolNombre={}", event.getEmail(), event.getRolNombre());
+            RolModel rol = rolService.assignRoleFromEvent(event.getEmail(), event.getRolNombre());
+            log.info("[Rol PRODUCER] role-assigned-topic → rol={} email={}", rol != null ? rol.getNombre() : "null", event.getEmail());
+        };
+    }
+}

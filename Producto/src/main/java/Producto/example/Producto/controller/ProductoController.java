@@ -1,0 +1,144 @@
+package Producto.example.Producto.controller;
+
+import Producto.example.Producto.dto.ProductoRequestDTO;
+import Producto.example.Producto.dto.ProductoResponseDTO;
+import Producto.example.Producto.service.ProductoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/productos")
+@RequiredArgsConstructor
+@Tag(name = "Productos", description = "Gestión del catálogo de productos SmartLogix")
+public class ProductoController {
+
+    private final ProductoService productoService;
+
+    @GetMapping
+    @Operation(summary = "Listar productos activos")
+    public ResponseEntity<List<ProductoResponseDTO>> getAll() {
+        return ResponseEntity.ok(productoService.getAll());
+    }
+
+    @GetMapping("/todos")
+    @Operation(summary = "Listar todos los productos (incluye inactivos) — solo admin")
+    public ResponseEntity<List<ProductoResponseDTO>> getAllIncluirInactivos() {
+        return ResponseEntity.ok(productoService.getAllIncluirInactivos());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener producto por ID — usado por Inventario vía ProductoClient")
+    public ResponseEntity<ProductoResponseDTO> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(productoService.getById(id));
+    }
+
+    @GetMapping("/categoria/{categoriaId}")
+    @Operation(summary = "Listar productos por categoría")
+    public ResponseEntity<List<ProductoResponseDTO>> getByCategoria(@PathVariable UUID categoriaId) {
+        return ResponseEntity.ok(productoService.getByCategoria(categoriaId));
+    }
+
+    @GetMapping("/buscar")
+    @Operation(summary = "Buscar productos por nombre")
+    public ResponseEntity<List<ProductoResponseDTO>> buscar(@RequestParam String nombre) {
+        return ResponseEntity.ok(productoService.buscarPorNombre(nombre));
+    }
+
+    @GetMapping("/bajo-stock")
+    @Operation(summary = "Listar productos con stock igual o menor al umbral (default 10)")
+    public ResponseEntity<List<ProductoResponseDTO>> getBajoStock(
+            @RequestParam(defaultValue = "10") Integer umbral) {
+        return ResponseEntity.ok(productoService.getBajoStock(umbral));
+    }
+
+    @GetMapping("/por-pais")
+    @Operation(summary = "Listar productos activos filtrados por país")
+    public ResponseEntity<List<ProductoResponseDTO>> getByPais(@RequestParam String pais) {
+        return ResponseEntity.ok(productoService.getByPais(pais));
+    }
+
+    @GetMapping("/por-bodeguero/{userId}")
+    @Operation(summary = "Listar productos creados o modificados por un bodeguero")
+    public ResponseEntity<List<ProductoResponseDTO>> getPorBodeguero(@PathVariable UUID userId) {
+        return ResponseEntity.ok(productoService.getPorBodeguero(userId));
+    }
+
+    @GetMapping("/por-bodega")
+    @Operation(summary = "Listar productos filtrados por bodega, pasillo y/o estante")
+    public ResponseEntity<List<ProductoResponseDTO>> getPorBodega(
+            @RequestParam Long bodegaId,
+            @RequestParam(required = false) Long pasilloId,
+            @RequestParam(required = false) Long estanteId) {
+        return ResponseEntity.ok(productoService.getPorUbicacion(bodegaId, pasilloId, estanteId));
+    }
+
+    @PostMapping
+    @Operation(summary = "Crear nuevo producto")
+    public ResponseEntity<ProductoResponseDTO> crear(
+            @Valid @RequestBody ProductoRequestDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Name", required = false) String userName) {
+        UUID uid = userId != null ? UUID.fromString(userId) : null;
+        return ResponseEntity.status(HttpStatus.CREATED).body(productoService.crear(dto, uid, userName));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar producto completo")
+    public ResponseEntity<ProductoResponseDTO> actualizar(
+            @PathVariable UUID id,
+            @Valid @RequestBody ProductoRequestDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Name", required = false) String userName) {
+        UUID uid = userId != null ? UUID.fromString(userId) : null;
+        return ResponseEntity.ok(productoService.actualizar(id, dto, uid, userName));
+    }
+
+    @PatchMapping("/{id}/stock")
+    @Operation(summary = "Actualizar stock del producto — llamado por Inventario tras una orden")
+    public ResponseEntity<ProductoResponseDTO> actualizarStock(@PathVariable UUID id,
+                                                               @RequestBody Map<String, Integer> body) {
+        Integer nuevoStock = body.get("stock");
+        if (nuevoStock == null || nuevoStock < 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(productoService.actualizarStock(id, nuevoStock));
+    }
+
+    @PatchMapping("/{id}/decrementar-stock")
+    @Operation(summary = "Decrementar stock del producto — llamado por Inventario tras una orden")
+    public ResponseEntity<ProductoResponseDTO> decrementarStock(@PathVariable UUID id,
+                                                                @RequestParam Integer cantidad) {
+        if (cantidad == null || cantidad <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(productoService.decrementarStock(id, cantidad));
+    }
+
+    @PatchMapping("/{id}/toggle-activo")
+    @Operation(summary = "Activar o desactivar producto")
+    public ResponseEntity<ProductoResponseDTO> toggleActivo(@PathVariable UUID id) {
+        return ResponseEntity.ok(productoService.toggleActivo(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Desactivar producto (soft delete)")
+    public ResponseEntity<Void> desactivar(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Name", required = false) String userName) {
+        UUID uid = userId != null ? UUID.fromString(userId) : null;
+        productoService.desactivar(id, uid, userName);
+        return ResponseEntity.noContent().build();
+    }
+}

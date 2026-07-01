@@ -1,0 +1,229 @@
+package Rol.example.Rol.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import Rol.example.Rol.messaging.RoleEventProcessor;
+import Rol.example.Rol.model.RolModel;
+import Rol.example.Rol.repository.RolRepository;
+
+/**
+ * Pruebas unitarias al 80%+ de cobertura usando Mockito.
+ * Ignoramos la conexion a base de datos de verdad y simulamos "Mockeamos" las respuestas del repositorio.
+ */
+@ExtendWith(MockitoExtension.class)
+public class RolServiceTest {
+
+    @Mock
+    private RolRepository rolRepository;
+
+    @Mock
+    private RoleEventProcessor roleEventProcessor;
+
+    @InjectMocks
+    private RolService rolService; // Usará la BD simulada (Mock) injectada
+
+    private RolModel bodegueroRole;
+    private RolModel adminRole;
+    private RolModel transportistaRole;
+    private RolModel clienteRole;
+
+    @BeforeEach
+    public void setUp() {
+     
+        bodegueroRole = new RolModel(UUID.randomUUID(), "bodeguero", "Encargado de bodega");
+        adminRole = new RolModel(UUID.randomUUID(), "admin", "Admin");
+        transportistaRole = new RolModel(UUID.randomUUID(), "transportista", "Transport");
+        clienteRole = new RolModel(UUID.randomUUID(), "cliente", "Cliente");
+    }
+
+    @Test
+    public void testAssignBodegueroRoleByEmail() {
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleByEmail("empleado@smartb.cl");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+        verify(rolRepository, times(1)).findByNombre("bodeguero"); 
+    }
+
+    @Test
+    public void testAssignAdminRoleByEmail() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleByEmail("super_jefe@smartadmin.cl");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+    }
+
+    @Test
+    public void testAssignTransportistaRoleByEmailSubDomain() {
+        when(rolRepository.findByNombre("transportista")).thenReturn(Optional.of(transportistaRole));
+
+        RolModel result = rolService.assignRoleByEmail("camion.juan@smartt.cl");
+
+        assertNotNull(result);
+        assertEquals("transportista", result.getNombre());
+    }
+
+    @Test
+    public void testAssignClienteRoleForGenericEmail() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail("usuario123@gmail.com");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testFallbackToClienteIfRoleDatabaseMissing() {
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.empty());
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail("error@smartb.cl");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleEmailNull() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail(null);
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleEmailSinArroba() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail("correoSinArroba");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignAdminRoleByEmailAdminSmartCl() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleByEmail("jefe@admin.smart.cl");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+    }
+
+    @Test
+    public void testAssignAdminRoleSmartlogixDomain() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleByEmail("admin@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+    }
+
+    @Test
+    public void testAssignBodegueroRoleSmartlogixDomain() {
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleByEmail("bodeguero@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+    }
+
+    @Test
+    public void testAssignTransportistaRoleSmartlogixDomain() {
+        when(rolRepository.findByNombre("transportista")).thenReturn(Optional.of(transportistaRole));
+
+        RolModel result = rolService.assignRoleByEmail("transportista@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("transportista", result.getNombre());
+    }
+
+    @Test
+    public void testAssignClienteRoleSmartlogixDomainDefault() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleByEmail("otro@smartlogix.cl");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    // ── assignRoleFromEvent ──────────────────────────────────────────────────────
+
+    @Test
+    public void testAssignRoleFromEvent_rolNombreEspecificado_usaRolDelEvento() {
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleFromEvent("juan@gmail.com", "bodeguero");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+        verify(roleEventProcessor).publishRoleAssigned("juan@gmail.com", bodegueroRole.getId(), "bodeguero");
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_rolNombreNulo_usaLogicaDominio() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleFromEvent("usuario@gmail.com", null);
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_rolNombreVacio_usaLogicaDominio() {
+        when(rolRepository.findByNombre("cliente")).thenReturn(Optional.of(clienteRole));
+
+        RolModel result = rolService.assignRoleFromEvent("usuario@gmail.com", "   ");
+
+        assertNotNull(result);
+        assertEquals("cliente", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_rolNoExisteEnBD_fallbackLogicaDominio() {
+        when(rolRepository.findByNombre("rolInexistente")).thenReturn(Optional.empty());
+        when(rolRepository.findByNombre("bodeguero")).thenReturn(Optional.of(bodegueroRole));
+
+        RolModel result = rolService.assignRoleFromEvent("empleado@smartb.cl", "rolInexistente");
+
+        assertNotNull(result);
+        assertEquals("bodeguero", result.getNombre());
+    }
+
+    @Test
+    public void testAssignRoleFromEvent_adminEspecificadoExplicitamente() {
+        when(rolRepository.findByNombre("admin")).thenReturn(Optional.of(adminRole));
+
+        RolModel result = rolService.assignRoleFromEvent("nuevo@gmail.com", "admin");
+
+        assertNotNull(result);
+        assertEquals("admin", result.getNombre());
+        verify(roleEventProcessor).publishRoleAssigned("nuevo@gmail.com", adminRole.getId(), "admin");
+    }
+}
