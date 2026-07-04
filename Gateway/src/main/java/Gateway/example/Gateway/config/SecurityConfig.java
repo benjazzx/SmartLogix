@@ -74,10 +74,13 @@ public class SecurityConfig {
         String uri = request.getRequestURI();
         String method = request.getMethod();
         // GET de catálogo y categorías es público (el Producto service tiene su propio control)
+        // El historial de stock queda excluido: requiere JWT (solo admin/bodeguero)
         boolean getCatalogo = "GET".equalsIgnoreCase(method)
-            && (uri.startsWith("/api/productos") || uri.startsWith("/api/categorias"));
+            && (uri.startsWith("/api/productos") || uri.startsWith("/api/categorias"))
+            && !uri.contains("/historial-stock");
         return uri.startsWith("/auth")
             || uri.startsWith("/fallback")
+            || uri.startsWith("/actuator")
             || uri.equals("/error")
             || getCatalogo;
     }

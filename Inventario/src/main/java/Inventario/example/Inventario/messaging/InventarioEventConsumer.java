@@ -43,12 +43,12 @@ public class InventarioEventConsumer {
         return event -> {
             log.info("[Inventario] Orden recibida — ordenId={} userId={}", event.getOrdenId(), event.getUserId());
             if (event.getDetalles() != null) {
-                event.getDetalles().forEach(this::procesarDetalle);
+                event.getDetalles().forEach(detalle -> procesarDetalle(detalle, event));
             }
         };
     }
 
-    private void procesarDetalle(OrdenCreadaEvent.DetalleDto detalle) {
+    private void procesarDetalle(OrdenCreadaEvent.DetalleDto detalle, OrdenCreadaEvent event) {
         try {
             if (detalle.getProductoId() == null || detalle.getCantidad() == null) return;
             boolean existe = productoClient.existeProducto(detalle.getProductoId());
@@ -58,7 +58,8 @@ public class InventarioEventConsumer {
                 log.warn("[Inventario] Producto no encontrado en catálogo — productoId={}", detalle.getProductoId());
                 return;
             }
-            boolean ok = productoClient.decrementarStock(detalle.getProductoId(), detalle.getCantidad());
+            boolean ok = productoClient.decrementarStock(detalle.getProductoId(), detalle.getCantidad(),
+                    event.getOrdenId(), event.getUserId(), event.getUserNombre());
             if (!ok) {
                 log.warn("[Inventario] No se pudo decrementar stock — productoId={} cantidad={}",
                         detalle.getProductoId(), detalle.getCantidad());

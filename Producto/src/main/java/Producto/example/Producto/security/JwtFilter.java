@@ -41,6 +41,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 if (userId != null) {
                     request.setAttribute("userId", userId);
                 }
+                request.setAttribute("userName", correo);
 
                 var auth = new UsernamePasswordAuthenticationToken(
                         correo,

@@ -46,7 +46,7 @@ public class EstanteModel {
     private Integer capacidadTotal;
 
     // Stock actual en este estante — actualizado vía Kafka cuando cambia la ubicación de un producto
-    @Column(name = "stock_actual", nullable = false)
+    @Column(name = "stock_actual")
     @Builder.Default
     private Integer stockActual = 0;
 

@@ -37,6 +37,22 @@ public class HistorialStockModel {
     @Column(name = "modificado_por_nombre", length = 200)
     private String modificadoPorNombre;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_accion", nullable = false, length = 30)
+    private TipoAccionHistorial tipoAccion;
+
+    @Column(name = "descripcion", length = 500)
+    private String descripcion;
+
+    @Column(name = "id_estante_anterior")
+    private Long idEstanteAnterior;
+
+    @Column(name = "id_estante_nuevo")
+    private Long idEstanteNuevo;
+
+    @Column(name = "orden_id")
+    private Long ordenId;
+
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;
 }

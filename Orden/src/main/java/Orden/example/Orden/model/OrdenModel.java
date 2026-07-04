@@ -2,6 +2,7 @@ package Orden.example.Orden.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,7 @@ public class OrdenModel {
     private boolean tomada = false;
 
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @BatchSize(size = 20)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<HistorialModel> historial = new ArrayList<>();

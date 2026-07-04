@@ -59,13 +59,13 @@ class InventarioEventConsumerTest {
         OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
         when(productoClient.existeProducto(productoId)).thenReturn(true);
-        when(productoClient.decrementarStock(productoId, 3)).thenReturn(true);
+        when(productoClient.decrementarStock(eq(productoId), eq(3), any(), any(), any())).thenReturn(true);
 
         Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
         verify(productoClient).existeProducto(productoId);
-        verify(productoClient).decrementarStock(productoId, 3);
+        verify(productoClient).decrementarStock(eq(productoId), eq(3), any(), any(), any());
     }
 
     @Test
@@ -80,7 +80,7 @@ class InventarioEventConsumerTest {
         consumer.accept(evento);
 
         verify(productoClient).existeProducto(productoId);
-        verify(productoClient, never()).decrementarStock(any(), anyInt());
+        verify(productoClient, never()).decrementarStock(any(), anyInt(), any(), any(), any());
     }
 
     @Test
@@ -90,12 +90,12 @@ class InventarioEventConsumerTest {
         OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
         when(productoClient.existeProducto(productoId)).thenReturn(true);
-        when(productoClient.decrementarStock(productoId, 5)).thenReturn(false);
+        when(productoClient.decrementarStock(eq(productoId), eq(5), any(), any(), any())).thenReturn(false);
 
         Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         consumer.accept(evento);
 
-        verify(productoClient).decrementarStock(productoId, 5);
+        verify(productoClient).decrementarStock(eq(productoId), eq(5), any(), any(), any());
     }
 
     @Test

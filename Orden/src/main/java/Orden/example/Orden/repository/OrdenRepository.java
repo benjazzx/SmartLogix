@@ -11,9 +11,9 @@ import java.util.UUID;
 @Repository
 public interface OrdenRepository extends JpaRepository<OrdenModel, Long> {
 
-    @Query("SELECT DISTINCT o FROM OrdenModel o LEFT JOIN FETCH o.detalles LEFT JOIN FETCH o.historial")
+    @Query("SELECT DISTINCT o FROM OrdenModel o LEFT JOIN FETCH o.detalles")
     List<OrdenModel> findAllWithDetails();
 
-    @Query("SELECT DISTINCT o FROM OrdenModel o LEFT JOIN FETCH o.detalles LEFT JOIN FETCH o.historial WHERE o.userId = :userId")
+    @Query("SELECT DISTINCT o FROM OrdenModel o LEFT JOIN FETCH o.detalles WHERE o.userId = :userId")
     List<OrdenModel> findByUserIdWithDetails(@Param("userId") UUID userId);
 }

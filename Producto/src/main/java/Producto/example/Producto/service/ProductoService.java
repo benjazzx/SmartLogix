@@ -8,11 +8,15 @@ import Producto.example.Producto.messaging.ProductoEventProducer;
 import Producto.example.Producto.model.CategoriaModel;
 import Producto.example.Producto.model.HistorialStockModel;
 import Producto.example.Producto.model.ProductoModel;
+import Producto.example.Producto.model.TipoAccionHistorial;
 import Producto.example.Producto.repository.CategoriaRepository;
 import Producto.example.Producto.repository.HistorialStockRepository;
 import Producto.example.Producto.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -129,6 +133,11 @@ public class ProductoService {
             eventProducer.publishUbicacionChanged(dto.getIdEstante(), 1);
         }
 
+        registrarHistorialStock(saved, 0, saved.getStock(), userId, userName,
+                TipoAccionHistorial.CREADO,
+                "Producto creado con stock inicial " + saved.getStock() + " por " + (userName != null ? userName : "sistema"),
+                null, null);
+
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.CREADO);
         return ProductoResponseDTO.from(saved);
     }
@@ -168,12 +177,25 @@ public class ProductoService {
         ProductoModel saved = productoRepository.save(p);
 
         if (stockCambio) {
-            registrarHistorialStock(saved, stockAnterior, dto.getStock(), userId, userName);
+            TipoAccionHistorial tipo = dto.getStock() > stockAnterior
+                    ? TipoAccionHistorial.STOCK_AUMENTADO
+                    : TipoAccionHistorial.STOCK_DECREMENTADO;
+            registrarHistorialStock(saved, stockAnterior, dto.getStock(), userId, userName, tipo,
+                    "Stock " + (tipo == TipoAccionHistorial.STOCK_AUMENTADO ? "aumentado" : "disminuido")
+                            + " de " + stockAnterior + " a " + dto.getStock()
+                            + " por " + (userName != null ? userName : "sistema"),
+                    null, null);
         }
 
         if (estanteCambio) {
             if (estanteAnterior != null) eventProducer.publishUbicacionChanged(estanteAnterior, -1);
             if (estanteNuevo != null) eventProducer.publishUbicacionChanged(estanteNuevo, 1);
+            registrarHistorialStock(saved, saved.getStock(), saved.getStock(), userId, userName,
+                    TipoAccionHistorial.UBICACION_CAMBIADA,
+                    "Ubicación cambiada de estante " + (estanteAnterior != null ? estanteAnterior : "—")
+                            + " a estante " + (estanteNuevo != null ? estanteNuevo : "—")
+                            + " por " + (userName != null ? userName : "sistema"),
+                    estanteAnterior, estanteNuevo);
         }
 
         ProductoActualizadoEvent.TipoEvento tipo = stockCambio
@@ -193,13 +215,18 @@ public class ProductoService {
         else if (nuevoStock <= 10) p.setEstadoNombre("bajo_stock");
         else p.setEstadoNombre("publicado");
         ProductoModel saved = productoRepository.save(p);
-        registrarHistorialStock(saved, anterior, nuevoStock, null, null);
+        TipoAccionHistorial tipo = nuevoStock > anterior
+                ? TipoAccionHistorial.STOCK_AUMENTADO
+                : TipoAccionHistorial.STOCK_DECREMENTADO;
+        registrarHistorialStock(saved, anterior, nuevoStock, null, null, tipo,
+                descripcionCambioStock(tipo, anterior, nuevoStock, null), null, null);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
         return ProductoResponseDTO.from(saved);
     }
 
     @Transactional
-    public ProductoResponseDTO decrementarStock(UUID id, int cantidad) {
+    public ProductoResponseDTO decrementarStock(UUID id, int cantidad, Long ordenId,
+                                                 UUID compradorId, String compradorNombre) {
         ProductoModel p = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
         int anterior = p.getStock();
@@ -209,7 +236,11 @@ public class ProductoService {
         else if (nuevoStock <= 10) p.setEstadoNombre("bajo_stock");
         else p.setEstadoNombre("publicado");
         ProductoModel saved = productoRepository.save(p);
-        registrarHistorialStock(saved, anterior, nuevoStock, null, null);
+        String descripcion = ordenId != null
+                ? "Stock disminuido de " + anterior + " a " + nuevoStock + " por la orden #" + ordenId
+                : descripcionCambioStock(TipoAccionHistorial.STOCK_DECREMENTADO, anterior, nuevoStock, null);
+        registrarHistorialStock(saved, anterior, nuevoStock, compradorId, compradorNombre,
+                TipoAccionHistorial.STOCK_DECREMENTADO, descripcion, null, null, ordenId);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
         return ProductoResponseDTO.from(saved);
     }
@@ -227,6 +258,9 @@ public class ProductoService {
         if (estante != null) {
             eventProducer.publishUbicacionChanged(estante, -1);
         }
+        registrarHistorialStock(saved, saved.getStock(), saved.getStock(), userId, userName,
+                TipoAccionHistorial.DESACTIVADO,
+                "Producto desactivado " + quien(userName), null, null);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.DESACTIVADO);
     }
 
@@ -237,14 +271,67 @@ public class ProductoService {
         p.setActivo(!p.getActivo());
         p.setEstadoNombre(p.getActivo() ? "publicado" : "descontinuado");
         ProductoModel saved = productoRepository.save(p);
-        ProductoActualizadoEvent.TipoEvento tipo = p.getActivo()
+        ProductoActualizadoEvent.TipoEvento tipoEvento = p.getActivo()
                 ? ProductoActualizadoEvent.TipoEvento.ACTUALIZADO
                 : ProductoActualizadoEvent.TipoEvento.DESACTIVADO;
-        eventProducer.publishProductoActualizado(saved, tipo);
+        TipoAccionHistorial tipoHistorial = p.getActivo()
+                ? TipoAccionHistorial.REACTIVADO
+                : TipoAccionHistorial.DESACTIVADO;
+        registrarHistorialStock(saved, saved.getStock(), saved.getStock(), null, null, tipoHistorial,
+                "Producto " + (p.getActivo() ? "reactivado" : "desactivado") + " " + quien(null), null, null);
+        eventProducer.publishProductoActualizado(saved, tipoEvento);
         return ProductoResponseDTO.from(saved);
     }
 
-    private void registrarHistorialStock(ProductoModel p, int anterior, int nuevo, UUID userId, String userName) {
+    @Transactional(readOnly = true)
+    public List<HistorialStockModel> getHistorialStock(UUID productoId) {
+        productoRepository.findById(productoId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Producto no encontrado con id: " + productoId));
+        return historialStockRepository.findByProductoIdOrderByFechaDesc(productoId);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<HistorialStockModel> getHistorialGlobal(UUID productoId, UUID bodegueroId,
+                                                          LocalDateTime desde, LocalDateTime hasta,
+                                                          Pageable pageable) {
+        Specification<HistorialStockModel> spec = (root, query, cb) -> cb.conjunction();
+        if (productoId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("productoId"), productoId));
+        }
+        if (bodegueroId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("modificadoPorId"), bodegueroId));
+        }
+        if (desde != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("fecha"), desde));
+        }
+        if (hasta != null) {
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("fecha"), hasta));
+        }
+        return historialStockRepository.findAll(spec, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HistorialStockModel> getHistorialReciente(Integer limite, UUID modificadoPorId,
+                                                            LocalDateTime desde, LocalDateTime hasta) {
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(0, limite,
+                org.springframework.data.domain.Sort.by("fecha").descending());
+        return getHistorialGlobal(null, modificadoPorId, desde, hasta, pageable).getContent();
+    }
+
+    private static final String SISTEMA = "sistema";
+
+    private void registrarHistorialStock(ProductoModel p, int anterior, int nuevo, UUID userId, String userName,
+                                          TipoAccionHistorial tipoAccion, String descripcion,
+                                          Long idEstanteAnterior, Long idEstanteNuevo) {
+        registrarHistorialStock(p, anterior, nuevo, userId, userName, tipoAccion, descripcion,
+                idEstanteAnterior, idEstanteNuevo, null);
+    }
+
+    // ordenId != null indica que la baja de stock la causó una orden de un cliente
+    // (userId/userName aquí representan al comprador, no a quien la registró manualmente).
+    private void registrarHistorialStock(ProductoModel p, int anterior, int nuevo, UUID userId, String userName,
+                                          TipoAccionHistorial tipoAccion, String descripcion,
+                                          Long idEstanteAnterior, Long idEstanteNuevo, Long ordenId) {
         HistorialStockModel historial = HistorialStockModel.builder()
                 .productoId(p.getId())
                 .productoNombre(p.getNombre())
@@ -252,9 +339,23 @@ public class ProductoService {
                 .cantidadNueva(nuevo)
                 .modificadoPorId(userId)
                 .modificadoPorNombre(userName)
+                .tipoAccion(tipoAccion)
+                .descripcion(descripcion)
+                .idEstanteAnterior(idEstanteAnterior)
+                .idEstanteNuevo(idEstanteNuevo)
+                .ordenId(ordenId)
                 .fecha(LocalDateTime.now())
                 .build();
         historialStockRepository.save(historial);
-        log.info("[HistorialStock] productoId={} {} → {}", p.getId(), anterior, nuevo);
+        log.info("[HistorialStock] productoId={} {} {} → {}", p.getId(), tipoAccion, anterior, nuevo);
+    }
+
+    private String quien(String userName) {
+        return "por " + (userName != null ? userName : SISTEMA);
+    }
+
+    private String descripcionCambioStock(TipoAccionHistorial tipo, int anterior, int nuevo, String userName) {
+        String accion = tipo == TipoAccionHistorial.STOCK_AUMENTADO ? "aumentado" : "disminuido";
+        return "Stock " + accion + " de " + anterior + " a " + nuevo + " " + quien(userName);
     }
 }

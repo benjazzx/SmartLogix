@@ -3,6 +3,24 @@ name: SmartLogix
 services:
 
   # ─── INFRAESTRUCTURA ────────────────────────────────────────────────────────
+  # PostgreSQL con todas las bases de datos del sistema pre-creadas.
+  postgres:
+    image: contenedorbenjaxio/smartlogix:postgres
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      POSTGRES_USER: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Kafka en modo KRaft (sin ZooKeeper). Broker compartido por todos los servicios.
   kafka:
     image: confluentinc/cp-kafka:7.7.1
@@ -21,13 +39,29 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
       interval: 10s
       timeout: 10s
       retries: 10
+
+  # Kafdrop: UI web para monitorear topics y mensajes de Kafka.
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    restart: unless-stopped
+    ports:
+      - "9002:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+      JVM_OPTS: -Xms32M -Xmx64M
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   # ─── MICROSERVICIOS ─────────────────────────────────────────────────────────
   # Users: autenticación JWT, registro y gestión de usuarios.
@@ -42,7 +76,7 @@ services:
       - "8082:8082"
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Users
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Users
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       ROL_SERVICE_URL: http://rol-service:8081
@@ -50,10 +84,10 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
       interval: 15s
@@ -73,18 +107,18 @@ services:
       - "8081:8081"
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Rol
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Rol
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       users-service:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/swagger-ui.html || exit 1"]
       interval: 15s
@@ -105,16 +139,16 @@ services:
       - "8086:8086"
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Estado
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Estado
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8086/swagger-ui.html || exit 1"]
       interval: 15s
@@ -135,19 +169,20 @@ services:
       - "8083:8083"
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Inventario
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Inventario
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       PRODUCTO_SERVICE_URL: http://producto-service:8085
       USERS_SERVICE_URL: http://users-service:8082
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       producto-service:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/swagger-ui.html || exit 1"]
       interval: 15s
@@ -168,19 +203,20 @@ services:
       - "8085:8085"
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Producto
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Producto
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
       FOTO_STORAGE_PATH: /app/fotos
       INVENTARIO_SERVICE_URL: http://inventario-service:8083
     volumes:
       - fotos-data:/app/fotos
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/swagger-ui.html || exit 1"]
       interval: 15s
@@ -201,7 +237,7 @@ services:
       - "8084:8084"
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Orden
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Orden
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
@@ -209,6 +245,8 @@ services:
       PRODUCTO_SERVICE_URL: http://producto-service:8085
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       users-service:
@@ -217,8 +255,6 @@ services:
         condition: service_healthy
       producto-service:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/swagger-ui.html || exit 1"]
       interval: 15s
@@ -237,12 +273,13 @@ services:
     ports:
       - "8087:8087"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/Configuracion
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Configuracion
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8087/actuator/health || exit 1"]
       interval: 15s
@@ -288,3 +325,5 @@ services:
 
 volumes:
   fotos-data:
+  postgres-data:
+  kafka-data:
