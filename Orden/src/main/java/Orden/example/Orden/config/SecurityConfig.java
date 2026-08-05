@@ -52,6 +52,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 // Solo cliente crea ordenes y ve las suyas
                 .requestMatchers(HttpMethod.POST, "/api/ordenes").hasRole(ROL_CLIENTE)
                 .requestMatchers(HttpMethod.GET,  "/api/ordenes/mis-ordenes").hasRole(ROL_CLIENTE)

@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
                 // /error permite que Spring reenvíe excepciones correctamente (sin esto devuelve 403 sobre el error real)
                 .requestMatchers("/error").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 // Historial de stock: información sensible de auditoría — solo admin/bodeguero
                 .requestMatchers(HttpMethod.GET, "/api/productos/*/historial-stock").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
                 .requestMatchers(HttpMethod.GET, "/api/historial-stock/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)

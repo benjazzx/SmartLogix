@@ -72,6 +72,7 @@ public class SecurityConfig {
                 // Endpoints públicos
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 // Geo: regiones y comunas accesibles a cualquier autenticado
                 .requestMatchers(HttpMethod.GET,    "/api/regiones/**").authenticated()
                 .requestMatchers(HttpMethod.GET,    "/api/comunas/**").authenticated()

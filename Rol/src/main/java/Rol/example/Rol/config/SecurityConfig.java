@@ -28,6 +28,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 // Lecturas: accesibles dentro de la red Docker (Gateway protege el acceso externo)
                 .requestMatchers(HttpMethod.GET, "/api/roles/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tipos/**").permitAll()

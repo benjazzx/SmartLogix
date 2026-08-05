@@ -48,6 +48,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Documentación pública
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 // Lectura interna: consultada por otros microservicios (ej. Producto) sin JWT de usuario
                 .requestMatchers(HttpMethod.GET, "/api/inventario/estantes/**").permitAll()
                 // Lectura: admin, bodeguero y transportista
