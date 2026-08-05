@@ -4,6 +4,7 @@ import Inventario.example.Inventario.client.ProductoClient;
 import Inventario.example.Inventario.dto.OrdenCreadaEvent;
 import Inventario.example.Inventario.dto.ProductoUbicacionChangedEvent;
 import Inventario.example.Inventario.model.EstanteModel;
+import Inventario.example.Inventario.model.EstPasiModel;
 import Inventario.example.Inventario.repository.EstPasiRepository;
 import Inventario.example.Inventario.repository.EstanteRepository;
 import Inventario.example.Inventario.service.AlertaBodegaService;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -104,6 +106,13 @@ public class InventarioEventConsumer {
         double pct = cap > 0 ? Math.round((double) nuevoStock / cap * 1000.0) / 10.0 : 0.0;
         log.info("[Inventario] Stock actualizado — estante={} delta={} stock={} ocupacion={}%",
                 estante.getCodigo(), event.getDelta(), nuevoStock, pct);
+
+        // Persiste la ocupación calculada en el/los EstPasi del estante (el frontend lee este campo).
+        List<EstPasiModel> vinculos = estPasiRepository.findByEstante_IdEstante(event.getIdEstante());
+        for (EstPasiModel vinculo : vinculos) {
+            vinculo.setOcupacionPct(pct);
+        }
+        estPasiRepository.saveAll(vinculos);
 
         if (pct >= umbralAlerta) {
             Long idBodega = estPasiRepository.findBodegaIdByEstanteId(event.getIdEstante()).orElse(null);
