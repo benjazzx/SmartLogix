@@ -90,6 +90,8 @@ public class RecuperacionService {
             throw new IllegalStateException("La solicitud ha expirado");
         }
 
+        UserService.validarContraseña(nuevaClave);
+
         UserModel user = userRepository.findByCorreo(solicitud.getCorreo())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         user.setClave(passwordEncoder.encode(nuevaClave));

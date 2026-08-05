@@ -7,16 +7,19 @@ import User.example.Users.model.RegionModel;
 import User.example.Users.model.UserModel;
 import User.example.Users.repository.*;
 import User.example.Users.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -31,6 +34,14 @@ class DataInitializerTest {
 
     @InjectMocks
     private DataInitializer dataInitializer;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(dataInitializer, "seedAdminPassword", "Test-Admin1!");
+        ReflectionTestUtils.setField(dataInitializer, "seedBodegueroPassword", "Test-Bodega1!");
+        ReflectionTestUtils.setField(dataInitializer, "seedTransportistaPassword", "Test-Trans1!");
+        ReflectionTestUtils.setField(dataInitializer, "seedClientePassword", "Test-Cliente1!");
+    }
 
     @Test
     void run_yaSembrado_noInsertaNada() throws Exception {
@@ -114,5 +125,24 @@ class DataInitializerTest {
         dataInitializer.run();
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void run_sinPasswordsSemilla_lanzaExcepcion() {
+        when(regionRepository.count()).thenReturn(0L);
+        when(comunaRepository.count()).thenReturn(0L);
+        when(direccionRepository.count()).thenReturn(0L);
+        when(userRepository.count()).thenReturn(0L);
+        when(userRepository.findByCorreo(anyString())).thenReturn(Optional.empty());
+
+        RegionModel rm = mock(RegionModel.class);
+        when(regionRepository.findByNombre(anyString())).thenReturn(Optional.of(rm));
+        ComunaModel cm = mock(ComunaModel.class);
+        when(comunaRepository.findByNombre(anyString())).thenReturn(Optional.of(cm));
+
+        ReflectionTestUtils.setField(dataInitializer, "seedAdminPassword", "");
+
+        assertThrows(IllegalStateException.class, () -> dataInitializer.run());
+        verify(userService, never()).createUser(any());
     }
 }

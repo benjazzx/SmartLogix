@@ -3,6 +3,14 @@
 .env.txt
 *.env
 
+# Secrets reales de k8s — solo se versiona secrets.example.yaml (placeholders)
+k8s/secrets.yaml
+k8s/*.secrets.yaml
+k8s/secrets.local.yaml
+
+# Datos de siembra con hashes de contraseñas reales — nunca versionar
+seed.sql
+
 # Claude Code (interno)
 .claude/
 

@@ -121,8 +121,8 @@ public class AuthController {
     public ResponseEntity<?> cambiarClave(@RequestBody java.util.Map<String, String> body) {
         String solicitudIdStr = body.get("solicitudId");
         String nuevaClave     = body.get("nuevaClave");
-        if (solicitudIdStr == null || nuevaClave == null || nuevaClave.length() < 6) {
-            return ResponseEntity.badRequest().body("solicitudId y nuevaClave (mín. 6 caracteres) son obligatorios");
+        if (solicitudIdStr == null || nuevaClave == null) {
+            return ResponseEntity.badRequest().body("solicitudId y nuevaClave son obligatorios");
         }
         try {
             recuperacionService.cambiarClave(UUID.fromString(solicitudIdStr), nuevaClave);

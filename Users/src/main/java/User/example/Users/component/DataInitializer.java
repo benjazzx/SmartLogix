@@ -6,6 +6,7 @@ import User.example.Users.repository.*;
 import User.example.Users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,13 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private DireccionRepository direccionRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private UserService userService;
+
+    // Contraseñas de las cuentas semilla (solo perfil "dev") — deben venir de variables
+    // de entorno propias de cada ambiente, nunca quedar hardcodeadas en el código fuente.
+    @Value("${SEED_ADMIN_PASSWORD:}")         private String seedAdminPassword;
+    @Value("${SEED_BODEGUERO_PASSWORD:}")     private String seedBodegueroPassword;
+    @Value("${SEED_TRANSPORTISTA_PASSWORD:}") private String seedTransportistaPassword;
+    @Value("${SEED_CLIENTE_PASSWORD:}")       private String seedClientePassword;
 
     @Override
     public void run(String... args) throws Exception {
@@ -84,35 +92,47 @@ public class DataInitializer implements CommandLineRunner {
         corregirRolExistente("transportista@smartlogix.cl", "transportista");
         if (userRepository.count() > 0) return;
 
+        if (isBlank(seedAdminPassword) || isBlank(seedBodegueroPassword)
+                || isBlank(seedTransportistaPassword) || isBlank(seedClientePassword)) {
+            throw new IllegalStateException(
+                "Faltan variables de entorno SEED_ADMIN_PASSWORD / SEED_BODEGUERO_PASSWORD / "
+                + "SEED_TRANSPORTISTA_PASSWORD / SEED_CLIENTE_PASSWORD. No se hardcodean "
+                + "contraseñas de las cuentas semilla en el código — defínelas en tu .env local.");
+        }
+
         List<DireccionModel> dirs = direccionRepository.findAll();
 
         UserRequestDto admin = new UserRequestDto();
         admin.setNombre("Admin"); admin.setApellido("Sistema");
         admin.setRut("00000000-0"); admin.setCorreo("admin@smartlogix.cl");
-        admin.setClave("admin123"); admin.setCargo("Administrador");
+        admin.setClave(seedAdminPassword); admin.setCargo("Administrador");
         admin.setRolNombre("admin"); admin.setDireccionId(dirs.get(0).getId());
 
         UserRequestDto bodeguero = new UserRequestDto();
         bodeguero.setNombre("Juan"); bodeguero.setApellido("Pérez");
         bodeguero.setRut("11111111-1"); bodeguero.setCorreo("bodeguero@smartlogix.cl");
-        bodeguero.setClave("bodega123"); bodeguero.setCargo("Bodeguero");
+        bodeguero.setClave(seedBodegueroPassword); bodeguero.setCargo("Bodeguero");
         bodeguero.setRolNombre("bodeguero"); bodeguero.setDireccionId(dirs.get(0).getId());
 
         UserRequestDto transportista = new UserRequestDto();
         transportista.setNombre("Carlos"); transportista.setApellido("González");
         transportista.setRut("22222222-2"); transportista.setCorreo("transportista@smartlogix.cl");
-        transportista.setClave("trans123"); transportista.setCargo("Transportista");
+        transportista.setClave(seedTransportistaPassword); transportista.setCargo("Transportista");
         transportista.setRolNombre("transportista"); transportista.setDireccionId(dirs.get(1).getId());
 
         UserRequestDto cliente = new UserRequestDto();
         cliente.setNombre("María"); cliente.setApellido("López");
         cliente.setRut("33333333-3"); cliente.setCorreo("cliente@smartlogix.cl");
-        cliente.setClave("cliente123"); cliente.setRolNombre("cliente");
+        cliente.setClave(seedClientePassword); cliente.setRolNombre("cliente");
         cliente.setDireccionId(dirs.get(2).getId());
 
         for (UserRequestDto dto : List.of(admin, bodeguero, transportista, cliente)) {
             userService.createUser(dto);
         }
         log.info("[DataInitializer] Usuarios insertados y eventos user-created-topic publicados.");
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 }
