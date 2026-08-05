@@ -1,0 +1,85 @@
+# -------------------------------------------------------
+# 1. DENEGAR TODO el tráfico ingress externo por defecto
+#    Todo pod en smartlogix rechaza conexiones externas
+#    a menos que una política específica lo permita.
+# -------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-external-ingress
+  namespace: smartlogix
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+ 
+---
+# -------------------------------------------------------
+# 2. PERMITIR comunicación interna entre todos los pods
+#    del namespace smartlogix (microservicios ↔ postgres,
+#    microservicios ↔ kafka, microservicios ↔ entre sí).
+# -------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: smartlogix
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+ 
+---
+# -------------------------------------------------------
+# 3. PERMITIR NGINX Ingress Controller → gateway
+#    Solo el controlador de ingress puede acceder al
+#    gateway desde fuera del namespace.
+# -------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-gateway
+  namespace: smartlogix
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+ 
+---
+# -------------------------------------------------------
+# 4. PERMITIR NGINX Ingress Controller → frontend
+#    Solo el controlador de ingress puede acceder al
+#    frontend desde fuera del namespace.
+# -------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-frontend
+  namespace: smartlogix
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 4200

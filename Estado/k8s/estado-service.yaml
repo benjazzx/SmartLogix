@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estado-service
+  namespace: smartlogix
+  labels:
+    app: estado-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: estado-service
+  template:
+    metadata:
+      labels:
+        app: estado-service
+    spec:
+      containers:
+        - name: estado-service
+          image: contenedorbenjaxio/smartlogix:estado
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
+              value: kafka:29092
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/Estado
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: db-password
+            - name: USERS_SERVICE_URL
+              value: http://users-service:8082
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: jwt-secret
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx300m"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 320Mi
+            limits:
+              cpu: 500m
+              memory: 480Mi
+          readinessProbe:
+            httpGet:
+              path: /swagger-ui.html
+              port: 8086
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /swagger-ui.html
+              port: 8086
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: estado-service
+  namespace: smartlogix
+spec:
+  type: ClusterIP
+  selector:
+    app: estado-service
+  ports:
+    - port: 8086
+      targetPort: 8086
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: estado-service-hpa
+  namespace: smartlogix
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: estado-service
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

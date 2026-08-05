@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: producto-fotos
+  namespace: smartlogix
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producto-service
+  namespace: smartlogix
+  labels:
+    app: producto-service
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: producto-service
+  template:
+    metadata:
+      labels:
+        app: producto-service
+    spec:
+      containers:
+        - name: producto-service
+          image: contenedorbenjaxio/smartlogix:producto
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
+              value: kafka:29092
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/Producto
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: db-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: jwt-secret
+            - name: INTERNAL_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: internal-service-key
+            - name: FOTO_STORAGE_PATH
+              value: /app/fotos
+            - name: INVENTARIO_SERVICE_URL
+              value: http://inventario-service:8083
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx300m"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 320Mi
+            limits:
+              cpu: 500m
+              memory: 480Mi
+          readinessProbe:
+            httpGet:
+              path: /swagger-ui.html
+              port: 8085
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /swagger-ui.html
+              port: 8085
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: fotos-storage
+              mountPath: /app/fotos
+      volumes:
+        - name: fotos-storage
+          persistentVolumeClaim:
+            claimName: producto-fotos
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: producto-service
+  namespace: smartlogix
+spec:
+  type: ClusterIP
+  selector:
+    app: producto-service
+  ports:
+    - port: 8085
+      targetPort: 8085
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: producto-service-hpa
+  namespace: smartlogix
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: producto-service
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

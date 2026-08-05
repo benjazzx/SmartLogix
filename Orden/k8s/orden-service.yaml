@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orden-service
+  namespace: smartlogix
+  labels:
+    app: orden-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orden-service
+  template:
+    metadata:
+      labels:
+        app: orden-service
+    spec:
+      containers:
+        - name: orden-service
+          image: contenedorbenjaxio/smartlogix:orden
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
+              value: kafka:29092
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/Orden
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: db-password
+            - name: USERS_SERVICE_URL
+              value: http://users-service:8082
+            - name: ESTADO_SERVICE_URL
+              value: http://estado-service:8086
+            - name: PRODUCTO_SERVICE_URL
+              value: http://producto-service:8085
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secrets
+                  key: jwt-secret
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx300m"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 320Mi
+            limits:
+              cpu: 500m
+              memory: 480Mi
+          readinessProbe:
+            httpGet:
+              path: /swagger-ui.html
+              port: 8084
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /swagger-ui.html
+              port: 8084
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orden-service
+  namespace: smartlogix
+spec:
+  type: ClusterIP
+  selector:
+    app: orden-service
+  ports:
+    - port: 8084
+      targetPort: 8084
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orden-service-hpa
+  namespace: smartlogix
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orden-service
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
