@@ -8,7 +8,11 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "usuario")
+@Table(name = "usuario", indexes = {
+    @Index(name = "idx_user_rol_id",    columnList = "rol_id"),
+    @Index(name = "idx_user_estado_id", columnList = "estado_id"),
+    @Index(name = "idx_user_activo",    columnList = "activo")
+})
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Usuario del sistema SmartLogix")

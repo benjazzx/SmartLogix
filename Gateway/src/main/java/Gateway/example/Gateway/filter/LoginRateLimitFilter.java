@@ -21,17 +21,21 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        if ("/auth/login".equals(request.getRequestURI()) && "POST".equalsIgnoreCase(request.getMethod())) {
-            String ip  = resolveClientIp(request);
+        String uri = request.getRequestURI();
+        boolean isAuthEndpoint = uri.startsWith("/auth/") && "POST".equalsIgnoreCase(request.getMethod());
+        if (isAuthEndpoint) {
+            // Cada endpoint tiene su propio cupo — así reintentar el registro (typos, validación)
+            // no consume ni se ve bloqueado por intentos previos de login/recuperación de clave.
+            String key = resolveClientIp(request) + ":" + uri;
             long   now = System.currentTimeMillis();
 
-            attempts.compute(ip, (k, v) -> {
+            attempts.compute(key, (k, v) -> {
                 if (v == null || now - v[0] > WINDOW_MS) return new long[]{now, 1};
                 v[1]++;
                 return v;
             });
 
-            if (attempts.get(ip)[1] > MAX_ATTEMPTS) {
+            if (attempts.get(key)[1] > MAX_ATTEMPTS) {
                 response.setStatus(429);
                 response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write("{\"error\":\"Demasiados intentos. Espera 1 minuto.\"}");

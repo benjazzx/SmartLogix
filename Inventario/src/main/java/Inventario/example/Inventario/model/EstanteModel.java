@@ -41,6 +41,15 @@ public class EstanteModel {
     @Column(name = "capacidad_por_nivel")
     private Double capacidadPorNivel;
 
+    // Capacidad total directa — si se ingresa manualmente prevalece sobre numNiveles * capacidadPorNivel
+    @Column(name = "capacidad_total")
+    private Integer capacidadTotal;
+
+    // Stock actual en este estante — actualizado vía Kafka cuando cambia la ubicación de un producto
+    @Column(name = "stock_actual")
+    @Builder.Default
+    private Integer stockActual = 0;
+
     @Column(name = "activo", nullable = false)
     @Builder.Default
     private Boolean activo = true;

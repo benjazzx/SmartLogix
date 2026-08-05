@@ -7,11 +7,13 @@ import User.example.Users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Slf4j
+@Profile("dev")
 @Component
 public class DataInitializer implements CommandLineRunner {
 

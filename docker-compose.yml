@@ -3,17 +3,16 @@ name: SmartLogix
 services:
 
   # ─── INFRAESTRUCTURA ────────────────────────────────────────────────────────
-  # PostgreSQL: base de datos compartida por todos los microservicios.
-  # Las 7 bases de datos se crean automáticamente con el script init.sql.
+  # PostgreSQL con todas las bases de datos del sistema pre-creadas.
   postgres:
     image: contenedorbenjaxio/smartlogix:postgres
     container_name: postgres
+    restart: unless-stopped
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      POSTGRES_USER: postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +23,7 @@ services:
 
   # Kafka en modo KRaft (sin ZooKeeper). Broker compartido por todos los servicios.
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: confluentinc/cp-kafka:7.7.1
     container_name: kafka
     ports:
       - "9092:9092"
@@ -40,25 +39,26 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qg
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
       interval: 10s
       timeout: 10s
       retries: 10
 
-  # Kafdrop: interfaz web para explorar topics y mensajes de Kafka.
-  # Disponible en http://localhost:9002
+  # Kafdrop: UI web para monitorear topics y mensajes de Kafka.
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
     container_name: kafdrop
-    restart: on-failure
+    restart: unless-stopped
     ports:
       - "9002:9000"
     environment:
       KAFKA_BROKERCONNECT: kafka:29092
-      JVM_OPTS: "-Xms32M -Xmx64M"
+      JVM_OPTS: -Xms32M -Xmx64M
     depends_on:
       kafka:
         condition: service_healthy
@@ -67,7 +67,9 @@ services:
   # Users: autenticación JWT, registro y gestión de usuarios.
   # Produce: user-created-topic | Consume: role-assigned-topic, estado-assigned-topic
   users-service:
-    image: contenedorbenjaxio/smartlogix:users
+    build:
+      context: ./Users
+      dockerfile: Dockerfile
     container_name: users-service
     restart: on-failure
     ports:
@@ -75,15 +77,20 @@ services:
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Users
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       ROL_SERVICE_URL: http://rol-service:8081
       ESTADO_SERVICE_URL: http://estado-service:8086
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_BODEGUERO_PASSWORD: ${SEED_BODEGUERO_PASSWORD}
+      SEED_TRANSPORTISTA_PASSWORD: ${SEED_TRANSPORTISTA_PASSWORD}
+      SEED_CLIENTE_PASSWORD: ${SEED_CLIENTE_PASSWORD}
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
@@ -95,7 +102,9 @@ services:
   # Rol: asignación automática de roles por dominio de email.
   # Produce: role-assigned-topic | Consume: user-created-topic
   rol-service:
-    image: contenedorbenjaxio/smartlogix:rol
+    build:
+      context: ./Rol
+      dockerfile: Dockerfile
     container_name: rol-service
     restart: on-failure
     ports:
@@ -103,14 +112,14 @@ services:
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Rol
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       users-service:
         condition: service_healthy
@@ -122,9 +131,12 @@ services:
       start_period: 60s
 
   # Estado: asignación de estados según rol del usuario.
+  # Puerto interno 8082, expuesto como 8086 para evitar conflicto con Users.
   # Produce: estado-assigned-topic | Consume: role-assigned-topic
   estado-service:
-    image: contenedorbenjaxio/smartlogix:estado
+    build:
+      context: ./Estado
+      dockerfile: Dockerfile
     container_name: estado-service
     restart: on-failure
     ports:
@@ -132,14 +144,14 @@ services:
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Estado
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8086/swagger-ui.html || exit 1"]
@@ -148,11 +160,13 @@ services:
       retries: 8
       start_period: 60s
 
-  # Inventario: gestión de stock en tiempo real.
-  # Consume: orden-creada-topic, producto-actualizado-topic
+  # Inventario: gestión de stock en tiempo real. Alerta bodega >= 80%.
+  # Consume: orden-creada-topic, producto-actualizado-topic, producto-ubicacion-changed-topic
   # Llama sincrónicamente a Producto (validar existencia) con Circuit Breaker.
   inventario-service:
-    image: contenedorbenjaxio/smartlogix:inventario
+    build:
+      context: ./Inventario
+      dockerfile: Dockerfile
     container_name: inventario-service
     restart: on-failure
     ports:
@@ -160,15 +174,16 @@ services:
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Inventario
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       PRODUCTO_SERVICE_URL: http://producto-service:8085
       USERS_SERVICE_URL: http://users-service:8082
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       producto-service:
         condition: service_healthy
@@ -180,9 +195,12 @@ services:
       start_period: 60s
 
   # Producto: catálogo de productos del eCommerce.
-  # Produce: producto-actualizado-topic
+  # Produce: producto-actualizado-topic, producto-ubicacion-changed-topic
+  # Llama sincrónicamente a Inventario para validar estante activo (fail-closed).
   producto-service:
-    image: contenedorbenjaxio/smartlogix:producto
+    build:
+      context: ./Producto
+      dockerfile: Dockerfile
     container_name: producto-service
     restart: on-failure
     ports:
@@ -190,16 +208,18 @@ services:
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Producto
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
       FOTO_STORAGE_PATH: /app/fotos
+      INVENTARIO_SERVICE_URL: http://inventario-service:8083
     volumes:
       - fotos-data:/app/fotos
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/swagger-ui.html || exit 1"]
@@ -212,7 +232,9 @@ services:
   # Produce: orden-creada-topic, estado-orden-topic
   # Llama sincrónicamente a Users, Estado y Producto con Circuit Breaker.
   orden-service:
-    image: contenedorbenjaxio/smartlogix:orden
+    build:
+      context: ./Orden
+      dockerfile: Dockerfile
     container_name: orden-service
     restart: on-failure
     ports:
@@ -220,16 +242,16 @@ services:
     environment:
       SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:29092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Orden
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
       USERS_SERVICE_URL: http://users-service:8082
       ESTADO_SERVICE_URL: http://estado-service:8086
       PRODUCTO_SERVICE_URL: http://producto-service:8085
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       users-service:
         condition: service_healthy
@@ -247,16 +269,18 @@ services:
   # Configuracion: preferencias de usuario (tema, idioma, etc.) por userId.
   # Almacena pares clave-valor en PostgreSQL; el Gateway inyecta X-User-Id.
   configuracion-service:
-    image: contenedorbenjaxio/smartlogix:configuracion
+    build:
+      context: ./Configuracion
+      dockerfile: Dockerfile
     container_name: configuracion-service
     restart: on-failure
     ports:
       - "8087:8087"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Configuracion
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -272,13 +296,15 @@ services:
   # Valida JWT globalmente (excepto /auth/login y /auth/register).
   # Circuit Breaker por ruta — fallback en /fallback/{servicio}.
   gateway-service:
-    image: contenedorbenjaxio/smartlogix:gateway
+    build:
+      context: ./Gateway
+      dockerfile: Dockerfile
     container_name: gateway-service
     restart: on-failure
     ports:
       - "80:8080"
     environment:
-      JWT_SECRET: ${JWT_SECRET:-SmartLogixSuperSecretKeyForJWT2024MustBeAtLeast32Characters}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       rol-service:
         condition: service_healthy
@@ -304,3 +330,4 @@ services:
 volumes:
   fotos-data:
   postgres-data:
+  kafka-data:

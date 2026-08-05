@@ -86,14 +86,14 @@ public class OrdenService {
 
     @Transactional(readOnly = true)
     public List<OrdenResponseDto> getMisOrdenes(UUID userId) {
-        return ordenRepository.findByUserId(userId).stream()
+        return ordenRepository.findByUserIdWithDetails(userId).stream()
                 .map(OrdenResponseDto::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<OrdenResponseDto> getAll(String rolNombre, UUID requestingUserId) {
-        return ordenRepository.findAll().stream()
+        return ordenRepository.findAllWithDetails().stream()
                 .map(o -> OrdenResponseDto.from(o, rolNombre, requestingUserId))
                 .toList();
     }

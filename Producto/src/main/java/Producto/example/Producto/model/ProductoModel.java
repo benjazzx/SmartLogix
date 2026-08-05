@@ -11,7 +11,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "producto")
+@Table(name = "producto", indexes = {
+    @Index(name = "idx_producto_activo",    columnList = "activo"),
+    @Index(name = "idx_producto_categoria", columnList = "categoria_id"),
+    @Index(name = "idx_producto_pais",      columnList = "pais"),
+    @Index(name = "idx_producto_stock",     columnList = "stock")
+})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -56,6 +61,18 @@ public class ProductoModel {
 
     @Column(name = "id_estante")
     private Long idEstante;
+
+    @Column(name = "creado_por_id")
+    private UUID creadoPorId;
+
+    @Column(name = "creado_por_nombre", length = 200)
+    private String creadoPorNombre;
+
+    @Column(name = "modificado_por_id")
+    private UUID modificadoPorId;
+
+    @Column(name = "modificado_por_nombre", length = 200)
+    private String modificadoPorNombre;
 
     @Column(length = 100)
     @Builder.Default

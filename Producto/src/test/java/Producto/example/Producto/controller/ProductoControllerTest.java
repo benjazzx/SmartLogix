@@ -3,6 +3,7 @@ package Producto.example.Producto.controller;
 import Producto.example.Producto.dto.ProductoRequestDTO;
 import Producto.example.Producto.dto.ProductoResponseDTO;
 import Producto.example.Producto.service.ProductoService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -17,6 +18,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings("java:S100")
@@ -27,6 +30,9 @@ class ProductoControllerTest {
 
     @Mock
     private ProductoService productoService;
+
+    @Mock
+    private HttpServletRequest request;
 
     private UUID productoId;
     private ProductoResponseDTO sampleDto;
@@ -113,9 +119,9 @@ class ProductoControllerTest {
 
     @Test
     void crear_datosValidos_retornaCreated() {
-        when(productoService.crear(sampleRequest)).thenReturn(sampleDto);
+        when(productoService.crear(any(), any(), any())).thenReturn(sampleDto);
 
-        ResponseEntity<ProductoResponseDTO> resp = controller.crear(sampleRequest);
+        ResponseEntity<ProductoResponseDTO> resp = controller.crear(sampleRequest, request);
 
         assertEquals(HttpStatus.CREATED, resp.getStatusCode());
         assertNotNull(resp.getBody());
@@ -123,9 +129,9 @@ class ProductoControllerTest {
 
     @Test
     void actualizar_datosValidos_retornaOk() {
-        when(productoService.actualizar(productoId, sampleRequest)).thenReturn(sampleDto);
+        when(productoService.actualizar(eq(productoId), any(), any(), any())).thenReturn(sampleDto);
 
-        ResponseEntity<ProductoResponseDTO> resp = controller.actualizar(productoId, sampleRequest);
+        ResponseEntity<ProductoResponseDTO> resp = controller.actualizar(productoId, sampleRequest, request);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertEquals(productoId, resp.getBody().getId());
@@ -161,16 +167,16 @@ class ProductoControllerTest {
 
     @Test
     void decrementarStock_cantidadValida_retornaOk() {
-        when(productoService.decrementarStock(productoId, 3)).thenReturn(sampleDto);
+        when(productoService.decrementarStock(eq(productoId), eq(3), any(), any(), any())).thenReturn(sampleDto);
 
-        ResponseEntity<ProductoResponseDTO> resp = controller.decrementarStock(productoId, 3);
+        ResponseEntity<ProductoResponseDTO> resp = controller.decrementarStock(productoId, 3, null, null, null);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
     }
 
     @Test
     void decrementarStock_cantidadCero_retorna400() {
-        ResponseEntity<ProductoResponseDTO> resp = controller.decrementarStock(productoId, 0);
+        ResponseEntity<ProductoResponseDTO> resp = controller.decrementarStock(productoId, 0, null, null, null);
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
     }
@@ -188,11 +194,11 @@ class ProductoControllerTest {
 
     @Test
     void desactivar_productoExistente_retornaNoContent() {
-        doNothing().when(productoService).desactivar(productoId);
+        doNothing().when(productoService).desactivar(eq(productoId), any(), any());
 
-        ResponseEntity<Void> resp = controller.desactivar(productoId);
+        ResponseEntity<Void> resp = controller.desactivar(productoId, request);
 
         assertEquals(HttpStatus.NO_CONTENT, resp.getStatusCode());
-        verify(productoService).desactivar(productoId);
+        verify(productoService).desactivar(eq(productoId), any(), any());
     }
 }

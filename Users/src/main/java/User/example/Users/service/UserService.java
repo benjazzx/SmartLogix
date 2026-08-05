@@ -198,6 +198,7 @@ public class UserService {
         }
         user.setRolId(rolId);
         user.setRolNombre(rol.getNombre());
+        user.setCargo(cargoParaRol(rol.getNombre()));
         return userRepository.save(user);
     }
 
@@ -207,9 +208,23 @@ public class UserService {
         userRepository.findByCorreo(correo).ifPresent(user -> {
             user.setRolId(rolId);
             user.setRolNombre(rolNombre);
+            user.setCargo(cargoParaRol(rolNombre));
             userRepository.save(user);
             System.out.println("[Users] Rol actualizado para " + correo + " → " + rolNombre);
         });
+    }
+
+    // El "cargo" mostrado en el listado de usuarios debe reflejar el rol vigente,
+    // no el rol que tenía la persona al momento de registrarse (ver ClienteFactory).
+    private String cargoParaRol(String rolNombre) {
+        if (rolNombre == null) return null;
+        return switch (rolNombre.toLowerCase()) {
+            case "admin" -> "Administrador";
+            case "bodeguero" -> "Bodeguero";
+            case "transportista" -> "Transportista";
+            case "cliente" -> "Cliente";
+            default -> rolNombre.substring(0, 1).toUpperCase() + rolNombre.substring(1);
+        };
     }
 
     // Llamado desde el consumer de Kafka cuando Estado publica un evento de asignación

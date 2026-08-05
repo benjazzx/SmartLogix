@@ -2,8 +2,6 @@ package Producto.example.Producto.repository;
 
 import Producto.example.Producto.model.ProductoModel;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,7 +15,9 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, UUID> {
     List<ProductoModel> findByNombreContainingIgnoreCase(String nombre);
     List<ProductoModel> findByStockLessThanEqual(Integer umbral);
     List<ProductoModel> findByPaisIgnoreCase(String pais);
-
-    @Query("SELECT COALESCE(SUM(p.stock), 0) FROM ProductoModel p WHERE p.idEstante = :idEstante AND p.activo = true")
-    Integer sumStockByIdEstante(@Param("idEstante") Long idEstante);
+    List<ProductoModel> findByCreadoPorId(UUID userId);
+    List<ProductoModel> findByModificadoPorId(UUID userId);
+    List<ProductoModel> findByIdBodega(Long idBodega);
+    List<ProductoModel> findByIdBodegaAndIdPasillo(Long idBodega, Long idPasillo);
+    List<ProductoModel> findByIdBodegaAndIdPasilloAndIdEstante(Long idBodega, Long idPasillo, Long idEstante);
 }

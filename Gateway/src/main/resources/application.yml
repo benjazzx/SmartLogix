@@ -164,6 +164,16 @@ spring:
                     id: productoCircuitBreaker
                     fallbackUri: forward:/fallback/producto
 
+            - id: historial-stock-service
+              uri: http://producto-service:8085
+              predicates:
+                - Path=/api/historial-stock,/api/historial-stock/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: productoCircuitBreaker
+                    fallbackUri: forward:/fallback/producto
+
             # ── Configuracion ────────────────────────────────────────────────────
             - id: configuracion-service
               uri: http://configuracion-service:8087

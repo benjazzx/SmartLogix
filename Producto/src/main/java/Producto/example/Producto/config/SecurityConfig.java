@@ -1,5 +1,6 @@
 package Producto.example.Producto.config;
 
+import Producto.example.Producto.security.InternalKeyFilter;
 import Producto.example.Producto.security.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -25,12 +26,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String ROLE_ADMIN     = "admin";
+    private static final String ROLE_BODEGUERO = "bodeguero";
+
     private final JwtFilter jwtFilter;
+    private final InternalKeyFilter internalKeyFilter;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -50,21 +55,26 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
                 // /error permite que Spring reenvíe excepciones correctamente (sin esto devuelve 403 sobre el error real)
                 .requestMatchers("/error").permitAll()
+                // Historial de stock: información sensible de auditoría — solo admin/bodeguero
+                .requestMatchers(HttpMethod.GET, "/api/productos/*/historial-stock").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.GET, "/api/historial-stock/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
                 // GET del catálogo: público dentro de la red Docker (el Gateway protege el acceso externo)
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categorias/**").permitAll()
-                // Descuento de stock: llamado internamente por Inventario sin JWT
+                // Descuento de stock: llamado internamente por Inventario (sin JWT de usuario).
+                // La autorización real la hace InternalKeyFilter (clave compartida X-Internal-Key).
                 .requestMatchers(HttpMethod.PATCH, "/api/productos/*/decrementar-stock").permitAll()
                 // Escritura: solo admin y bodeguero (con JWT)
-                .requestMatchers(HttpMethod.POST,   "/api/productos/**").hasAnyRole("admin", "bodeguero")
-                .requestMatchers(HttpMethod.PUT,    "/api/productos/**").hasAnyRole("admin", "bodeguero")
-                .requestMatchers(HttpMethod.PATCH,  "/api/productos/**").hasAnyRole("admin", "bodeguero")
-                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasAnyRole("admin", "bodeguero")
-                .requestMatchers(HttpMethod.POST,   "/api/categorias/**").hasAnyRole("admin", "bodeguero")
-                .requestMatchers(HttpMethod.PUT,    "/api/categorias/**").hasAnyRole("admin", "bodeguero")
-                .requestMatchers(HttpMethod.DELETE, "/api/categorias/**").hasAnyRole("admin")
+                .requestMatchers(HttpMethod.POST,   "/api/productos/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.PUT,    "/api/productos/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.PATCH,  "/api/productos/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.POST,   "/api/categorias/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.PUT,    "/api/categorias/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
+                .requestMatchers(HttpMethod.DELETE, "/api/categorias/**").hasAnyRole(ROLE_ADMIN)
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(internalKeyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -3,6 +3,7 @@ package Inventario.example.Inventario.repository;
 import Inventario.example.Inventario.model.EstPasiModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -41,4 +42,7 @@ public interface EstPasiRepository extends JpaRepository<EstPasiModel, Long> {
 
     @Query("SELECT AVG(ep.ocupacionPct) FROM EstPasiModel ep WHERE ep.pasillo.bodega.idBodega = :idBodega")
     Double calcularOcupacionPromedioPorBodega(Long idBodega);
+
+    @Query("SELECT ep.pasillo.bodega.idBodega FROM EstPasiModel ep WHERE ep.estante.idEstante = :idEstante")
+    Optional<Long> findBodegaIdByEstanteId(@Param("idEstante") Long idEstante);
 }

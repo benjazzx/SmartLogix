@@ -1,6 +1,5 @@
 package Inventario.example.Inventario.service;
 
-import Inventario.example.Inventario.client.ProductoClient;
 import Inventario.example.Inventario.dto.EstanteRequestDTO;
 import Inventario.example.Inventario.dto.EstanteResponseDTO;
 import Inventario.example.Inventario.model.EstanteModel;
@@ -9,6 +8,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,13 +26,10 @@ class EstanteServiceTest {
     @Mock
     private EstanteRepository estanteRepository;
 
-    @Mock
-    private ProductoClient productoClient;
-
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        when(productoClient.getStockPorEstante(any())).thenReturn(0);
+        ReflectionTestUtils.setField(estanteService, "capacidadDefault", 1000);
     }
 
     private EstanteModel estanteSample() {
@@ -42,6 +39,7 @@ class EstanteServiceTest {
                 .descripcion("Estante principal")
                 .numNiveles(5)
                 .capacidadPorNivel(100.0)
+                .capacidadTotal(500)
                 .activo(true)
                 .pasillos(new ArrayList<>())
                 .build();
@@ -94,7 +92,7 @@ class EstanteServiceTest {
 
         assertEquals(1L, result.getIdEstante());
         assertEquals("EST-001", result.getCodigo());
-        assertEquals(500.0, result.getCapacidadTotal());
+        assertEquals(500, result.getCapacidadTotal());
     }
 
     @Test

@@ -46,8 +46,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (JwtException ignored) {
-                // Spring Security rechazará la petición si no hay autenticación
+            } catch (JwtException e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"Token inválido o expirado\"}");
+                return;
             }
         }
         filterChain.doFilter(request, response);

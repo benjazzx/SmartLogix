@@ -6,6 +6,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -41,6 +42,7 @@ class ProductoClientTest {
         ReflectionTestUtils.setField(productoClient, "restTemplate", restTemplate);
         ReflectionTestUtils.setField(productoClient, "circuitBreakerFactory", circuitBreakerFactory);
         ReflectionTestUtils.setField(productoClient, "productoUrl", "http://producto-service:8085");
+        ReflectionTestUtils.setField(productoClient, "internalServiceKey", "test-internal-key");
         when(circuitBreakerFactory.create(anyString())).thenReturn(circuitBreaker);
     }
 
@@ -82,10 +84,10 @@ class ProductoClientTest {
         UUID productoId = UUID.randomUUID();
         when(circuitBreaker.run(any(Supplier.class), any(Function.class)))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.PATCH), isNull(), eq(Map.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Map.class)))
                 .thenReturn(ResponseEntity.ok(null));
 
-        assertTrue(productoClient.decrementarStock(productoId, 5));
+        assertTrue(productoClient.decrementarStock(productoId, 5, 1L, UUID.randomUUID(), "Cliente Test"));
     }
 
     @Test
@@ -96,6 +98,6 @@ class ProductoClientTest {
                     return fallback.apply(new RuntimeException("service down"));
                 });
 
-        assertFalse(productoClient.decrementarStock(UUID.randomUUID(), 3));
+        assertFalse(productoClient.decrementarStock(UUID.randomUUID(), 3, null, null, null));
     }
 }

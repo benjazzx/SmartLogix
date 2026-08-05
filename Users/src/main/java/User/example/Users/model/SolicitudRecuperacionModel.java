@@ -2,45 +2,44 @@ package User.example.Users.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
 @Entity
 @Table(name = "solicitud_recuperacion")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class SolicitudRecuperacionModel {
 
+    public enum ResultadoVerificacion { PENDIENTE, EXITOSO, BLOQUEADO, UTILIZADA }
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
-
-    @Column(name = "correo", nullable = false, length = 150)
+    @Column(nullable = false, length = 150)
     private String correo;
 
-    @Column(name = "nombre_usuario", length = 200)
-    private String nombreUsuario;
+    @Column(nullable = false)
+    private LocalDateTime fecha;
 
-    // PENDIENTE | APROBADA | RECHAZADA
-    @Column(name = "estado", nullable = false, length = 20)
-    private String estado = "PENDIENTE";
+    @Column(name = "intentos_fallidos", nullable = false)
+    @Builder.Default
+    private Integer intentosFallidos = 0;
 
-    @Column(name = "clave_temporal", length = 255)
-    private String claveTemporal;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean bloqueado = false;
 
-    @Column(name = "fecha_solicitud", updatable = false)
-    private LocalDateTime fechaSolicitud;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resultado_verificacion", nullable = false, length = 20)
+    @Builder.Default
+    private ResultadoVerificacion resultadoVerificacion = ResultadoVerificacion.PENDIENTE;
 
-    @Column(name = "fecha_resolucion")
-    private LocalDateTime fechaResolucion;
-
-    @PrePersist
-    protected void onCreate() {
-        fechaSolicitud = LocalDateTime.now();
-        estado = "PENDIENTE";
-    }
+    @Column(name = "fecha_expiracion", nullable = false)
+    private LocalDateTime fechaExpiracion;
 }

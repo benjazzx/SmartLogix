@@ -1,5 +1,6 @@
 package Producto.example.Producto.service;
 
+import Producto.example.Producto.client.InventarioClient;
 import Producto.example.Producto.dto.ProductoActualizadoEvent;
 import Producto.example.Producto.dto.ProductoRequestDTO;
 import Producto.example.Producto.dto.ProductoResponseDTO;
@@ -7,6 +8,7 @@ import Producto.example.Producto.messaging.ProductoEventProducer;
 import Producto.example.Producto.model.CategoriaModel;
 import Producto.example.Producto.model.ProductoModel;
 import Producto.example.Producto.repository.CategoriaRepository;
+import Producto.example.Producto.repository.HistorialStockRepository;
 import Producto.example.Producto.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,8 @@ class ProductoServiceTest {
     @Mock private ProductoRepository productoRepository;
     @Mock private CategoriaRepository categoriaRepository;
     @Mock private ProductoEventProducer eventProducer;
+    @Mock private HistorialStockRepository historialStockRepository;
+    @Mock private InventarioClient inventarioClient;
 
     @BeforeEach
     void setUp() {
@@ -153,7 +157,7 @@ class ProductoServiceTest {
         when(productoRepository.save(any())).thenReturn(saved);
         doNothing().when(eventProducer).publishProductoActualizado(any(), any());
 
-        ProductoResponseDTO result = productoService.crear(dto);
+        ProductoResponseDTO result = productoService.crear(dto, null, null);
 
         assertNotNull(result);
         verify(productoRepository, times(1)).save(any());
@@ -171,7 +175,7 @@ class ProductoServiceTest {
 
         when(categoriaRepository.findById(catId)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> productoService.crear(dto));
+        assertThrows(RuntimeException.class, () -> productoService.crear(dto, null, null));
         verify(productoRepository, never()).save(any());
     }
 
@@ -193,7 +197,7 @@ class ProductoServiceTest {
         when(productoRepository.save(any())).thenReturn(existente);
         doNothing().when(eventProducer).publishProductoActualizado(any(), any());
 
-        ProductoResponseDTO result = productoService.actualizar(id, dto);
+        ProductoResponseDTO result = productoService.actualizar(id, dto, null, null);
 
         assertNotNull(result);
         verify(eventProducer).publishProductoActualizado(any(), eq(ProductoActualizadoEvent.TipoEvento.ACTUALIZADO));
@@ -217,7 +221,7 @@ class ProductoServiceTest {
         when(productoRepository.save(any())).thenReturn(existente);
         doNothing().when(eventProducer).publishProductoActualizado(any(), any());
 
-        productoService.actualizar(id, dto);
+        productoService.actualizar(id, dto, null, null);
 
         verify(eventProducer).publishProductoActualizado(any(), eq(ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO));
     }
@@ -229,7 +233,7 @@ class ProductoServiceTest {
         dto.setCategoriaId(UUID.randomUUID());
         when(productoRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> productoService.actualizar(id, dto));
+        assertThrows(RuntimeException.class, () -> productoService.actualizar(id, dto, null, null));
     }
 
     @Test
@@ -296,7 +300,7 @@ class ProductoServiceTest {
         when(productoRepository.save(any())).thenReturn(producto);
         doNothing().when(eventProducer).publishProductoActualizado(any(), any());
 
-        productoService.desactivar(id);
+        productoService.desactivar(id, null, null);
 
         assertFalse(producto.getActivo());
         assertEquals("descontinuado", producto.getEstadoNombre());
@@ -308,6 +312,6 @@ class ProductoServiceTest {
         UUID id = UUID.randomUUID();
         when(productoRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> productoService.desactivar(id));
+        assertThrows(RuntimeException.class, () -> productoService.desactivar(id, null, null));
     }
 }

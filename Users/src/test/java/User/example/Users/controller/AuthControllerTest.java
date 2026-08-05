@@ -4,9 +4,9 @@ import User.example.Users.client.RolClient;
 import User.example.Users.dto.LoginRequestDto;
 import User.example.Users.dto.RolDto;
 import User.example.Users.model.UserModel;
-import User.example.Users.repository.PreguntaSeguridadRepository;
 import User.example.Users.repository.UserRepository;
 import User.example.Users.security.JwtUtil;
+import User.example.Users.service.RecuperacionService;
 import User.example.Users.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,15 +21,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import User.example.Users.model.PreguntaSeguridadModel;
-
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,8 +38,7 @@ class AuthControllerTest {
     @Mock private UserRepository userRepository;
     @Mock private UserService userService;
     @Mock private RolClient rolClient;
-    @Mock private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-    @Mock private PreguntaSeguridadRepository preguntaRepo;
+    @Mock private RecuperacionService recuperacionService;
 
     @InjectMocks private AuthController authController;
 
@@ -62,7 +59,6 @@ class AuthControllerTest {
         user.setActivo(true);
 
         when(userRepository.findByCorreo("user@test.cl")).thenReturn(Optional.of(user));
-        when(preguntaRepo.findByUserId(user.getId())).thenReturn(java.util.List.of());
         when(jwtUtil.generateToken(user)).thenReturn("fake-jwt-token");
 
         LoginRequestDto req = new LoginRequestDto();
@@ -162,74 +158,96 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    // ── Recuperación de contraseña ────────────────────────────────────────────
+
     @Test
-    void verificarPregunta_tokenInvalido_retorna401() throws Exception {
-        when(jwtUtil.isChallengeToken("bad-token")).thenReturn(false);
+    void solicitarRecuperacion_correoValido_retornaSolicitudId() throws Exception {
+        UUID solicitudId = UUID.randomUUID();
+        when(recuperacionService.solicitarRecuperacion("user@test.cl")).thenReturn(solicitudId);
 
-        String body = mapper.writeValueAsString(Map.of(
-            "challengeToken", "bad-token",
-            "respuesta", "cualquiera"
-        ));
-
-        mockMvc.perform(post("/auth/verificar-pregunta")
+        mockMvc.perform(post("/auth/solicitar-recuperacion")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
-                .andExpect(status().isUnauthorized());
+                .content("{\"correo\":\"user@test.cl\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.solicitudId").value(solicitudId.toString()));
     }
 
     @Test
-    void verificarPregunta_respuestaCorrecta_retornaToken() throws Exception {
-        UUID userId = UUID.randomUUID();
-        UserModel user = new UserModel();
-        user.setId(userId);
-        user.setCorreo("user@test.cl");
-        user.setRolNombre("cliente");
+    void solicitarRecuperacion_sinCorreo_retorna400() throws Exception {
+        mockMvc.perform(post("/auth/solicitar-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
 
-        PreguntaSeguridadModel pregunta = new PreguntaSeguridadModel();
-        pregunta.setId(1L);
-        pregunta.setRespuesta("hashed-gato");
+    @Test
+    void verificarRecuperacion_datosValidos_retornaOk() throws Exception {
+        UUID solicitudId = UUID.randomUUID();
+        doNothing().when(recuperacionService).verificarRecuperacion(eq(solicitudId), anyString(), anyString(), anyString());
 
-        when(jwtUtil.isChallengeToken("challenge-tok")).thenReturn(true);
-        when(jwtUtil.extractPreguntaId("challenge-tok")).thenReturn(1L);
-        when(jwtUtil.extractUserIdClaim("challenge-tok")).thenReturn(userId.toString());
-        when(preguntaRepo.findById(1L)).thenReturn(Optional.of(pregunta));
-        when(passwordEncoder.matches("gato", "hashed-gato")).thenReturn(true);
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(jwtUtil.generateToken(user)).thenReturn("jwt-final");
+        String body = "{\"solicitudId\":\"" + solicitudId + "\",\"correo\":\"user@test.cl\",\"rut\":\"12345678-9\"}";
 
-        String body = mapper.writeValueAsString(Map.of(
-            "challengeToken", "challenge-tok",
-            "respuesta", "gato"
-        ));
+        mockMvc.perform(post("/auth/verificar-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isOk());
+    }
 
-        mockMvc.perform(post("/auth/verificar-pregunta")
+    @Test
+    void verificarRecuperacion_credencialesInvalidas_retorna403() throws Exception {
+        UUID solicitudId = UUID.randomUUID();
+        doThrow(new IllegalStateException("Credenciales inválidas"))
+                .when(recuperacionService).verificarRecuperacion(any(), anyString(), anyString(), anyString());
+
+        String body = "{\"solicitudId\":\"" + solicitudId + "\",\"correo\":\"user@test.cl\",\"rut\":\"00000000-0\"}";
+
+        mockMvc.perform(post("/auth/verificar-recuperacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void cambiarClave_solicitudVerificada_retornaOk() throws Exception {
+        UUID solicitudId = UUID.randomUUID();
+        doNothing().when(recuperacionService).cambiarClave(eq(solicitudId), anyString());
+
+        String body = "{\"solicitudId\":\"" + solicitudId + "\",\"nuevaClave\":\"nueva123\"}";
+
+        mockMvc.perform(post("/auth/cambiar-clave")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-final"));
+                .andExpect(jsonPath("$.mensaje").exists());
     }
 
     @Test
-    void verificarPregunta_respuestaIncorrecta_retorna401() throws Exception {
-        UUID userId = UUID.randomUUID();
-        PreguntaSeguridadModel pregunta = new PreguntaSeguridadModel();
-        pregunta.setId(2L);
-        pregunta.setRespuesta("hashed-gato");
+    void cambiarClave_claveCorta_retorna400() throws Exception {
+        String body = "{\"solicitudId\":\"" + UUID.randomUUID() + "\",\"nuevaClave\":\"abc\"}";
 
-        when(jwtUtil.isChallengeToken("challenge-tok2")).thenReturn(true);
-        when(jwtUtil.extractPreguntaId("challenge-tok2")).thenReturn(2L);
-        when(jwtUtil.extractUserIdClaim("challenge-tok2")).thenReturn(userId.toString());
-        when(preguntaRepo.findById(2L)).thenReturn(Optional.of(pregunta));
-        when(passwordEncoder.matches("perro", "hashed-gato")).thenReturn(false);
-
-        String body = mapper.writeValueAsString(Map.of(
-            "challengeToken", "challenge-tok2",
-            "respuesta", "perro"
-        ));
-
-        mockMvc.perform(post("/auth/verificar-pregunta")
+        mockMvc.perform(post("/auth/cambiar-clave")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getIntentos_solicitudExistente_retornaListaVacia() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(recuperacionService.getIntentos(id)).thenReturn(List.of());
+
+        mockMvc.perform(get("/auth/solicitudes-recuperacion/" + id + "/intentos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void getIntentos_solicitudInexistente_retorna404() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(recuperacionService.getIntentos(id))
+                .thenThrow(new IllegalArgumentException("Solicitud no encontrada"));
+
+        mockMvc.perform(get("/auth/solicitudes-recuperacion/" + id + "/intentos"))
+                .andExpect(status().isNotFound());
     }
 }

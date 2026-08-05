@@ -8,11 +8,11 @@ RUN mvn dependency:go-offline -B --no-transfer-progress
 COPY src src
 RUN mvn package -DskipTests -B --no-transfer-progress
 
-# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
+# ── Stage 2: Runtime ────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
 
 LABEL org.opencontainers.image.title="SmartLogix Configuracion Service"
-LABEL org.opencontainers.image.description="Microservicio de preferencias de usuario — SmartLogix DSY1106"
+LABEL org.opencontainers.image.description="Microservicio de preferencias de usuario (tema, idioma, etc.) — SmartLogix DSY1106"
 LABEL org.opencontainers.image.vendor="SmartLogix"
 LABEL org.opencontainers.image.version="1.0.0"
 

@@ -24,6 +24,10 @@ public class ProductoResponseDTO {
     private Long idPasillo;
     private Long idEstante;
     private String pais;
+    private UUID creadoPorId;
+    private String creadoPorNombre;
+    private UUID modificadoPorId;
+    private String modificadoPorNombre;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 
@@ -43,6 +47,10 @@ public class ProductoResponseDTO {
         dto.setIdPasillo(p.getIdPasillo());
         dto.setIdEstante(p.getIdEstante());
         dto.setPais(p.getPais());
+        dto.setCreadoPorId(p.getCreadoPorId());
+        dto.setCreadoPorNombre(p.getCreadoPorNombre());
+        dto.setModificadoPorId(p.getModificadoPorId());
+        dto.setModificadoPorNombre(p.getModificadoPorNombre());
         dto.setFechaCreacion(p.getFechaCreacion());
         dto.setFechaActualizacion(p.getFechaActualizacion());
         return dto;

@@ -25,5 +25,9 @@ public class EstanteRequestDTO {
     @Positive(message = "La capacidad por nivel debe ser positiva")
     private Double capacidadPorNivel;
 
+    // Capacidad total directa (opcional) — si se indica aquí se usa sin calcular niveles×cap/nivel
+    @Positive(message = "La capacidad total debe ser positiva")
+    private Integer capacidadTotal;
+
     private Boolean activo;
 }

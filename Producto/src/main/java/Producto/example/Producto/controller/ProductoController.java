@@ -1,10 +1,12 @@
 package Producto.example.Producto.controller;
 
+import Producto.example.Producto.dto.HistorialStockResponseDTO;
 import Producto.example.Producto.dto.ProductoRequestDTO;
 import Producto.example.Producto.dto.ProductoResponseDTO;
 import Producto.example.Producto.service.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Productos", description = "Gestión del catálogo de productos SmartLogix")
 public class ProductoController {
+
+    private static final String ATTR_USER_ID   = "userId";
+    private static final String ATTR_USER_NAME = "userName";
 
     private final ProductoService productoService;
 
@@ -68,17 +73,40 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.getByPais(pais));
     }
 
+    @GetMapping("/por-bodeguero/{userId}")
+    @Operation(summary = "Listar productos creados o modificados por un bodeguero")
+    public ResponseEntity<List<ProductoResponseDTO>> getPorBodeguero(@PathVariable UUID userId) {
+        return ResponseEntity.ok(productoService.getPorBodeguero(userId));
+    }
+
+    @GetMapping("/por-bodega")
+    @Operation(summary = "Listar productos filtrados por bodega, pasillo y/o estante")
+    public ResponseEntity<List<ProductoResponseDTO>> getPorBodega(
+            @RequestParam Long bodegaId,
+            @RequestParam(required = false) Long pasilloId,
+            @RequestParam(required = false) Long estanteId) {
+        return ResponseEntity.ok(productoService.getPorUbicacion(bodegaId, pasilloId, estanteId));
+    }
+
     @PostMapping
     @Operation(summary = "Crear nuevo producto")
-    public ResponseEntity<ProductoResponseDTO> crear(@Valid @RequestBody ProductoRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productoService.crear(dto));
+    public ResponseEntity<ProductoResponseDTO> crear(
+            @Valid @RequestBody ProductoRequestDTO dto,
+            HttpServletRequest request) {
+        UUID uid = (UUID) request.getAttribute(ATTR_USER_ID);
+        String userName = (String) request.getAttribute(ATTR_USER_NAME);
+        return ResponseEntity.status(HttpStatus.CREATED).body(productoService.crear(dto, uid, userName));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar producto completo")
-    public ResponseEntity<ProductoResponseDTO> actualizar(@PathVariable UUID id,
-                                                          @Valid @RequestBody ProductoRequestDTO dto) {
-        return ResponseEntity.ok(productoService.actualizar(id, dto));
+    public ResponseEntity<ProductoResponseDTO> actualizar(
+            @PathVariable UUID id,
+            @Valid @RequestBody ProductoRequestDTO dto,
+            HttpServletRequest request) {
+        UUID uid = (UUID) request.getAttribute(ATTR_USER_ID);
+        String userName = (String) request.getAttribute(ATTR_USER_NAME);
+        return ResponseEntity.ok(productoService.actualizar(id, dto, uid, userName));
     }
 
     @PatchMapping("/{id}/stock")
@@ -94,12 +122,16 @@ public class ProductoController {
 
     @PatchMapping("/{id}/decrementar-stock")
     @Operation(summary = "Decrementar stock del producto — llamado por Inventario tras una orden")
-    public ResponseEntity<ProductoResponseDTO> decrementarStock(@PathVariable UUID id,
-                                                                @RequestParam Integer cantidad) {
+    public ResponseEntity<ProductoResponseDTO> decrementarStock(
+            @PathVariable UUID id,
+            @RequestParam Integer cantidad,
+            @RequestParam(required = false) Long ordenId,
+            @RequestParam(required = false) UUID compradorId,
+            @RequestParam(required = false) String compradorNombre) {
         if (cantidad == null || cantidad <= 0) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(productoService.decrementarStock(id, cantidad));
+        return ResponseEntity.ok(productoService.decrementarStock(id, cantidad, ordenId, compradorId, compradorNombre));
     }
 
     @PatchMapping("/{id}/toggle-activo")
@@ -108,17 +140,29 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.toggleActivo(id));
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Desactivar producto (soft delete)")
-    public ResponseEntity<Void> desactivar(@PathVariable UUID id) {
-        productoService.desactivar(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/{id}/historial-stock")
+    @Operation(summary = "Ver historial de cambios de stock — solo bodeguero/admin")
+    public ResponseEntity<List<HistorialStockResponseDTO>> getHistorialStock(@PathVariable UUID id) {
+        boolean isAdmin = esAdmin();
+        return ResponseEntity.ok(productoService.getHistorialStock(id).stream()
+                .map(h -> HistorialStockResponseDTO.from(h, isAdmin))
+                .toList());
     }
 
-    @GetMapping("/estante/{idEstante}/stock")
-    @Operation(summary = "Stock total activo por estante — usado por Inventario para porcentaje de uso")
-    public ResponseEntity<Map<String, Integer>> stockPorEstante(@PathVariable Long idEstante) {
-        Integer stock = productoService.getStockPorEstante(idEstante);
-        return ResponseEntity.ok(Map.of("stockActual", stock != null ? stock : 0));
+    private boolean esAdmin() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_admin"));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Desactivar producto (soft delete)")
+    public ResponseEntity<Void> desactivar(
+            @PathVariable UUID id,
+            HttpServletRequest request) {
+        UUID uid = (UUID) request.getAttribute(ATTR_USER_ID);
+        String userName = (String) request.getAttribute(ATTR_USER_NAME);
+        productoService.desactivar(id, uid, userName);
+        return ResponseEntity.noContent().build();
     }
 }

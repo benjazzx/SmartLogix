@@ -6,30 +6,29 @@ import User.example.Users.dto.LoginResponseDto;
 import User.example.Users.dto.RegisterRequestDto;
 import User.example.Users.dto.RolDto;
 import User.example.Users.dto.UserRequestDto;
-import User.example.Users.model.PreguntaSeguridadModel;
+import User.example.Users.model.IntentoRecuperacionModel;
 import User.example.Users.model.UserModel;
-import User.example.Users.repository.PreguntaSeguridadRepository;
 import User.example.Users.repository.UserRepository;
 import User.example.Users.security.JwtUtil;
+import User.example.Users.service.RecuperacionService;
 import User.example.Users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 
 @Slf4j
@@ -38,24 +37,16 @@ import java.util.UUID;
 @Tag(name = "Autenticación", description = "Login y generación de token JWT")
 public class AuthController {
 
-    private static final String CREDENCIALES_INVALIDAS = "Credenciales inválidas";
-    private static final String BEARER = "Bearer";
-    private static final Random RANDOM = new Random();
-
     @Autowired private AuthenticationManager authenticationManager;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private UserRepository userRepository;
     @Autowired private UserService userService;
     @Autowired private RolClient rolClient;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private PreguntaSeguridadRepository preguntaRepo;
+    @Autowired private RecuperacionService recuperacionService;
 
-    @Operation(summary = "Iniciar sesión",
-               description = "Paso 1: valida credenciales. Si el usuario tiene preguntas de seguridad " +
-                             "configuradas devuelve status=CHALLENGE con un token de desafío (5 min). " +
-                             "Si no, devuelve el JWT directamente.")
+    @Operation(summary = "Iniciar sesión", description = "Autentica al usuario con correo y clave, retorna un token JWT")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Login exitoso o desafío 2FA"),
+        @ApiResponse(responseCode = "200", description = "Login exitoso, token generado"),
         @ApiResponse(responseCode = "401", description = "Credenciales inválidas"),
         @ApiResponse(responseCode = "403", description = "Cuenta inactiva")
     })
@@ -74,70 +65,83 @@ public class AuthController {
                         .body("Cuenta inactiva. Contacte al administrador.");
             }
 
-            // 2FA: si el usuario tiene preguntas configuradas, emitir desafío
-            List<PreguntaSeguridadModel> preguntas = preguntaRepo.findByUserId(user.getId());
-            if (!preguntas.isEmpty()) {
-                int idx = RANDOM.nextInt(preguntas.size());
-                PreguntaSeguridadModel elegida = preguntas.get(idx);
-                String challengeToken = jwtUtil.generateChallengeToken(user, elegida.getId());
-                log.info("[Auth] 2FA challenge emitido para userId={}", user.getId());
-                return ResponseEntity.ok(Map.of(
-                    "status", "CHALLENGE",
-                    "challengeToken", challengeToken,
-                    "pregunta", elegida.getPregunta()
-                ));
-            }
-
-            // Sin preguntas: flujo directo
             String token = jwtUtil.generateToken(user);
+
             return ResponseEntity.ok(new LoginResponseDto(
-                token, BEARER,user.getId(), user.getCorreo(), user.getRolNombre()
+                token, "Bearer", user.getId(), user.getCorreo(), user.getRolNombre()
             ));
 
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(CREDENCIALES_INVALIDAS);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Credenciales inválidas");
         }
     }
 
-    @Operation(summary = "Verificar pregunta de seguridad (paso 2 del login 2FA)",
-               description = "Recibe el challengeToken del paso 1 y la respuesta a la pregunta. " +
-                             "Si es correcta devuelve el JWT completo.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Respuesta correcta, JWT emitido"),
-        @ApiResponse(responseCode = "401", description = "Respuesta incorrecta o token expirado")
-    })
-    @PostMapping("/verificar-pregunta")
-    public ResponseEntity<?> verificarPregunta(@RequestBody Map<String, String> body) {
-        String challengeToken = body.get("challengeToken");
-        String respuesta = body.get("respuesta");
-
-        if (challengeToken == null || respuesta == null) {
-            return ResponseEntity.badRequest().body("challengeToken y respuesta son requeridos");
+    @Operation(summary = "Iniciar flujo de recuperación de contraseña",
+               description = "Crea una solicitud de recuperación de 15 min. Devuelve el solicitudId para los siguientes pasos.")
+    @PostMapping("/solicitar-recuperacion")
+    public ResponseEntity<?> solicitarRecuperacion(@RequestBody java.util.Map<String, String> body) {
+        String correo = body.get("correo");
+        if (correo == null || correo.isBlank()) {
+            return ResponseEntity.badRequest().body("El correo es obligatorio");
         }
-        if (!jwtUtil.isChallengeToken(challengeToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Token de desafío inválido o expirado");
+        try {
+            UUID solicitudId = recuperacionService.solicitarRecuperacion(correo.trim().toLowerCase());
+            return ResponseEntity.ok(java.util.Map.of("solicitudId", solicitudId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
 
-        Long preguntaId = jwtUtil.extractPreguntaId(challengeToken);
-        String userId   = jwtUtil.extractUserIdClaim(challengeToken);
+    @Operation(summary = "Verificar identidad para recuperación de contraseña",
+               description = "Valida correo y RUT contra la solicitud. Bloquea al 3er intento fallido.")
+    @PostMapping("/verificar-recuperacion")
+    public ResponseEntity<?> verificarRecuperacion(@RequestBody java.util.Map<String, String> body,
+                                                   HttpServletRequest request) {
+        String solicitudIdStr = body.get("solicitudId");
+        String correo         = body.get("correo");
+        String rut            = body.get("rut");
+        if (solicitudIdStr == null || correo == null || rut == null) {
+            return ResponseEntity.badRequest().body("solicitudId, correo y rut son obligatorios");
+        }
+        try {
+            recuperacionService.verificarRecuperacion(
+                    UUID.fromString(solicitudIdStr), correo, rut, request.getRemoteAddr());
+            return ResponseEntity.ok(java.util.Map.of("mensaje", "Identidad verificada"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
 
-        return preguntaRepo.findById(preguntaId).map(pregunta -> {
-            boolean correcta = passwordEncoder.matches(
-                    respuesta.trim().toLowerCase(), pregunta.getRespuesta());
-            if (!correcta) {
-                log.warn("[Auth] Respuesta 2FA incorrecta para userId={}", userId);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body((Object) CREDENCIALES_INVALIDAS);
-            }
+    @Operation(summary = "Cambiar contraseña",
+               description = "Actualiza la contraseña usando un solicitudId previamente verificado (estado EXITOSO).")
+    @PostMapping("/cambiar-clave")
+    public ResponseEntity<?> cambiarClave(@RequestBody java.util.Map<String, String> body) {
+        String solicitudIdStr = body.get("solicitudId");
+        String nuevaClave     = body.get("nuevaClave");
+        if (solicitudIdStr == null || nuevaClave == null || nuevaClave.length() < 6) {
+            return ResponseEntity.badRequest().body("solicitudId y nuevaClave (mín. 6 caracteres) son obligatorios");
+        }
+        try {
+            recuperacionService.cambiarClave(UUID.fromString(solicitudIdStr), nuevaClave);
+            return ResponseEntity.ok(java.util.Map.of("mensaje", "Contraseña actualizada exitosamente"));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
 
-            UserModel user = userRepository.findById(UUID.fromString(userId))
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            String token = jwtUtil.generateToken(user);
-            log.info("[Auth] 2FA completado, JWT emitido para userId={}", userId);
-            return ResponseEntity.ok((Object) new LoginResponseDto(
-                    token, BEARER,user.getId(), user.getCorreo(), user.getRolNombre()));
-        }).orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Pregunta no encontrada"));
+    @Operation(summary = "Historial de intentos de una solicitud — solo admin",
+               description = "Devuelve todos los intentos de verificación de una solicitud de recuperación.")
+    @GetMapping("/solicitudes-recuperacion/{id}/intentos")
+    @PreAuthorize("hasRole('admin')")
+    public ResponseEntity<List<IntentoRecuperacionModel>> getIntentos(@PathVariable UUID id) {
+        try {
+            return ResponseEntity.ok(recuperacionService.getIntentos(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @Operation(summary = "Registrarse como cliente",
@@ -159,6 +163,7 @@ public class AuthController {
         userDto.setRolNombre("cliente");
         userDto.setDireccionId(dto.getDireccionId());
 
+        // Resuelve rolId sincronamente para que no quede null en la respuesta
         RolDto rolCliente = rolClient.getRolByNombre("cliente");
         if (rolCliente != null) {
             userDto.setRolId(rolCliente.getId());
@@ -168,7 +173,7 @@ public class AuthController {
             UserModel saved = userService.createUser(userDto);
             String token = jwtUtil.generateToken(saved);
             return ResponseEntity.ok(new LoginResponseDto(
-                token, BEARER,saved.getId(), saved.getCorreo(), saved.getRolNombre()
+                token, "Bearer", saved.getId(), saved.getCorreo(), saved.getRolNombre()
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

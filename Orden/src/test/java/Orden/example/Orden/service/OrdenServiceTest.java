@@ -205,7 +205,7 @@ class OrdenServiceTest {
     @Test
     void getMisOrdenes_debeRetornarOrdenesDelUsuario() {
         UUID userId = UUID.randomUUID();
-        when(ordenRepository.findByUserId(userId)).thenReturn(List.of(ordenSample(userId)));
+        when(ordenRepository.findByUserIdWithDetails(userId)).thenReturn(List.of(ordenSample(userId)));
 
         List<OrdenResponseDto> result = ordenService.getMisOrdenes(userId);
 
@@ -216,7 +216,7 @@ class OrdenServiceTest {
     @Test
     void getMisOrdenes_sinOrdenes_debeRetornarListaVacia() {
         UUID userId = UUID.randomUUID();
-        when(ordenRepository.findByUserId(userId)).thenReturn(List.of());
+        when(ordenRepository.findByUserIdWithDetails(userId)).thenReturn(List.of());
 
         List<OrdenResponseDto> result = ordenService.getMisOrdenes(userId);
 
