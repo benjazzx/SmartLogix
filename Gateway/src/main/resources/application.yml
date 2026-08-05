@@ -240,10 +240,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,prometheus
   endpoint:
     gateway:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 logging:
   level:
