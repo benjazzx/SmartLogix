@@ -1,6 +1,5 @@
 package Inventario.example.Inventario.messaging;
 
-import Inventario.example.Inventario.client.ProductoClient;
 import Inventario.example.Inventario.dto.OrdenCreadaEvent;
 import Inventario.example.Inventario.dto.ProductoUbicacionChangedEvent;
 import Inventario.example.Inventario.model.EstanteModel;
@@ -24,7 +23,6 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -38,7 +36,6 @@ class InventarioEventConsumerTest {
     @InjectMocks
     private InventarioEventConsumer inventarioEventConsumer;
 
-    @Mock private ProductoClient productoClient;
     @Mock private EstanteRepository estanteRepository;
     @Mock private EstPasiRepository estPasiRepository;
     @Mock private AlertaBodegaService alertaBodegaService;
@@ -51,51 +48,18 @@ class InventarioEventConsumerTest {
     }
 
     // ── onOrdenCreada ────────────────────────────────────────────────────────────
+    // Orden ya reserva el stock de forma síncrona y atómica al crear el pedido (ver
+    // OrdenService.createOrden en el servicio Orden). Este consumer solo deja traza de que
+    // la orden llegó — NO debe volver a tocar stock en Producto, o lo descontaría dos veces.
 
     @Test
-    void onOrdenCreada_conDetalles_procesaProductosExistentes() {
+    void onOrdenCreada_conDetalles_noFalla() {
         UUID productoId = UUID.randomUUID();
         OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 3, NOMBRE_PRODUCTO, null);
         OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
-        when(productoClient.existeProducto(productoId)).thenReturn(true);
-        when(productoClient.decrementarStock(eq(productoId), eq(3), any(), any(), any())).thenReturn(true);
-
         Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
-        consumer.accept(evento);
-
-        verify(productoClient).existeProducto(productoId);
-        verify(productoClient).decrementarStock(eq(productoId), eq(3), any(), any(), any());
-    }
-
-    @Test
-    void onOrdenCreada_productoNoExiste_noDecrementaStock() {
-        UUID productoId = UUID.randomUUID();
-        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 2, NOMBRE_PRODUCTO, null);
-        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
-
-        when(productoClient.existeProducto(productoId)).thenReturn(false);
-
-        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
-        consumer.accept(evento);
-
-        verify(productoClient).existeProducto(productoId);
-        verify(productoClient, never()).decrementarStock(any(), anyInt(), any(), any(), any());
-    }
-
-    @Test
-    void onOrdenCreada_stockDecrementoFalla_registraAdvertencia() {
-        UUID productoId = UUID.randomUUID();
-        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 5, NOMBRE_PRODUCTO, null);
-        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
-
-        when(productoClient.existeProducto(productoId)).thenReturn(true);
-        when(productoClient.decrementarStock(eq(productoId), eq(5), any(), any(), any())).thenReturn(false);
-
-        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
-        consumer.accept(evento);
-
-        verify(productoClient).decrementarStock(eq(productoId), eq(5), any(), any(), any());
+        assertDoesNotThrow(() -> consumer.accept(evento));
     }
 
     @Test
@@ -104,38 +68,20 @@ class InventarioEventConsumerTest {
         OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
 
         Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
-        consumer.accept(evento);
-
-        verify(productoClient, never()).existeProducto(any());
+        assertDoesNotThrow(() -> consumer.accept(evento));
     }
 
     @Test
-    void onOrdenCreada_sinDetalles_noInteractua() {
+    void onOrdenCreada_sinDetalles_noFalla() {
         OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of());
 
         Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
-        consumer.accept(evento);
-
-        verify(productoClient, never()).existeProducto(any());
+        assertDoesNotThrow(() -> consumer.accept(evento));
     }
 
     @Test
     void onOrdenCreada_detallesNulo_noFalla() {
         OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, null);
-
-        Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
-        consumer.accept(evento);
-
-        verify(productoClient, never()).existeProducto(any());
-    }
-
-    @Test
-    void onOrdenCreada_excepcionEnCliente_noPropaga() {
-        UUID productoId = UUID.randomUUID();
-        OrdenCreadaEvent.DetalleDto detalle = new OrdenCreadaEvent.DetalleDto(productoId, 1, NOMBRE_PRODUCTO, null);
-        OrdenCreadaEvent evento = new OrdenCreadaEvent(1L, UUID.randomUUID(), NOMBRE_USUARIO, null, null, List.of(detalle));
-
-        when(productoClient.existeProducto(any(UUID.class))).thenThrow(new RuntimeException("Error de red"));
 
         Consumer<OrdenCreadaEvent> consumer = inventarioEventConsumer.onOrdenCreada();
         assertDoesNotThrow(() -> consumer.accept(evento));

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 @PreAuthorize("hasRole('admin')")
@@ -79,6 +81,18 @@ public class UserController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getUserById(
+            @Parameter(description = "UUID del usuario") @PathVariable UUID id) {
+        try {
+            return ResponseEntity.ok(UserResponseDto.from(userService.getUserById(id)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Consulta interna de usuario (nombre y dirección) — llamada por Orden, protegida por clave interna")
+    @PreAuthorize("permitAll()")
+    @GetMapping("/{id}/interno")
+    public ResponseEntity<UserResponseDto> getUserInterno(
             @Parameter(description = "UUID del usuario") @PathVariable UUID id) {
         try {
             return ResponseEntity.ok(UserResponseDto.from(userService.getUserById(id)));
@@ -189,7 +203,8 @@ public class UserController {
             String rolNombre = body.get("rolNombre");
             return ResponseEntity.ok(UserResponseDto.from(userService.asignarRol(id, rolId, rolNombre)));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            log.error("Error al asignar rol id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(404).body(null);
         }
     }
 }

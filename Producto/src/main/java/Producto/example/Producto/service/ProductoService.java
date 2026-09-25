@@ -224,6 +224,30 @@ public class ProductoService {
         return ProductoResponseDTO.from(saved);
     }
 
+    // Reserva atómica de stock al crear una orden — a diferencia de decrementarStock (que asume
+    // que ya se validó disponibilidad antes), este método hace el chequeo y el descuento en el
+    // mismo UPDATE de base de datos, para que dos pedidos concurrentes no puedan pasar ambos
+    // contra el mismo stock leído.
+    @Transactional
+    public boolean reservarStock(UUID id, int cantidad, Long ordenId) {
+        int filasActualizadas = productoRepository.reservarStockAtomico(id, cantidad);
+        if (filasActualizadas == 0) {
+            return false;
+        }
+        ProductoModel p = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+        int nuevoStock = p.getStock();
+        if (nuevoStock == 0) p.setEstadoNombre("sin_stock");
+        else if (nuevoStock <= 10) p.setEstadoNombre("bajo_stock");
+        ProductoModel saved = productoRepository.save(p);
+        registrarHistorialStock(saved, nuevoStock + cantidad, nuevoStock, null, null,
+                TipoAccionHistorial.STOCK_DECREMENTADO,
+                "Stock reservado (" + cantidad + " unidad(es)) por la orden #" + ordenId,
+                null, null, ordenId);
+        eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
+        return true;
+    }
+
     @Transactional
     public ProductoResponseDTO decrementarStock(UUID id, int cantidad, Long ordenId,
                                                  UUID compradorId, String compradorNombre) {
@@ -243,6 +267,54 @@ public class ProductoService {
                 TipoAccionHistorial.STOCK_DECREMENTADO, descripcion, null, null, ordenId);
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
         return ProductoResponseDTO.from(saved);
+    }
+
+    @Transactional
+    public ProductoResponseDTO registrarDevolucion(UUID id, int cantidad, boolean danado, Long ordenId) {
+        ProductoModel p = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+        String descripcion;
+        if (danado) {
+            int anteriorMerma = p.getStockMerma();
+            p.setStockMerma(anteriorMerma + cantidad);
+            descripcion = "Devolución de la orden #" + ordenId + ": " + cantidad
+                    + " unidad(es) dañada(s), registradas como merma";
+            ProductoModel saved = productoRepository.save(p);
+            registrarHistorialStock(saved, anteriorMerma, saved.getStockMerma(), null, null,
+                    TipoAccionHistorial.MERMA_REGISTRADA, descripcion, null, null, ordenId);
+            return ProductoResponseDTO.from(saved);
+        }
+        int anterior = p.getStock();
+        int nuevoStock = anterior + cantidad;
+        p.setStock(nuevoStock);
+        if (nuevoStock > 10 && "sin_stock".equals(p.getEstadoNombre())) p.setEstadoNombre("publicado");
+        else if (nuevoStock > 0 && "sin_stock".equals(p.getEstadoNombre())) p.setEstadoNombre("bajo_stock");
+        descripcion = "Devolución de la orden #" + ordenId + ": " + cantidad + " unidad(es) reintegradas al stock";
+        ProductoModel saved = productoRepository.save(p);
+        registrarHistorialStock(saved, anterior, nuevoStock, null, null,
+                TipoAccionHistorial.STOCK_AUMENTADO, descripcion, null, null, ordenId);
+        eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.STOCK_CAMBIADO);
+        return ProductoResponseDTO.from(saved);
+    }
+
+    @Transactional
+    public void liberarUbicacionPorBodega(Long idBodega) {
+        List<ProductoModel> productos = productoRepository.findByIdBodega(idBodega);
+        if (productos.isEmpty()) {
+            log.info("[Producto] Bodega {} desactivada — no tenía productos asignados", idBodega);
+            return;
+        }
+        for (ProductoModel p : productos) {
+            p.setIdBodega(null);
+            p.setIdPasillo(null);
+            p.setIdEstante(null);
+            ProductoModel saved = productoRepository.save(p);
+            registrarHistorialStock(saved, saved.getStock(), saved.getStock(), null, null,
+                    TipoAccionHistorial.UBICACION_CAMBIADA,
+                    "Bodega " + idBodega + " desactivada — producto quedó sin ubicación, requiere reasignación",
+                    null, null);
+        }
+        log.info("[Producto] Bodega {} desactivada — {} producto(s) quedaron sin ubicación", idBodega, productos.size());
     }
 
     @Transactional

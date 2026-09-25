@@ -1,8 +1,10 @@
 package User.example.Users.config;
 
+import User.example.Users.security.InternalKeyFilter;
 import User.example.Users.security.JwtFilter;
 import User.example.Users.security.SmartUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,7 +33,11 @@ import java.util.List;
 public class SecurityConfig {
 
     @Autowired private JwtFilter jwtFilter;
+    @Autowired private InternalKeyFilter internalKeyFilter;
     @Autowired private SmartUserDetailsService userDetailsService;
+
+    @Value("${cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -53,7 +59,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -66,7 +72,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Sin .cors() a propósito: este servicio nunca lo llama un navegador
+            // directamente, solo el BFF (proxy interno) — es el BFF el que ya agrega
+            // el header Access-Control-Allow-Origin para el cliente. Si este servicio
+            // TAMBIÉN lo agregara, el header quedaría duplicado en la respuesta que el
+            // BFF reenvía, y el navegador la rechaza por spec.
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Endpoints públicos
@@ -81,6 +91,8 @@ public class SecurityConfig {
                 // Cualquier usuario autenticado puede ver/editar su propio perfil
                 .requestMatchers(HttpMethod.GET,    "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.PUT,    "/api/users/me").authenticated()
+                // Consulta interna servicio-a-servicio (Orden), protegida por InternalKeyFilter, no por JWT
+                .requestMatchers(HttpMethod.GET,    "/api/users/*/interno").permitAll()
                 // Solo ADMIN puede hacer CRUD de usuarios
                 .requestMatchers(HttpMethod.POST,   "/api/users/**").hasRole("admin")
                 .requestMatchers(HttpMethod.PUT,    "/api/users/**").hasRole("admin")
@@ -90,6 +102,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(internalKeyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -38,6 +38,11 @@ public class ProductoModel {
     @Column(nullable = false)
     private Integer stock;
 
+    // Unidades devueltas dañadas — fuera del stock vendible, no se pueden volver a ofrecer
+    @Column(name = "stock_merma", nullable = false)
+    @Builder.Default
+    private Integer stockMerma = 0;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categoria_id", nullable = false)
     private CategoriaModel categoria;
@@ -47,7 +52,8 @@ public class ProductoModel {
     private String estadoNombre;
 
     // Imagen almacenada directamente en BD para que persista entre rebuilds del contenedor
-    @Column(name = "imagen_data", columnDefinition = "bytea")
+    @Lob
+    @Column(name = "imagen_data")
     private byte[] imagenData;
 
     @Column(name = "imagen_tipo", length = 100)

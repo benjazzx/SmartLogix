@@ -1,8 +1,10 @@
 package Producto.example.Producto.config;
 
+import Producto.example.Producto.security.BffTrustFilter;
 import Producto.example.Producto.security.InternalKeyFilter;
 import Producto.example.Producto.security.JwtFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,11 +33,15 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final InternalKeyFilter internalKeyFilter;
+    private final BffTrustFilter bffTrustFilter;
+
+    @Value("${cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -48,7 +54,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Solo el BFF llama a este servicio, no el navegador — el CORS lo pone el BFF.
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Documentación pública
@@ -65,6 +71,8 @@ public class SecurityConfig {
                 // Descuento de stock: llamado internamente por Inventario (sin JWT de usuario).
                 // La autorización real la hace InternalKeyFilter (clave compartida X-Internal-Key).
                 .requestMatchers(HttpMethod.PATCH, "/api/productos/*/decrementar-stock").permitAll()
+                .requestMatchers(HttpMethod.PATCH, "/api/productos/*/registrar-devolucion").permitAll()
+                .requestMatchers(HttpMethod.PATCH, "/api/productos/*/reservar-stock").permitAll()
                 // Escritura: solo admin y bodeguero (con JWT)
                 .requestMatchers(HttpMethod.POST,   "/api/productos/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
                 .requestMatchers(HttpMethod.PUT,    "/api/productos/**").hasAnyRole(ROLE_ADMIN, ROLE_BODEGUERO)
@@ -76,6 +84,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(internalKeyFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(bffTrustFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

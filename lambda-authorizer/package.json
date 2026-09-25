@@ -1,0 +1,11 @@
+{
+  "name": "smartlogix-entra-authorizer",
+  "version": "1.0.0",
+  "description": "Lambda Authorizer (REQUEST, HTTP API) que valida JWT de Microsoft Entra ID para el API Gateway de SmartLogix / Pedidos360",
+  "main": "index.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0"
+  }
+}

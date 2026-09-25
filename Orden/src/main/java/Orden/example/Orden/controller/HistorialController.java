@@ -36,7 +36,7 @@ public class HistorialController {
         @ApiResponse(responseCode = "404", description = "Orden no encontrada")
     })
     @PostMapping
-    public ResponseEntity<OrdenResponseDto> addHistorial(
+    public ResponseEntity<Object> addHistorial(
             @Parameter(description = "ID de la orden") @PathVariable Long ordenId,
             @Valid @RequestBody HistorialRequestDto dto,
             HttpServletRequest request,
@@ -49,10 +49,15 @@ public class HistorialController {
             return ResponseEntity.ok(ordenService.addHistorial(ordenId, dto, userId, rolNombre));
         } catch (RuntimeException e) {
             log.warn("addHistorial ordenId={}: {}", ordenId, e.getMessage());
-            if (e.getMessage().contains("Acceso denegado")) {
-                return ResponseEntity.status(403).build();
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("Acceso denegado")) {
+                return ResponseEntity.status(403).body(java.util.Map.of("error", msg));
             }
-            return ResponseEntity.notFound().build();
+            if (msg.contains("no encontrada")) {
+                return ResponseEntity.notFound().build();
+            }
+            // regla de negocio violada (salto de estado, stock, etc.)
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", msg));
         }
     }
 

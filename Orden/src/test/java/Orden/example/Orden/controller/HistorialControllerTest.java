@@ -73,10 +73,10 @@ class HistorialControllerTest {
 
         when(ordenService.addHistorial(1L, dto, userId, "bodeguero")).thenReturn(sampleResponse);
 
-        ResponseEntity<OrdenResponseDto> resp = controller.addHistorial(1L, dto, request, auth);
+        ResponseEntity<Object> resp = controller.addHistorial(1L, dto, request, auth);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
-        assertEquals("en_proceso", resp.getBody().getEstadoActual());
+        assertEquals("en_proceso", ((OrdenResponseDto) resp.getBody()).getEstadoActual());
     }
 
     @Test
@@ -88,7 +88,7 @@ class HistorialControllerTest {
         when(ordenService.addHistorial(99L, dto, userId, "admin"))
                 .thenThrow(new RuntimeException("Orden no encontrada"));
 
-        ResponseEntity<OrdenResponseDto> resp = controller.addHistorial(99L, dto, request, auth);
+        ResponseEntity<Object> resp = controller.addHistorial(99L, dto, request, auth);
 
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
     }
@@ -102,7 +102,7 @@ class HistorialControllerTest {
         when(ordenService.addHistorial(1L, dto, userId, "cliente"))
                 .thenThrow(new RuntimeException("Acceso denegado: rol insuficiente"));
 
-        ResponseEntity<OrdenResponseDto> resp = controller.addHistorial(1L, dto, request, auth);
+        ResponseEntity<Object> resp = controller.addHistorial(1L, dto, request, auth);
 
         assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
     }

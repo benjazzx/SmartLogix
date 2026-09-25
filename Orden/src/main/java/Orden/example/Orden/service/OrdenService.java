@@ -25,6 +25,9 @@ public class OrdenService {
 
     private static final String ROL_CLIENTE       = "cliente";
     private static final String ROL_TRANSPORTISTA = "transportista";
+    private static final UUID ESTADO_DEVOLUCION_SOLICITADA = UUID.fromString("b74c4d3e-2957-4ade-92a6-16d83f5c4d97");
+    private static final UUID ESTADO_DEVOLUCION_APROBADA = UUID.fromString("fb9a31dc-29b5-44a0-80ed-a89871061da6");
+    private static final UUID ESTADO_DEVOLUCION_RECHAZADA = UUID.fromString("4e3a4d28-3108-4906-8bbe-b0cbb8b0479c");
 
     @Autowired private OrdenRepository ordenRepository;
     @Autowired private HistorialRepository historialRepository;
@@ -43,24 +46,37 @@ public class OrdenService {
 
         OrdenModel orden = OrdenFactory.crearOrden(userId, nombre, dto.getDireccionId());
         orden.setDireccionTexto(direccionTexto);
+        OrdenModel saved = ordenRepository.save(orden);
 
         List<DetalleOrdenModel> detalles = new ArrayList<>();
+        List<OrdenRequestDto.DetalleDto> reservados = new ArrayList<>();
         for (OrdenRequestDto.DetalleDto d : dto.getDetalles()) {
             var productoData = productoClient.getProducto(d.getProductoId());
             if (productoData == null) {
+                revertirReservas(reservados, saved.getId());
                 throw new IllegalStateException(
                     "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
             }
+            // Reserva atómica (check + descuento en un solo UPDATE en Producto) — evita que dos
+            // pedidos concurrentes lean el mismo stock "disponible" y ambos pasen la validación.
+            boolean reservado = productoClient.reservarStock(d.getProductoId(), d.getCantidad(), saved.getId());
+            if (!reservado) {
+                revertirReservas(reservados, saved.getId());
+                throw new IllegalStateException(
+                    "Stock insuficiente para " + ProductoClient.extraerNombre(productoData)
+                        + ": no hay " + d.getCantidad() + " unidad(es) disponibles.");
+            }
+            reservados.add(d);
             detalles.add(OrdenFactory.crearDetalle(
-                orden, d.getProductoId(),
+                saved, d.getProductoId(),
                 ProductoClient.extraerNombre(productoData),
                 ProductoClient.extraerPrecio(productoData),
                 d.getCantidad()
             ));
         }
 
-        orden.setDetalles(detalles);
-        OrdenModel saved = ordenRepository.save(orden);
+        saved.setDetalles(detalles);
+        saved = ordenRepository.save(saved);
 
         OrdenCreadaEvent event = new OrdenCreadaEvent(
             saved.getId(), userId, nombre, dto.getDireccionId(), saved.getFechaOrden(),
@@ -73,6 +89,14 @@ public class OrdenService {
         eventProducer.publishOrdenCreada(event);
 
         return OrdenResponseDto.from(saved);
+    }
+
+    // Si un producto de la orden falla la reserva, devuelve el stock de los que sí se habían
+    // reservado antes de fallar — para no dejar unidades bloqueadas por un pedido que no se creó.
+    private void revertirReservas(List<OrdenRequestDto.DetalleDto> reservados, Long ordenId) {
+        for (OrdenRequestDto.DetalleDto d : reservados) {
+            productoClient.registrarDevolucion(d.getProductoId(), d.getCantidad(), false, ordenId);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -102,6 +126,8 @@ public class OrdenService {
     public OrdenResponseDto addHistorial(Long ordenId, HistorialRequestDto dto,
                                          UUID requestingUserId, String rolNombre) {
         OrdenModel orden = findOrdenOrThrow(ordenId);
+
+        validarTransicionSecuencial(orden.getEstadoActual(), dto.getEstadoNombre());
 
         if (ROL_CLIENTE.equals(rolNombre)) {
             validarPermisosCliente(orden, dto, requestingUserId);
@@ -199,12 +225,47 @@ public class OrdenService {
 
         HistorialModel h = new HistorialModel();
         h.setOrden(orden);
+        h.setEstadoId(ESTADO_DEVOLUCION_SOLICITADA);
         h.setEstadoNombre("Devolución solicitada");
         h.setComentario("Cliente solicitó devolución: " + motivo);
         h.setFecha(java.time.LocalDateTime.now());
         historialRepository.save(h);
 
         return OrdenResponseDto.from(orden, ROL_CLIENTE, userId);
+    }
+
+    @Transactional
+    public OrdenResponseDto resolverDevolucion(Long ordenId, boolean aprobada, boolean danado, String comentario) {
+        OrdenModel orden = findOrdenOrThrow(ordenId);
+        if (!"Devolución solicitada".equals(orden.getEstadoActual())) {
+            throw new IllegalStateException("La orden no tiene una devolución pendiente de resolver");
+        }
+        Hibernate.initialize(orden.getDetalles());
+        Hibernate.initialize(orden.getHistorial());
+
+        String nuevoEstado = aprobada ? "Devolución aprobada" : "Devolución rechazada";
+        UUID estadoId = aprobada ? ESTADO_DEVOLUCION_APROBADA : ESTADO_DEVOLUCION_RECHAZADA;
+        orden.setEstadoActual(nuevoEstado);
+        ordenRepository.save(orden);
+
+        if (aprobada) {
+            for (DetalleOrdenModel detalle : orden.getDetalles()) {
+                productoClient.registrarDevolucion(detalle.getProductoId(), detalle.getCantidad(), danado, ordenId);
+            }
+        }
+
+        HistorialModel h = new HistorialModel();
+        h.setOrden(orden);
+        h.setEstadoId(estadoId);
+        h.setEstadoNombre(nuevoEstado);
+        h.setComentario(comentario != null && !comentario.isBlank() ? comentario
+                : aprobada ? (danado ? "Devolución aprobada — producto dañado, registrado como merma"
+                                     : "Devolución aprobada — stock reintegrado")
+                           : "Devolución rechazada");
+        h.setFecha(java.time.LocalDateTime.now());
+        historialRepository.save(h);
+
+        return OrdenResponseDto.from(orden);
     }
 
     @Transactional(readOnly = true)
@@ -237,6 +298,39 @@ public class OrdenService {
             out.put("ordenesProcesadas", ids.size());
             return out;
         }).toList();
+    }
+
+    // No se puede saltar pasos (ej. despachar sin aceptar antes). Cancelado es la
+    // excepción, válido desde cualquier estado previo a la entrega.
+    private static final List<String> SECUENCIA_ESTADOS = List.of(
+        "pendiente", "procesando", "aprobado", "en tránsito", "entregado"
+    );
+
+    private void validarTransicionSecuencial(String estadoActual, String estadoNuevo) {
+        String actual = estadoActual == null ? "" : estadoActual.toLowerCase().trim();
+        String nuevo  = estadoNuevo  == null ? "" : estadoNuevo.toLowerCase().trim();
+        int idxActual = SECUENCIA_ESTADOS.indexOf(actual);
+        int idxNuevo  = SECUENCIA_ESTADOS.indexOf(nuevo);
+
+        if ("cancelado".equals(nuevo)) {
+            int idxEntregado = SECUENCIA_ESTADOS.indexOf("entregado");
+            if (idxActual < 0 || idxActual >= idxEntregado) {
+                throw new IllegalStateException("No se puede cancelar una orden que ya fue entregada.");
+            }
+            return;
+        }
+
+        // Estado fuera de la secuencia principal (ej. devolución), no se valida acá.
+        if (idxNuevo < 0) {
+            return;
+        }
+        if (idxNuevo != idxActual + 1) {
+            String siguienteValido = SECUENCIA_ESTADOS.get(
+                Math.min(Math.max(idxActual, 0) + 1, SECUENCIA_ESTADOS.size() - 1));
+            throw new IllegalStateException(
+                "No se puede pasar de \"" + estadoActual + "\" a \"" + estadoNuevo
+                + "\" directamente. El siguiente estado válido es \"" + siguienteValido + "\".");
+        }
     }
 
     private void validarPermisosCliente(OrdenModel orden, HistorialRequestDto dto, UUID userId) {

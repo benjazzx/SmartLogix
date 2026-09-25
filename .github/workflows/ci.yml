@@ -315,6 +315,4 @@ jobs:
           echo " Producto   listo"
           echo " Orden      listo"
           echo " Config     listo"
-          echo "========================================"
           echo " RESULTADO: LISTO "
-          echo "========================================"

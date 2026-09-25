@@ -1,0 +1,24 @@
+# Copia este archivo a terraform.tfvars y rellena con tus valores reales.
+# terraform.tfvars NUNCA debe subirse a git (agrégalo al .gitignore si no está ya).
+
+aws_region = "us-east-1"
+
+# Cognito lo crea Terraform mismo (cognito.tf) — no hace falta ningún tenant externo.
+cognito_test_users_password = "PasswordFuerte123!"
+
+internal_service_key = "genera-un-secreto-largo-random-aca"
+
+# Contraseñas que vas a usar cuando crees estos 2 usuarios/schemas dentro del RDS
+# Oracle ya provisionado (instrucciones en el README, paso "Crear los schemas de app").
+oracle_password_orden    = "cambia-esto-por-algo-fuerte"
+oracle_password_producto = "cambia-esto-tambien"
+
+# Confluent Cloud (el mismo cluster Kafka que ya usa el despliegue GCP)
+confluent_bootstrap_servers = "pkc-xxxxx.us-east1.gcp.confluent.cloud:9092"
+confluent_api_key           = "tu-api-key-de-confluent"
+confluent_api_secret        = "tu-api-secret-de-confluent"
+
+legacy_jwt_secret = "cualquier-string-largo-random-no-se-usa-en-el-flujo-evaluado"
+
+# Users/Rol/Estado/Inventario/Configuracion: Terraform crea el RDS Postgres solo
+# (rds.tf, aws_db_instance.postgres) — no hace falta ninguna variable acá.

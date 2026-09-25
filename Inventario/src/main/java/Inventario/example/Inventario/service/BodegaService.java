@@ -5,7 +5,11 @@ import Inventario.example.Inventario.dto.BodegaRequestDTO;
 import Inventario.example.Inventario.dto.BodegaResponseDTO;
 import Inventario.example.Inventario.messaging.InventarioEventProducer;
 import Inventario.example.Inventario.model.BodegaModel;
+import Inventario.example.Inventario.model.EstanteModel;
+import Inventario.example.Inventario.model.PasilloModel;
 import Inventario.example.Inventario.repository.BodegaRepository;
+import Inventario.example.Inventario.repository.EstanteRepository;
+import Inventario.example.Inventario.repository.PasilloRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +27,8 @@ import java.util.stream.Collectors;
 public class BodegaService {
 
     private final BodegaRepository bodegaRepository;
+    private final PasilloRepository pasilloRepository;
+    private final EstanteRepository estanteRepository;
     private final InventarioEventProducer eventProducer;
 
     @Transactional(readOnly = true)
@@ -99,7 +105,22 @@ public class BodegaService {
                 .orElseThrow(() -> new EntityNotFoundException("BodegaModel no encontrada con id: " + id));
         bodega.setActiva(false);
         bodegaRepository.save(bodega);
-        log.info("BodegaModel desactivada (eliminación lógica) id: {}", id);
+
+        List<EstanteModel> estantes = estanteRepository.findByBodegaId(id);
+        for (EstanteModel e : estantes) {
+            e.setActivo(false);
+        }
+        estanteRepository.saveAll(estantes);
+
+        List<PasilloModel> pasillos = pasilloRepository.findByBodega_IdBodega(id);
+        for (PasilloModel p : pasillos) {
+            p.setActivo(false);
+        }
+        pasilloRepository.saveAll(pasillos);
+
+        log.info("BodegaModel desactivada (eliminación lógica) id: {} — {} estante(s) y {} pasillo(s) desactivados en cascada",
+                id, estantes.size(), pasillos.size());
+        // Producto escucha este evento y libera la ubicación de los productos que apuntaban a esta bodega.
         eventProducer.publishBodegaActualizada(toBodegaEvent(bodega, "DESACTIVADA"));
     }
 

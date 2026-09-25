@@ -72,7 +72,7 @@ public class EstanteService {
                 .descripcion(dto.getDescripcion())
                 .numNiveles(dto.getNumNiveles())
                 .capacidadPorNivel(dto.getCapacidadPorNivel())
-                .capacidadTotal(dto.getCapacidadTotal())
+                .capacidadTotal(calcularCapacidadTotal(dto))
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
                 .build();
         EstanteModel guardado = estanteRepository.save(estante);
@@ -95,7 +95,7 @@ public class EstanteService {
         estante.setDescripcion(dto.getDescripcion());
         estante.setNumNiveles(dto.getNumNiveles());
         estante.setCapacidadPorNivel(dto.getCapacidadPorNivel());
-        estante.setCapacidadTotal(dto.getCapacidadTotal());
+        estante.setCapacidadTotal(calcularCapacidadTotal(dto));
         if (dto.getActivo() != null) estante.setActivo(dto.getActivo());
 
         return toResponseDTO(estanteRepository.save(estante));
@@ -108,6 +108,16 @@ public class EstanteService {
                 .orElseThrow(() -> new EntityNotFoundException("EstanteModel no encontrado con id: " + id));
         estante.setActivo(false);
         estanteRepository.save(estante);
+    }
+
+    // Si no se especifica capacidad total explícita, se deriva de niveles × capacidad por nivel
+    // (el formulario de estante no pide un total directo, solo esos dos campos).
+    private Integer calcularCapacidadTotal(EstanteRequestDTO dto) {
+        if (dto.getCapacidadTotal() != null) return dto.getCapacidadTotal();
+        if (dto.getNumNiveles() != null && dto.getCapacidadPorNivel() != null) {
+            return (int) Math.round(dto.getNumNiveles() * dto.getCapacidadPorNivel());
+        }
+        return null;
     }
 
     private EstanteResponseDTO toResponseDTO(EstanteModel e) {

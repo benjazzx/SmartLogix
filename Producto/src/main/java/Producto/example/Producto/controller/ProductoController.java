@@ -134,6 +134,35 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.decrementarStock(id, cantidad, ordenId, compradorId, compradorNombre));
     }
 
+    @PatchMapping("/{id}/reservar-stock")
+    @Operation(summary = "Reservar stock de forma atómica — llamado por Orden al crear un pedido")
+    public ResponseEntity<Object> reservarStock(
+            @PathVariable UUID id,
+            @RequestParam Integer cantidad,
+            @RequestParam(required = false) Long ordenId) {
+        if (cantidad == null || cantidad <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        boolean reservado = productoService.reservarStock(id, cantidad, ordenId);
+        if (!reservado) {
+            return ResponseEntity.status(409).body(Map.of("error", "Stock insuficiente"));
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{id}/registrar-devolucion")
+    @Operation(summary = "Registrar devolución del producto — llamado por Orden al aprobar una devolución")
+    public ResponseEntity<ProductoResponseDTO> registrarDevolucion(
+            @PathVariable UUID id,
+            @RequestParam Integer cantidad,
+            @RequestParam boolean danado,
+            @RequestParam(required = false) Long ordenId) {
+        if (cantidad == null || cantidad <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(productoService.registrarDevolucion(id, cantidad, danado, ordenId));
+    }
+
     @PatchMapping("/{id}/toggle-activo")
     @Operation(summary = "Activar o desactivar producto")
     public ResponseEntity<ProductoResponseDTO> toggleActivo(@PathVariable UUID id) {

@@ -20,6 +20,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings("java:S100")
@@ -80,6 +81,7 @@ class OrdenServiceTest {
 
         when(usersClient.getNombreUsuario(userId)).thenReturn("Juan García");
         when(productoClient.getProducto(productoId)).thenReturn(productoDataSample());
+        when(productoClient.reservarStock(eq(productoId), eq(2), any())).thenReturn(true);
 
         OrdenModel saved = ordenSample(userId);
         DetalleOrdenModel detalle = new DetalleOrdenModel();
@@ -97,7 +99,9 @@ class OrdenServiceTest {
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
         assertEquals("Juan García", result.getUserNombre());
-        verify(ordenRepository, times(1)).save(any());
+        // La orden se guarda dos veces: una para obtener el id antes de reservar stock,
+        // y otra ya con los detalles adjuntos.
+        verify(ordenRepository, times(2)).save(any());
         verify(eventProducer, times(1)).publishOrdenCreada(any());
     }
 
@@ -117,6 +121,7 @@ class OrdenServiceTest {
 
         when(usersClient.getNombreUsuario(userId)).thenReturn(null);
         when(productoClient.getProducto(productoId)).thenReturn(productoDataSample());
+        when(productoClient.reservarStock(eq(productoId), eq(1), any())).thenReturn(true);
 
         OrdenModel saved = ordenSample(userId);
         saved.setUserNombre("Nombre Fallback");
@@ -145,8 +150,37 @@ class OrdenServiceTest {
 
         when(usersClient.getNombreUsuario(userId)).thenReturn("Usuario");
         when(productoClient.getProducto(productoId)).thenReturn(null);
+        when(ordenRepository.save(any(OrdenModel.class))).thenReturn(ordenSample(userId));
 
-        assertThrows(RuntimeException.class, () -> ordenService.createOrden(dto, userId));
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> ordenService.createOrden(dto, userId));
+        assertTrue(ex.getMessage().contains("Producto no disponible"));
+    }
+
+    @Test
+    void createOrden_stockInsuficiente_lanzaExcepcionYNoPublicaEvento() {
+        UUID userId = UUID.randomUUID();
+        UUID productoId = UUID.randomUUID();
+
+        OrdenRequestDto.DetalleDto detalleRequest = new OrdenRequestDto.DetalleDto();
+        detalleRequest.setProductoId(productoId);
+        detalleRequest.setCantidad(100);
+
+        OrdenRequestDto dto = new OrdenRequestDto();
+        dto.setUserNombre("Usuario");
+        dto.setDireccionId(UUID.randomUUID());
+        dto.setDetalles(List.of(detalleRequest));
+
+        when(usersClient.getNombreUsuario(userId)).thenReturn("Usuario");
+        when(productoClient.getProducto(productoId)).thenReturn(productoDataSample());
+        // La reserva atómica falla — no hay 100 unidades disponibles.
+        when(productoClient.reservarStock(eq(productoId), eq(100), any())).thenReturn(false);
+        when(ordenRepository.save(any(OrdenModel.class))).thenReturn(ordenSample(userId));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> ordenService.createOrden(dto, userId));
+        assertTrue(ex.getMessage().contains("Stock insuficiente"));
+        verify(eventProducer, never()).publishOrdenCreada(any());
     }
 
     @Test

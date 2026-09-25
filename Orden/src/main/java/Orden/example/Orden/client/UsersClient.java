@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,11 +28,24 @@ public class UsersClient {
     @Value("${users.service.url}")
     private String usersUrl;
 
+    @Value("${internal.service.key}")
+    private String internalServiceKey;
+
+    // Endpoint interno (no requiere JWT de usuario, protegido por X-Internal-Key) — el
+    // GET /api/users/{id} normal exige rol admin, que una llamada de servicio no tiene.
+    private Map<?, ?> consultarUsuarioInterno(UUID userId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Internal-Key", internalServiceKey);
+        return restTemplate.exchange(
+                usersUrl + "/api/users/" + userId + "/interno",
+                HttpMethod.GET, new HttpEntity<>(headers), Map.class
+        ).getBody();
+    }
+
     public String getNombreUsuario(UUID userId) {
         return circuitBreakerFactory.create("usersClient").run(
             () -> {
-                Map<?, ?> user = restTemplate.getForObject(
-                    usersUrl + "/api/users/" + userId, Map.class);
+                Map<?, ?> user = consultarUsuarioInterno(userId);
                 if (user != null && user.containsKey(KEY_NOMBRE)) {
                     return (String) user.get(KEY_NOMBRE);
                 }
@@ -45,8 +61,7 @@ public class UsersClient {
     public String getDireccionTexto(UUID userId) {
         return circuitBreakerFactory.create("usersClientDir").run(
             () -> {
-                Map<?, ?> user = restTemplate.getForObject(
-                    usersUrl + "/api/users/" + userId, Map.class);
+                Map<?, ?> user = consultarUsuarioInterno(userId);
                 if (user == null) return null;
                 Object dirObj = user.get("direccion");
                 if (!(dirObj instanceof Map<?, ?> dir)) return null;

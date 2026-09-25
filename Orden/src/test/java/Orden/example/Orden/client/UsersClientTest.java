@@ -8,6 +8,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -41,7 +44,15 @@ class UsersClientTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(usersClient, "usersUrl", USERS_URL);
+        ReflectionTestUtils.setField(usersClient, "internalServiceKey", "test-key");
         when(circuitBreakerFactory.create("usersClient")).thenReturn(circuitBreaker);
+    }
+
+    private void mockUsuarioInterno(UUID userId, Map<String, Object> body) {
+        when(restTemplate.exchange(
+                eq(USERS_URL + "/api/users/" + userId + "/interno"),
+                eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(new ResponseEntity<>(body, org.springframework.http.HttpStatus.OK));
     }
 
     @Test
@@ -49,8 +60,7 @@ class UsersClientTest {
         UUID userId = UUID.randomUUID();
         when(circuitBreaker.run(any(Supplier.class), any(Function.class)))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
-        when(restTemplate.getForObject(USERS_URL + "/api/users/" + userId, Map.class))
-                .thenReturn(Map.of("nombre", "Juan García", "correo", "juan@test.com"));
+        mockUsuarioInterno(userId, Map.of("nombre", "Juan García", "correo", "juan@test.com"));
 
         String result = usersClient.getNombreUsuario(userId);
 
@@ -62,8 +72,7 @@ class UsersClientTest {
         UUID userId = UUID.randomUUID();
         when(circuitBreaker.run(any(Supplier.class), any(Function.class)))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
-        when(restTemplate.getForObject(USERS_URL + "/api/users/" + userId, Map.class))
-                .thenReturn(Map.of("correo", "juan@test.com"));
+        mockUsuarioInterno(userId, Map.of("correo", "juan@test.com"));
 
         String result = usersClient.getNombreUsuario(userId);
 
@@ -75,8 +84,7 @@ class UsersClientTest {
         UUID userId = UUID.randomUUID();
         when(circuitBreaker.run(any(Supplier.class), any(Function.class)))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
-        when(restTemplate.getForObject(USERS_URL + "/api/users/" + userId, Map.class))
-                .thenReturn(null);
+        mockUsuarioInterno(userId, null);
 
         String result = usersClient.getNombreUsuario(userId);
 

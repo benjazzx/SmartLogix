@@ -16,8 +16,8 @@ import java.util.regex.Pattern;
 @Component
 public class InternalKeyFilter extends OncePerRequestFilter {
 
-    private static final Pattern DECREMENTAR_STOCK_URI =
-            Pattern.compile("^/api/productos/[^/]+/decrementar-stock$");
+    private static final Pattern INTERNAL_ONLY_URI =
+            Pattern.compile("^/api/productos/[^/]+/(decrementar-stock|registrar-devolucion|reservar-stock)$");
 
     @Value("${internal.service.key}")
     private String expectedKey;
@@ -26,10 +26,10 @@ public class InternalKeyFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        boolean isDecrementarStock = "PATCH".equalsIgnoreCase(request.getMethod())
-                && DECREMENTAR_STOCK_URI.matcher(request.getRequestURI()).matches();
+        boolean isInternalOnly = "PATCH".equalsIgnoreCase(request.getMethod())
+                && INTERNAL_ONLY_URI.matcher(request.getRequestURI()).matches();
 
-        if (isDecrementarStock) {
+        if (isInternalOnly) {
             String key = request.getHeader("X-Internal-Key");
             if (expectedKey == null || !expectedKey.equals(key)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);

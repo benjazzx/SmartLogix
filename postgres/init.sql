@@ -5,3 +5,4 @@ CREATE DATABASE "Inventario";
 CREATE DATABASE "Producto";
 CREATE DATABASE "Orden";
 CREATE DATABASE "Configuracion";
+dame

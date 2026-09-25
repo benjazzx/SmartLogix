@@ -20,6 +20,8 @@
 
   <properties>
     <java.version>21</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <jacoco.version>0.8.11</jacoco.version>
     <sonar.projectKey>Configuracion.example:Configuracion</sonar.projectKey>
     <sonar.organization>benjazzx</sonar.organization>

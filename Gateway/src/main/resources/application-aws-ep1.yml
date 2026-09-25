@@ -1,0 +1,18 @@
+# Perfil activo solo en el despliegue EC2 de la EP1/EP2 DSY1107 (Pedidos360 en AWS).
+# En el despliegue GCP normal este perfil no se activa y nada de esto se carga.
+cognito:
+  user-pool-id: ${COGNITO_USER_POOL_ID}
+  region: ${COGNITO_REGION}
+  client-id: ${COGNITO_CLIENT_ID}
+  issuer-uri: https://cognito-idp.${cognito.region}.amazonaws.com/${cognito.user-pool-id}
+
+internal:
+  service:
+    key: ${INTERNAL_SERVICE_KEY}
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${cognito.issuer-uri}

@@ -35,7 +35,7 @@ public class OrdenController {
     @Autowired
     private OrdenService ordenService;
 
-    @Operation(summary = "Crear nueva orden (solo cliente)")
+    @Operation(summary = "Crear nueva orden (cliente, admin u operador)")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Orden creada correctamente"),
         @ApiResponse(responseCode = "400", description = "Datos inválidos")
@@ -139,7 +139,33 @@ public class OrdenController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(403).body(Map.of(KEY_ERROR, e.getMessage()));
+            log.error("Error al solicitar devolución id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(KEY_ERROR, "Error interno al procesar la solicitud"));
+        }
+    }
+
+    @Operation(summary = "Resolver una devolución solicitada (admin, bodeguero)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Devolución resuelta correctamente"),
+        @ApiResponse(responseCode = "409", description = "La orden no tiene una devolución pendiente")
+    })
+    @PostMapping("/{id}/resolver-devolucion")
+    public ResponseEntity<Object> resolverDevolucion(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
+        UUID userId = (UUID) request.getAttribute(ATTR_USER_ID);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of(KEY_ERROR, TOKEN_INVALIDO));
+        boolean aprobada = Boolean.TRUE.equals(body.get("aprobada"));
+        boolean danado = Boolean.TRUE.equals(body.get("danado"));
+        String comentario = body.get("comentario") != null ? body.get("comentario").toString() : null;
+        try {
+            return ResponseEntity.ok(ordenService.resolverDevolucion(id, aprobada, danado, comentario));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Error al resolver devolución id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(KEY_ERROR, "Error interno al procesar la solicitud"));
         }
     }
 

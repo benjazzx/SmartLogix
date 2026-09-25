@@ -96,7 +96,7 @@ class SecurityConfigTest {
         DefaultSecurityFilterChain chain = mock(DefaultSecurityFilterChain.class);
         when(http.build()).thenReturn(chain);
 
-        SecurityFilterChain result = securityConfig.protectedFilterChain(http);
+        SecurityFilterChain result = securityConfig.protectedFilterChain(http, new org.springframework.beans.factory.support.DefaultListableBeanFactory().getBeanProvider(org.springframework.security.oauth2.jwt.JwtDecoder.class));
 
         assertNotNull(result);
         verify(http).build();

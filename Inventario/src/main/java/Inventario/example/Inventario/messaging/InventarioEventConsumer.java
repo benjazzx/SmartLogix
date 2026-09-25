@@ -1,6 +1,5 @@
 package Inventario.example.Inventario.messaging;
 
-import Inventario.example.Inventario.client.ProductoClient;
 import Inventario.example.Inventario.dto.OrdenCreadaEvent;
 import Inventario.example.Inventario.dto.ProductoUbicacionChangedEvent;
 import Inventario.example.Inventario.model.EstanteModel;
@@ -25,7 +24,6 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class InventarioEventConsumer {
 
-    private final ProductoClient productoClient;
     private final EstanteRepository estanteRepository;
     private final EstPasiRepository estPasiRepository;
     private final AlertaBodegaService alertaBodegaService;
@@ -50,22 +48,15 @@ public class InventarioEventConsumer {
         };
     }
 
+    // Orden ya reserva el stock de forma síncrona y atómica al crear el pedido (ver
+    // OrdenService.createOrden / ProductoClient.reservarStock en el servicio Orden). Este
+    // consumer NO debe volver a descontar — solo deja registro de que la orden llegó, para
+    // trazabilidad. Descontar aquí también duplicaría el descuento de stock por cada pedido.
     private void procesarDetalle(OrdenCreadaEvent.DetalleDto detalle, OrdenCreadaEvent event) {
         try {
             if (detalle.getProductoId() == null || detalle.getCantidad() == null) return;
-            boolean existe = productoClient.existeProducto(detalle.getProductoId());
-            log.info("[Inventario] Producto productoId={} cantidad={} existe={}",
-                    detalle.getProductoId(), detalle.getCantidad(), existe);
-            if (!existe) {
-                log.warn("[Inventario] Producto no encontrado en catálogo — productoId={}", detalle.getProductoId());
-                return;
-            }
-            boolean ok = productoClient.decrementarStock(detalle.getProductoId(), detalle.getCantidad(),
-                    event.getOrdenId(), event.getUserId(), event.getUserNombre());
-            if (!ok) {
-                log.warn("[Inventario] No se pudo decrementar stock — productoId={} cantidad={}",
-                        detalle.getProductoId(), detalle.getCantidad());
-            }
+            log.info("[Inventario] Detalle de orden registrado (stock ya reservado por Orden) — productoId={} cantidad={} ordenId={}",
+                    detalle.getProductoId(), detalle.getCantidad(), event.getOrdenId());
         } catch (Exception e) {
             log.error("[Inventario] Error procesando detalle productoId={}: {}", detalle.getProductoId(), e.getMessage());
         }

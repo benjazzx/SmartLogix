@@ -11,6 +11,20 @@ k8s/secrets.local.yaml
 # Datos de siembra con hashes de contraseñas reales — nunca versionar
 seed.sql
 
+# Terraform — variables reales (tenant IDs, contraseñas, claves) y artefactos locales
+*.tfvars
+terraform/aws-ep1/build/
+terraform/aws-ep1/.terraform/
+*.tfstate
+*.tfstate.*
+tfplan*
+
+# Backups locales, no se versionan
+*.bak
+
+# node_modules del Lambda Authorizer (se instala local antes de terraform apply)
+lambda-authorizer/node_modules/
+
 # Claude Code (interno)
 .claude/
 

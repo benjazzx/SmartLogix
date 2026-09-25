@@ -1,7 +1,9 @@
 package Orden.example.Orden.config;
 
+import Orden.example.Orden.security.BffTrustFilter;
 import Orden.example.Orden.security.JwtFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -32,10 +34,16 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private BffTrustFilter bffTrustFilter;
+
+    @Value("${cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -48,13 +56,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Solo el BFF llama a este servicio, no el navegador — el CORS lo pone el BFF.
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                // Solo cliente crea ordenes y ve las suyas
-                .requestMatchers(HttpMethod.POST, "/api/ordenes").hasRole(ROL_CLIENTE)
+                // Cliente, admin y operador crean órdenes.
+                .requestMatchers(HttpMethod.POST, "/api/ordenes").hasAnyRole(ROL_CLIENTE, ROL_ADMIN, ROL_BODEGUERO)
                 .requestMatchers(HttpMethod.GET,  "/api/ordenes/mis-ordenes").hasRole(ROL_CLIENTE)
                 // Admin, bodeguero y transportista ven todas las ordenes y gestionan historial
                 .requestMatchers(HttpMethod.GET,  "/api/ordenes").hasAnyRole(ROL_ADMIN, ROL_BODEGUERO, ROL_TRANSPORTISTA)
@@ -63,9 +71,12 @@ public class SecurityConfig {
                 // Transportista: tomar o liberar una ruta
                 .requestMatchers(HttpMethod.POST, "/api/ordenes/*/tomar").hasRole(ROL_TRANSPORTISTA)
                 .requestMatchers(HttpMethod.POST, "/api/ordenes/*/liberar").hasRole(ROL_TRANSPORTISTA)
+                // Resolver devolución: solo admin y bodeguero
+                .requestMatchers(HttpMethod.POST, "/api/ordenes/*/resolver-devolucion").hasAnyRole(ROL_ADMIN, ROL_BODEGUERO)
                 // Ver orden por id e historial: cualquier autenticado (service filtra por propiedad)
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(bffTrustFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -1,0 +1,269 @@
+# Compose completo para el EC2 de la EP1/EP2 DSY1107 (Pedidos360 en AWS) — los 8
+# microservicios de SmartLogix. Solo Orden y Producto son parte del caso evaluado
+# (por eso son los únicos en Oracle/RDS); Users, Rol, Estado, Inventario y
+# Configuracion se suman para tener el sistema completo corriendo en AWS también,
+# usando un RDS Postgres (mismo motor de siempre, cero migración de JPA/Hibernate
+# para esos 5 — antes era Neon, pero se acabó la cuota gratuita mensual).
+#
+# Las variables de entorno con ${...} se leen de un archivo .env generado por
+# fetch-secrets.sh (que las trae de AWS Secrets Manager) — nunca están en texto
+# plano en este archivo ni en el repo.
+
+name: smartlogix-ec2
+
+services:
+
+  users-service:
+    image: ${USERS_IMAGE:-contenedorbenjaxio/smartlogix:users}
+    container_name: users-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: ${POSTGRES_USERS_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # RDS recien creado, sin tablas todavia — "update" las crea la primera vez que
+      # arranca (el codigo trae ddl-auto=validate por defecto, que solo verifica).
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # Perfil "dev" activa el DataInitializer que siembra las 4 cuentas legacy
+      # (admin/bodeguero/transportista/cliente@smartlogix.cl) — sin esto la base
+      # de Users queda vacia y el login legado nunca tiene con quien autenticar.
+      SPRING_PROFILES_ACTIVE: dev
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_BODEGUERO_PASSWORD: ${SEED_BODEGUERO_PASSWORD}
+      SEED_TRANSPORTISTA_PASSWORD: ${SEED_TRANSPORTISTA_PASSWORD}
+      SEED_CLIENTE_PASSWORD: ${SEED_CLIENTE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      ROL_SERVICE_URL: http://rol-service:8081
+      ESTADO_SERVICE_URL: http://estado-service:8086
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS}
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  rol-service:
+    image: ${ROL_IMAGE:-contenedorbenjaxio/smartlogix:rol}
+    container_name: rol-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: ${POSTGRES_ROL_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      USERS_SERVICE_URL: http://users-service:8082
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS}
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+    depends_on:
+      users-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/swagger-ui.html || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  estado-service:
+    image: ${ESTADO_IMAGE:-contenedorbenjaxio/smartlogix:estado}
+    container_name: estado-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: ${POSTGRES_ESTADO_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      USERS_SERVICE_URL: http://users-service:8082
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS}
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+    depends_on:
+      users-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8086/swagger-ui.html || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  configuracion-service:
+    image: ${CONFIGURACION_IMAGE:-contenedorbenjaxio/smartlogix:configuracion}
+    container_name: configuracion-service
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: ${POSTGRES_CONFIGURACION_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8087/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  producto-service:
+    image: ${PRODUCTO_IMAGE:-contenedorbenjaxio/smartlogix:producto}
+    container_name: producto-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: aws-ep1
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      ORACLE_JDBC_URL: ${PRODUCTO_ORACLE_JDBC_URL}
+      ORACLE_USERNAME: ${PRODUCTO_ORACLE_USERNAME}
+      ORACLE_PASSWORD: ${PRODUCTO_ORACLE_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      FOTO_STORAGE_PATH: /app/fotos
+      INVENTARIO_SERVICE_URL: http://inventario-service:8083
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS}
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+    volumes:
+      - fotos-data:/app/fotos
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/swagger-ui.html || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  inventario-service:
+    image: ${INVENTARIO_IMAGE:-contenedorbenjaxio/smartlogix:inventario}
+    container_name: inventario-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: ${POSTGRES_INVENTARIO_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
+      USERS_SERVICE_URL: http://users-service:8082
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS}
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+    depends_on:
+      producto-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/swagger-ui.html || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  orden-service:
+    image: ${ORDEN_IMAGE:-contenedorbenjaxio/smartlogix:orden}
+    container_name: orden-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: aws-ep1
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      ORACLE_JDBC_URL: ${ORDEN_ORACLE_JDBC_URL}
+      ORACLE_USERNAME: ${ORDEN_ORACLE_USERNAME}
+      ORACLE_PASSWORD: ${ORDEN_ORACLE_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      USERS_SERVICE_URL: http://users-service:8082
+      ESTADO_SERVICE_URL: http://estado-service:8086
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS}
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+    depends_on:
+      users-service:
+        condition: service_healthy
+      estado-service:
+        condition: service_healthy
+      producto-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  bff:
+    image: ${GATEWAY_IMAGE:-contenedorbenjaxio/smartlogix:gateway}
+    container_name: bff
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: aws-ep1
+      JWT_SECRET: ${JWT_SECRET}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID}
+      COGNITO_REGION: ${COGNITO_REGION}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      USERS_SERVICE_URL: http://users-service:8082
+      ROL_SERVICE_URL: http://rol-service:8081
+      ESTADO_SERVICE_URL: http://estado-service:8086
+      INVENTARIO_SERVICE_URL: http://inventario-service:8083
+      ORDEN_SERVICE_URL: http://orden-service:8084
+      PRODUCTO_SERVICE_URL: http://producto-service:8085
+      CONFIGURACION_SERVICE_URL: http://configuracion-service:8087
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+    depends_on:
+      users-service:
+        condition: service_healthy
+      rol-service:
+        condition: service_healthy
+      estado-service:
+        condition: service_healthy
+      inventario-service:
+        condition: service_healthy
+      orden-service:
+        condition: service_healthy
+      producto-service:
+        condition: service_healthy
+      configuracion-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+volumes:
+  fotos-data:
