@@ -13,6 +13,25 @@ name: smartlogix-ec2
 
 services:
 
+  # RabbitMQ: mensajeria EP3 (asignacion de bodega/pasillo al crear producto u orden).
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # UI de administracion
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   users-service:
     image: ${USERS_IMAGE:-contenedorbenjaxio/smartlogix:users}
     container_name: users-service
@@ -43,6 +62,13 @@ services:
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
       SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
       interval: 15s
@@ -147,8 +173,15 @@ services:
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
       SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     volumes:
       - fotos-data:/app/fotos
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/swagger-ui.html || exit 1"]
       interval: 15s
@@ -176,8 +209,14 @@ services:
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
       SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     depends_on:
       producto-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/swagger-ui.html || exit 1"]
@@ -208,12 +247,18 @@ services:
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
       SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     depends_on:
       users-service:
         condition: service_healthy
       estado-service:
         condition: service_healthy
       producto-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
@@ -267,3 +312,4 @@ services:
 
 volumes:
   fotos-data:
+  rabbitmq-data:
