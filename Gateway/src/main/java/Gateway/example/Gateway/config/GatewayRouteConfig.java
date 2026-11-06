@@ -118,6 +118,17 @@ public class GatewayRouteConfig {
                 .build();
     }
 
+    // Administración de RabbitMQ (colas, exchanges y bindings). Vive en Users; el rol admin
+    // lo exige el propio Users (SecurityConfig). El Gateway solo exige un JWT válido.
+    @Bean
+    public RouterFunction<ServerResponse> rabbitAdminRoute() {
+        return route("rabbit-admin")
+                .route(path("/api/rabbitmq/**"), http())
+                .before(uri(usersServiceUrl))
+                .filter(circuitBreaker("usersCircuitBreaker", "/fallback/users"))
+                .build();
+    }
+
     // ── Rol ──────────────────────────────────────────────────────────────────
 
     @Bean

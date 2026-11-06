@@ -25,6 +25,7 @@ API Gateway (BFF — Backend for Frontend) que centraliza el enrutamiento hacia 
 | `/api/direcciones,/api/direcciones/**` | `users-service:8082` | Requiere JWT |
 | `/api/regiones,/api/regiones/**` | `users-service:8082` | Requiere JWT |
 | `/api/comunas,/api/comunas/**` | `users-service:8082` | Requiere JWT |
+| `/api/rabbitmq/**` | `users-service:8082` | Requiere JWT; el rol `admin` lo exige Users (admin de colas/exchanges/bindings) |
 | `/api/roles/**` | `rol-service:8081` | Requiere JWT |
 | `/api/estados/**` | `estado-service:8086` | Requiere JWT |
 | `/api/tipos-estado/**` | `estado-service:8086` | Requiere JWT |
