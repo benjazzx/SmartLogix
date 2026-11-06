@@ -118,6 +118,18 @@ public class OrdenService {
         }
     }
 
+    // Lo invoca el consumidor RabbitMQ cuando Inventario asigna la bodega de despacho.
+    // Idempotente: si el mensaje se reentrega con la misma bodega, no cambia nada.
+    @Transactional
+    public void registrarBodegaDespacho(Long ordenId, String nombreBodega) {
+        OrdenModel orden = findOrdenOrThrow(ordenId);
+        if (nombreBodega.equals(orden.getBodegaDespacho())) {
+            return;
+        }
+        orden.setBodegaDespacho(nombreBodega);
+        ordenRepository.save(orden);
+    }
+
     @Transactional(readOnly = true)
     public OrdenResponseDto getById(Long id, UUID requestingUserId, String rolNombre) {
         OrdenModel orden = findOrdenOrThrow(id);

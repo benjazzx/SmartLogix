@@ -645,4 +645,55 @@ class OrdenServiceTest {
         assertNotNull(result);
         verify(usersClient, never()).getNombreUsuario(any()); // no debería llamar si ya viene en el dto
     }
+
+    // ── registrarBodegaDespacho (consumidor RabbitMQ) ────────────────────────
+
+    @Test
+    void registrarBodegaDespacho_guardaLaBodegaEnLaOrden() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        ordenService.registrarBodegaDespacho(1L, "Bodega Central");
+
+        assertEquals("Bodega Central", orden.getBodegaDespacho());
+        verify(ordenRepository).save(orden);
+    }
+
+    @Test
+    void registrarBodegaDespacho_mismaBodega_esIdempotenteYNoGuarda() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setBodegaDespacho("Bodega Central");
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        ordenService.registrarBodegaDespacho(1L, "Bodega Central");
+
+        verify(ordenRepository, never()).save(any());
+    }
+
+    @Test
+    void registrarBodegaDespacho_otraBodega_laActualiza() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setBodegaDespacho("Bodega Norte");
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        ordenService.registrarBodegaDespacho(1L, "Bodega Central");
+
+        assertEquals("Bodega Central", orden.getBodegaDespacho());
+        verify(ordenRepository).save(orden);
+    }
+
+    @Test
+    void registrarBodegaDespacho_ordenInexistente_lanzaExcepcion() {
+        when(ordenRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalStateException.class, () -> ordenService.registrarBodegaDespacho(99L, "Bodega Central"));
+    }
+
+    @Test
+    void ordenResponseDto_incluyeLaBodegaDeDespacho() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.setBodegaDespacho("Bodega Central");
+
+        assertEquals("Bodega Central", OrdenResponseDto.from(orden).getBodegaDespacho());
+    }
 }

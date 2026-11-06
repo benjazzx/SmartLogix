@@ -59,6 +59,11 @@ public class OrdenModel {
     @Column(name = "motivo_devolucion", length = 500)
     private String motivoDevolucion;
 
+    // Bodega desde la que se despachará la orden. La asigna Inventario de forma asíncrona
+    // (RabbitMQ, evento orden.bodega-asignada) y queda nula hasta que llega ese mensaje.
+    @Column(name = "bodega_despacho", length = 200)
+    private String bodegaDespacho;
+
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

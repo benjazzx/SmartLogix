@@ -23,6 +23,7 @@ public class OrdenResponseDto {
     private boolean tomada;
     private UUID transportistaId;
     private String transportistaNombre;
+    private String bodegaDespacho;
     private List<DetalleDto> detalles;
     private List<HistorialDto> historial;
 
@@ -38,6 +39,7 @@ public class OrdenResponseDto {
         dto.setTomada(orden.isTomada());
         dto.setTransportistaId(orden.getTransportistaId());
         dto.setTransportistaNombre(orden.getTransportistaNombre());
+        dto.setBodegaDespacho(orden.getBodegaDespacho());
         dto.setDetalles(orden.getDetalles().stream().map(DetalleDto::from).toList());
         dto.setHistorial(orden.getHistorial().stream().map(HistorialDto::from).toList());
         return dto;

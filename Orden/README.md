@@ -65,6 +65,15 @@ Cliente confirma entrega → último historial_orden con estado "Entregado"
 |---|---|---|
 | `orden-creada-topic` | Producer | Notifica a Producto service para descontar stock |
 
+### RabbitMQ
+| Routing key | Tipo | Descripción |
+|---|---|---|
+| `orden.creada` | Producer | Se publica tras el commit; Inventario elige la bodega de despacho |
+| `orden.bodega-asignada` | Consumer (`orden-bodega-asignada-queue`, DLQ `orden-bodega-asignada-dlq`) | Guarda la bodega en `orden.bodega_despacho` (se expone como `bodegaDespacho` en la respuesta) |
+
+> La columna `bodega_despacho VARCHAR(200)` es nueva. Con `ddl-auto=validate`, en una base existente ejecuta
+> `ALTER TABLE orden ADD COLUMN bodega_despacho VARCHAR(200);`
+
 ## Variables de entorno
 
 ```env
