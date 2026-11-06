@@ -6,8 +6,10 @@ import User.example.Users.dto.EstadoDto;
 import User.example.Users.dto.RolDto;
 import User.example.Users.dto.UserCreatedEvent;
 import User.example.Users.dto.UserRequestDto;
+import User.example.Users.dto.UsuarioRegistradoRabbitEvent;
 import User.example.Users.factory.UserFactory;
 import User.example.Users.messaging.UserEventProducer;
+import User.example.Users.messaging.UsuarioRabbitProducer;
 import User.example.Users.model.DireccionModel;
 import User.example.Users.model.UserModel;
 import User.example.Users.repository.DireccionRepository;
@@ -29,6 +31,7 @@ public class UserService {
     @Autowired private UserRepository userRepository;
     @Autowired private DireccionRepository direccionRepository;
     @Autowired private UserEventProducer eventProducer;
+    @Autowired private UsuarioRabbitProducer usuarioRabbitProducer;
     @Autowired private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
     @Autowired private RolClient rolClient;
     @Autowired private EstadoClient estadoClient;
@@ -148,6 +151,12 @@ public class UserService {
         eventProducer.publishUserCreated(new UserCreatedEvent(
             saved.getId(), saved.getCorreo(), saved.getRolNombre()
         ));
+
+        // RabbitMQ: onboarding asíncrono (Configuracion prepara las preferencias del usuario).
+        // Sale después del commit y su falla no aborta el registro.
+        usuarioRabbitProducer.publicarUsuarioRegistrado(
+            new UsuarioRegistradoRabbitEvent(saved.getId(), saved.getRolNombre())
+        );
 
         return saved;
     }

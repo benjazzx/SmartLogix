@@ -36,6 +36,7 @@ class UserServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private DireccionRepository direccionRepository;
     @Mock private UserEventProducer eventProducer;
+    @Mock private User.example.Users.messaging.UsuarioRabbitProducer usuarioRabbitProducer;
     @Mock private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
     @Mock private CircuitBreaker circuitBreaker;
     @Mock private RolClient rolClient;

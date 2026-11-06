@@ -1,7 +1,10 @@
 package User.example.Users.config;
 
+import User.example.Users.exception.RabbitAdminException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpConnectException;
+import org.springframework.amqp.AmqpException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -44,6 +47,25 @@ public class GlobalExceptionHandler {
         body.put("error", "Validación fallida");
         body.put("errores", errores);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    // RabbitMQ: nunca se devuelve el detalle interno del broker al cliente.
+    @ExceptionHandler(RabbitAdminException.class)
+    public ResponseEntity<Map<String, Object>> handleRabbitAdmin(RabbitAdminException ex) {
+        log.error("[Users] Falla de administración RabbitMQ: {}", ex.getMessage());
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ExceptionHandler(AmqpConnectException.class)
+    public ResponseEntity<Map<String, Object>> handleAmqpConnect(AmqpConnectException ex) {
+        log.error("[Users] RabbitMQ no disponible: {}", ex.getMessage());
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "RabbitMQ no disponible");
+    }
+
+    @ExceptionHandler(AmqpException.class)
+    public ResponseEntity<Map<String, Object>> handleAmqp(AmqpException ex) {
+        log.warn("[Users] RabbitMQ rechazó la operación: {}", ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, "RabbitMQ rechazó la operación (¿existe con otra configuración?)");
     }
 
     @ExceptionHandler(RuntimeException.class)

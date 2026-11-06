@@ -49,6 +49,19 @@ Microservicio de gestión de usuarios, autenticación JWT y direcciones geográf
 | POST | `/api/direcciones` | Crear dirección de entrega |
 | GET | `/api/direcciones/{id}` | Obtener dirección por ID |
 
+### Administración de RabbitMQ (rol admin, vía Gateway `/api/rabbitmq/**`)
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/rabbitmq/queues` · `/exchanges` · `/bindings` | Lista los recursos (API de management, puerto 15672) |
+| POST | `/api/rabbitmq/queues` | Crea una cola; opcional `deadLetterExchange`, `deadLetterRoutingKey`, `ttlMs` |
+| DELETE | `/api/rabbitmq/queues/{nombre}` | Elimina una cola |
+| POST | `/api/rabbitmq/exchanges` | Crea un exchange (`topic`, `direct` o `fanout`) |
+| DELETE | `/api/rabbitmq/exchanges/{nombre}` | Elimina un exchange |
+| POST | `/api/rabbitmq/bindings` | Crea un binding |
+| DELETE | `/api/rabbitmq/bindings?cola=&exchange=&routingKey=` | Elimina un binding (query params, sin cuerpo) |
+
+Los recursos de la aplicación (`rabbitmq.admin.protected-names`) no se pueden eliminar y los nombres `amq.*` están reservados.
+
 ## Modelos de base de datos
 
 ```
@@ -65,6 +78,11 @@ direccion      → id, calle, numero, codigo_postal, comuna_id
 | `user-created-topic` | Producer | Se publica al registrar un usuario |
 | `role-assigned-topic` | Consumer | Recibe asignación de rol desde Rol service |
 | `estado-assigned-topic` | Consumer | Recibe asignación de estado desde Estado service |
+
+### RabbitMQ
+| Routing key | Exchange | Tipo | Descripción |
+|---|---|---|---|
+| `usuario.registrado` | `usuarios-exchange` | Producer | Se publica tras el commit al crear un usuario; lo consume Configuracion |
 
 ## Variables de entorno
 

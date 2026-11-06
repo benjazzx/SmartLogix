@@ -30,6 +30,33 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleRabbitAdmin_retorna503SinDetalleInterno() {
+        ResponseEntity<Map<String, Object>> response = handler.handleRabbitAdmin(
+                new User.example.Users.exception.RabbitAdminException("No se pudo consultar RabbitMQ", new RuntimeException("conn refused 10.0.0.5")));
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals("No se pudo consultar RabbitMQ", response.getBody().get("mensaje"));
+    }
+
+    @Test
+    void handleAmqpConnect_retorna503() {
+        ResponseEntity<Map<String, Object>> response = handler.handleAmqpConnect(
+                new org.springframework.amqp.AmqpConnectException(new java.net.ConnectException("refused")));
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals("RabbitMQ no disponible", response.getBody().get("mensaje"));
+    }
+
+    @Test
+    void handleAmqp_retorna409SinDetalleDelBroker() {
+        ResponseEntity<Map<String, Object>> response = handler.handleAmqp(
+                new org.springframework.amqp.AmqpException("PRECONDITION_FAILED - inequivalent arg 'x-message-ttl'"));
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertFalse(String.valueOf(response.getBody().get("mensaje")).contains("PRECONDITION_FAILED"));
+    }
+
+    @Test
     void handleConflict_retorna409ConMensaje() {
         ResponseEntity<Map<String, Object>> response =
                 handler.handleConflict(new IllegalArgumentException("argumento invalido"));
