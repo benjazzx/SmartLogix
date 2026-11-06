@@ -49,6 +49,24 @@ services:
       timeout: 10s
       retries: 10
 
+  # RabbitMQ: mensajeria para tareas asincronas (notificaciones), separada de Kafka.
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # UI de administracion
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   # Kafdrop: UI web para monitorear topics y mensajes de Kafka.
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
@@ -82,15 +100,22 @@ services:
       ROL_SERVICE_URL: http://rol-service:8081
       ESTADO_SERVICE_URL: http://estado-service:8086
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
       SEED_BODEGUERO_PASSWORD: ${SEED_BODEGUERO_PASSWORD}
       SEED_TRANSPORTISTA_PASSWORD: ${SEED_TRANSPORTISTA_PASSWORD}
       SEED_CLIENTE_PASSWORD: ${SEED_CLIENTE_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/swagger-ui.html || exit 1"]
@@ -180,10 +205,16 @@ services:
       USERS_SERVICE_URL: http://users-service:8082
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       producto-service:
         condition: service_healthy
@@ -214,12 +245,18 @@ services:
       INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
       FOTO_STORAGE_PATH: /app/fotos
       INVENTARIO_SERVICE_URL: http://inventario-service:8083
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     volumes:
       - fotos-data:/app/fotos
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/swagger-ui.html || exit 1"]
@@ -248,10 +285,17 @@ services:
       ESTADO_SERVICE_URL: http://estado-service:8086
       PRODUCTO_SERVICE_URL: http://producto-service:8085
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-changeme-internal-key}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       users-service:
         condition: service_healthy
@@ -331,3 +375,4 @@ volumes:
   fotos-data:
   postgres-data:
   kafka-data:
+  rabbitmq-data:

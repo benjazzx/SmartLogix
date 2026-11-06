@@ -42,3 +42,6 @@ target/
 # OS
 .DS_Store
 Thumbs.db
+
+# Herramientas de testing descargadas localmente (binarios de terceros, no es código propio)
+jmeter/

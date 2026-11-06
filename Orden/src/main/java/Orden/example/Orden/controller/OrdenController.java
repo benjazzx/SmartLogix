@@ -2,6 +2,7 @@ package Orden.example.Orden.controller;
 
 import Orden.example.Orden.dto.OrdenRequestDto;
 import Orden.example.Orden.dto.OrdenResponseDto;
+import Orden.example.Orden.exception.ServicioOcupadoException;
 import Orden.example.Orden.service.OrdenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,7 +39,8 @@ public class OrdenController {
     @Operation(summary = "Crear nueva orden (cliente, admin u operador)")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Orden creada correctamente"),
-        @ApiResponse(responseCode = "400", description = "Datos inválidos")
+        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+        @ApiResponse(responseCode = "503", description = "Servicio de productos temporalmente saturado")
     })
     @PostMapping
     public ResponseEntity<Object> createOrden(
@@ -50,6 +52,11 @@ public class OrdenController {
         }
         try {
             return ResponseEntity.ok(ordenService.createOrden(dto, userId));
+        } catch (ServicioOcupadoException e) {
+            // Falla transitoria (circuit breaker abierto, timeout) -- no es que el producto no
+            // exista o no haya stock, es que el sistema esta momentaneamente saturado.
+            log.warn("Servicio ocupado al crear orden para userId={}: {}", userId, e.getMessage());
+            return ResponseEntity.status(503).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (RuntimeException e) {
             log.error("Error al crear orden para userId={}: {}", userId, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));

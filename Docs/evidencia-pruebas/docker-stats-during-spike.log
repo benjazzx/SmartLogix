@@ -1,0 +1,150 @@
+--- 18:57:11 ---
+orden-service	119.98%	633.3MiB / 7.699GiB
+producto-service	104.22%	591.8MiB / 7.699GiB
+users-service	98.35%	586.2MiB / 7.699GiB
+postgres	50.25%	90.79MiB / 7.699GiB
+--- 18:57:16 ---
+orden-service	0.13%	632.8MiB / 7.699GiB
+producto-service	0.16%	591.6MiB / 7.699GiB
+users-service	0.30%	586.7MiB / 7.699GiB
+postgres	0.03%	90.75MiB / 7.699GiB
+--- 18:57:20 ---
+orden-service	0.14%	632.5MiB / 7.699GiB
+producto-service	14.49%	591.4MiB / 7.699GiB
+users-service	0.40%	588MiB / 7.699GiB
+postgres	0.06%	89.39MiB / 7.699GiB
+--- 18:57:24 ---
+orden-service	0.09%	631.6MiB / 7.699GiB
+producto-service	0.17%	590.8MiB / 7.699GiB
+users-service	0.26%	587.8MiB / 7.699GiB
+postgres	0.00%	89.38MiB / 7.699GiB
+--- 18:57:28 ---
+orden-service	0.09%	631.6MiB / 7.699GiB
+producto-service	0.15%	590.8MiB / 7.699GiB
+users-service	0.25%	588.7MiB / 7.699GiB
+postgres	5.15%	90.9MiB / 7.699GiB
+--- 18:57:32 ---
+orden-service	0.10%	631.9MiB / 7.699GiB
+producto-service	0.19%	590.8MiB / 7.699GiB
+users-service	0.29%	588.6MiB / 7.699GiB
+postgres	0.69%	90.03MiB / 7.699GiB
+--- 18:57:37 ---
+orden-service	0.18%	631.6MiB / 7.699GiB
+producto-service	0.19%	590.8MiB / 7.699GiB
+users-service	0.27%	589.8MiB / 7.699GiB
+postgres	0.01%	90.02MiB / 7.699GiB
+--- 18:57:41 ---
+orden-service	0.15%	631.6MiB / 7.699GiB
+producto-service	0.25%	591MiB / 7.699GiB
+users-service	0.39%	590.2MiB / 7.699GiB
+postgres	0.00%	88.26MiB / 7.699GiB
+--- 18:57:45 ---
+orden-service	0.15%	631.6MiB / 7.699GiB
+producto-service	0.24%	590.8MiB / 7.699GiB
+users-service	0.38%	590.4MiB / 7.699GiB
+postgres	0.00%	88.19MiB / 7.699GiB
+--- 18:57:50 ---
+orden-service	0.11%	631.6MiB / 7.699GiB
+producto-service	0.29%	590.8MiB / 7.699GiB
+users-service	0.35%	591.8MiB / 7.699GiB
+postgres	0.59%	88.27MiB / 7.699GiB
+--- 18:57:54 ---
+orden-service	0.12%	631.6MiB / 7.699GiB
+producto-service	0.20%	590.8MiB / 7.699GiB
+users-service	0.28%	591.7MiB / 7.699GiB
+postgres	0.01%	88.2MiB / 7.699GiB
+--- 18:57:58 ---
+orden-service	0.12%	631.6MiB / 7.699GiB
+producto-service	0.21%	590.8MiB / 7.699GiB
+users-service	0.28%	592MiB / 7.699GiB
+postgres	5.83%	88.31MiB / 7.699GiB
+--- 18:58:02 ---
+orden-service	0.11%	631.6MiB / 7.699GiB
+producto-service	0.21%	590.8MiB / 7.699GiB
+users-service	0.30%	592MiB / 7.699GiB
+postgres	0.76%	87.12MiB / 7.699GiB
+--- 18:58:07 ---
+orden-service	0.10%	631.6MiB / 7.699GiB
+producto-service	0.18%	591MiB / 7.699GiB
+users-service	0.24%	593MiB / 7.699GiB
+postgres	0.56%	87.12MiB / 7.699GiB
+--- 18:58:11 ---
+orden-service	0.14%	631.6MiB / 7.699GiB
+producto-service	0.28%	590.8MiB / 7.699GiB
+users-service	0.32%	593MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:58:15 ---
+orden-service	0.11%	619.4MiB / 7.699GiB
+producto-service	0.23%	590.8MiB / 7.699GiB
+users-service	0.25%	592.6MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:58:19 ---
+orden-service	0.10%	619.4MiB / 7.699GiB
+producto-service	3.22%	590.8MiB / 7.699GiB
+users-service	3.20%	592.7MiB / 7.699GiB
+postgres	0.01%	87.13MiB / 7.699GiB
+--- 18:58:24 ---
+orden-service	2.30%	619.3MiB / 7.699GiB
+producto-service	0.23%	590.8MiB / 7.699GiB
+users-service	0.35%	592.7MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:58:27 ---
+orden-service	0.19%	619.3MiB / 7.699GiB
+producto-service	0.23%	590.8MiB / 7.699GiB
+users-service	0.38%	592.7MiB / 7.699GiB
+postgres	0.61%	87.12MiB / 7.699GiB
+--- 18:58:31 ---
+orden-service	0.13%	619.3MiB / 7.699GiB
+producto-service	0.17%	590.8MiB / 7.699GiB
+users-service	0.25%	592.7MiB / 7.699GiB
+postgres	0.01%	87.12MiB / 7.699GiB
+--- 18:58:35 ---
+orden-service	0.10%	619.3MiB / 7.699GiB
+producto-service	0.33%	590.8MiB / 7.699GiB
+users-service	4.00%	592.9MiB / 7.699GiB
+postgres	0.03%	87.12MiB / 7.699GiB
+--- 18:58:40 ---
+orden-service	0.12%	619.3MiB / 7.699GiB
+producto-service	0.17%	590.8MiB / 7.699GiB
+users-service	0.26%	592.9MiB / 7.699GiB
+postgres	0.02%	87.12MiB / 7.699GiB
+--- 18:58:44 ---
+orden-service	0.11%	619.3MiB / 7.699GiB
+producto-service	0.25%	590.8MiB / 7.699GiB
+users-service	0.31%	592.9MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:58:48 ---
+orden-service	0.11%	619.3MiB / 7.699GiB
+producto-service	0.18%	590.8MiB / 7.699GiB
+users-service	0.29%	592.9MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:58:52 ---
+orden-service	0.13%	619.3MiB / 7.699GiB
+producto-service	0.17%	590.8MiB / 7.699GiB
+users-service	0.33%	593MiB / 7.699GiB
+postgres	0.05%	87.12MiB / 7.699GiB
+--- 18:58:56 ---
+orden-service	0.12%	619.3MiB / 7.699GiB
+producto-service	0.22%	590.8MiB / 7.699GiB
+users-service	0.24%	593MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:59:01 ---
+orden-service	0.13%	619.3MiB / 7.699GiB
+producto-service	0.20%	590.8MiB / 7.699GiB
+users-service	0.26%	593MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB
+--- 18:59:05 ---
+orden-service	0.11%	619.3MiB / 7.699GiB
+producto-service	3.03%	590.8MiB / 7.699GiB
+users-service	0.34%	593.2MiB / 7.699GiB
+postgres	0.03%	87.12MiB / 7.699GiB
+--- 18:59:09 ---
+orden-service	2.49%	619.5MiB / 7.699GiB
+producto-service	0.20%	590.8MiB / 7.699GiB
+users-service	0.28%	593.2MiB / 7.699GiB
+postgres	5.28%	87.12MiB / 7.699GiB
+--- 18:59:14 ---
+orden-service	0.12%	619.3MiB / 7.699GiB
+producto-service	0.17%	590.8MiB / 7.699GiB
+users-service	0.26%	593.2MiB / 7.699GiB
+postgres	0.00%	87.12MiB / 7.699GiB

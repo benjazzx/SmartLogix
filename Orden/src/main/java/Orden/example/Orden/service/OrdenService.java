@@ -4,10 +4,13 @@ import Orden.example.Orden.client.EstadoClient;
 import Orden.example.Orden.client.ProductoClient;
 import Orden.example.Orden.client.UsersClient;
 import Orden.example.Orden.dto.*;
+import Orden.example.Orden.exception.ServicioOcupadoException;
 import Orden.example.Orden.factory.OrdenFactory;
 import Orden.example.Orden.model.DetalleOrdenModel;
 import Orden.example.Orden.model.HistorialModel;
 import Orden.example.Orden.model.OrdenModel;
+import Orden.example.Orden.dto.OrdenCreadaRabbitEvent;
+import Orden.example.Orden.messaging.LogisticaRabbitProducer;
 import Orden.example.Orden.messaging.OrdenEventProducer;
 import Orden.example.Orden.repository.HistorialRepository;
 import Orden.example.Orden.repository.OrdenRepository;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -35,6 +39,7 @@ public class OrdenService {
     @Autowired private EstadoClient estadoClient;
     @Autowired private ProductoClient productoClient;
     @Autowired private OrdenEventProducer eventProducer;
+    @Autowired private LogisticaRabbitProducer logisticaRabbitProducer;
 
     @Transactional
     public OrdenResponseDto createOrden(OrdenRequestDto dto, UUID userId) {
@@ -51,15 +56,25 @@ public class OrdenService {
         List<DetalleOrdenModel> detalles = new ArrayList<>();
         List<OrdenRequestDto.DetalleDto> reservados = new ArrayList<>();
         for (OrdenRequestDto.DetalleDto d : dto.getDetalles()) {
-            var productoData = productoClient.getProducto(d.getProductoId());
-            if (productoData == null) {
+            Map<String, Object> productoData;
+            boolean reservado;
+            try {
+                productoData = productoClient.getProducto(d.getProductoId());
+                if (productoData == null) {
+                    revertirReservas(reservados, saved.getId());
+                    throw new IllegalStateException(
+                        "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
+                }
+                // Reserva atómica (check + descuento en un solo UPDATE en Producto) — evita que dos
+                // pedidos concurrentes lean el mismo stock "disponible" y ambos pasen la validación.
+                reservado = productoClient.reservarStock(d.getProductoId(), d.getCantidad(), saved.getId());
+            } catch (ServicioOcupadoException e) {
+                // Falla transitoria (circuit breaker abierto, timeout) a mitad del loop: hay que
+                // devolver el stock ya reservado de items anteriores antes de propagar el error,
+                // igual que en los rechazos de negocio de arriba.
                 revertirReservas(reservados, saved.getId());
-                throw new IllegalStateException(
-                    "Producto no disponible: " + d.getProductoId() + ". Intente nuevamente más tarde.");
+                throw e;
             }
-            // Reserva atómica (check + descuento en un solo UPDATE en Producto) — evita que dos
-            // pedidos concurrentes lean el mismo stock "disponible" y ambos pasen la validación.
-            boolean reservado = productoClient.reservarStock(d.getProductoId(), d.getCantidad(), saved.getId());
             if (!reservado) {
                 revertirReservas(reservados, saved.getId());
                 throw new IllegalStateException(
@@ -87,6 +102,10 @@ public class OrdenService {
                 .toList()
         );
         eventProducer.publishOrdenCreada(event);
+
+        // RabbitMQ (EP3 DSY1107): tarea asincrona, Inventario asigna la bodega de
+        // despacho en segundo plano sin bloquear la respuesta de creacion de la orden.
+        logisticaRabbitProducer.publicarOrdenCreada(new OrdenCreadaRabbitEvent(saved.getId(), userId));
 
         return OrdenResponseDto.from(saved);
     }
@@ -322,6 +341,12 @@ public class OrdenService {
 
         // Estado fuera de la secuencia principal (ej. devolución), no se valida acá.
         if (idxNuevo < 0) {
+            return;
+        }
+        // El cliente confirma recepción reenviando "entregado" sobre una orden que el
+        // transportista ya marcó como tal — no es un avance, es una reconfirmación idempotente.
+        int idxEntregado = SECUENCIA_ESTADOS.indexOf("entregado");
+        if (idxNuevo == idxEntregado && idxActual == idxEntregado) {
             return;
         }
         if (idxNuevo != idxActual + 1) {

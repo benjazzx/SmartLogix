@@ -24,6 +24,7 @@ class SecurityConfigTest {
     void setUp() {
         securityConfig = new SecurityConfig();
         ReflectionTestUtils.setField(securityConfig, "jwtSecret", SECRET);
+        ReflectionTestUtils.setField(securityConfig, "allowedOrigins", "http://localhost:4200");
     }
 
     private boolean isPublic(String uri) {

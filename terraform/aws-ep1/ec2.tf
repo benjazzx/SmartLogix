@@ -35,16 +35,16 @@ resource "aws_launch_template" "bff_host" {
       -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
 
-    export HOME=/root AWS_REGION=us-east-1
+    export HOME=/root AWS_REGION=${var.aws_region}
     mkdir -p /opt/smartlogix
     cd /opt/smartlogix
-    aws s3 cp s3://smartlogix-deploy-temp-427744211591/docker-compose.ec2.yml .
-    aws s3 cp s3://smartlogix-deploy-temp-427744211591/fetch-secrets.sh .
+    aws s3 cp s3://${local.deploy_bucket_name}/docker-compose.ec2.yml .
+    aws s3 cp s3://${local.deploy_bucket_name}/fetch-secrets.sh .
     chmod +x fetch-secrets.sh
     export COGNITO_USER_POOL_ID=${aws_cognito_user_pool.pedidos360.id}
     export COGNITO_CLIENT_ID=${aws_cognito_user_pool_client.frontend.id}
-    export COGNITO_REGION=us-east-1
-    export FRONTEND_URL=https://smart-logix-rho.vercel.app
+    export COGNITO_REGION=${var.aws_region}
+    export FRONTEND_URL=${var.frontend_url}
     export POSTGRES_ENDPOINT=${aws_db_instance.postgres.endpoint}
     export POSTGRES_SECRET_ARN=${aws_db_instance.postgres.master_user_secret[0].secret_arn}
     ./fetch-secrets.sh
@@ -84,4 +84,9 @@ resource "aws_autoscaling_group" "bff" {
     value               = "${var.project_name}-bff-host"
     propagate_at_launch = true
   }
+
+  # El user_data solo referencia el bucket (deploy_assets.tf), no los objetos —
+  # sin esto Terraform podría lanzar la instancia antes de terminar de subir
+  # docker-compose.ec2.yml/fetch-secrets.sh, y el "aws s3 cp" del arranque fallaría.
+  depends_on = [aws_s3_object.docker_compose_ec2, aws_s3_object.fetch_secrets]
 }

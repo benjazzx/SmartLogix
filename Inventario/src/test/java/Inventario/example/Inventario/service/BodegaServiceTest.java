@@ -5,6 +5,8 @@ import Inventario.example.Inventario.dto.BodegaResponseDTO;
 import Inventario.example.Inventario.messaging.InventarioEventProducer;
 import Inventario.example.Inventario.model.BodegaModel;
 import Inventario.example.Inventario.repository.BodegaRepository;
+import Inventario.example.Inventario.repository.EstanteRepository;
+import Inventario.example.Inventario.repository.PasilloRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,12 @@ class BodegaServiceTest {
 
     @Mock
     private BodegaRepository bodegaRepository;
+
+    @Mock
+    private PasilloRepository pasilloRepository;
+
+    @Mock
+    private EstanteRepository estanteRepository;
 
     @Mock
     private InventarioEventProducer eventProducer;
@@ -200,6 +208,8 @@ class BodegaServiceTest {
         BodegaModel bodega = bodegaSample();
         when(bodegaRepository.findById(1L)).thenReturn(Optional.of(bodega));
         when(bodegaRepository.save(any())).thenReturn(bodega);
+        when(estanteRepository.findByBodegaId(1L)).thenReturn(new ArrayList<>());
+        when(pasilloRepository.findByBodega_IdBodega(1L)).thenReturn(new ArrayList<>());
         doNothing().when(eventProducer).publishBodegaActualizada(any());
 
         bodegaService.eliminar(1L);

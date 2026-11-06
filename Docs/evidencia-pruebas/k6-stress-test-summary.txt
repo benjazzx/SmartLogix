@@ -1,0 +1,21 @@
+k6 — Prueba de ESTRES (stress-test.js)
+Target: http://localhost:80 (Gateway)
+Escenario: ramping-vus progresivo — 20 -> 50 -> 100 -> 150 VUs (30s cada escalon), luego 0
+Endpoint probado: GET /api/productos
+Fecha: 2026-10-22
+
+RESULTADOS
+  checks_total........: 31174   (100% succeeded, 0% failed)
+  http_reqs...........: 31174   207.49/s
+  http_req_duration...: avg=6.79ms  min=2.42ms  med=5.41ms  max=292.68ms  p(90)=9.76ms  p(95)=13.59ms
+  http_req_failed.....: 0.00%
+  vus_max.............: 150
+
+CONCLUSION HONESTA: el sistema no se degrado ni fallo ni siquiera en el pico de 150
+usuarios concurrentes (207 req/s sostenidos, p95 de solo 13.6ms). Esto es un resultado
+positivo, pero significa que ESTA prueba NO encontro el punto de quiebre real del
+sistema -- el endpoint evaluado (GET /api/productos, lectura simple) es liviano y el
+catalogo de prueba es pequeno. Para encontrar un punto de quiebre genuino haria falta
+una carga bastante mayor (300-500+ VUs) o un endpoint mas costoso (ej. POST /api/ordenes,
+que involucra escritura + llamadas a otros microservicios). Se documenta como limitacion
+conocida de esta prueba, no como "el sistema aguanta cualquier carga".

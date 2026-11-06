@@ -84,7 +84,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void jwtInvalido_capturaExcepcion_continuaSinAutenticar() throws Exception {
+    void jwtInvalido_rechazaConUnauthorized_sinContinuarCadena() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer token.invalido.aqui");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -92,8 +92,11 @@ class JwtAuthFilterTest {
 
         filter.doFilter(request, response, chain);
 
+        // Sin decoder de Cognito configurado, un JWT legado invalido corta la cadena con 401
+        // en vez de dejarlo pasar sin autenticar (ver JwtAuthFilter.exchangeCognitoToken).
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        assertNotNull(chain.getRequest(), "El filtro continúa aunque el token sea inválido");
+        assertEquals(401, response.getStatus());
+        assertNull(chain.getRequest(), "El filtro no debe continuar la cadena con un token invalido");
     }
 
     @Test

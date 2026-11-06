@@ -4,6 +4,7 @@ import Orden.example.Orden.client.EstadoClient;
 import Orden.example.Orden.client.ProductoClient;
 import Orden.example.Orden.client.UsersClient;
 import Orden.example.Orden.dto.*;
+import Orden.example.Orden.messaging.LogisticaRabbitProducer;
 import Orden.example.Orden.messaging.OrdenEventProducer;
 import Orden.example.Orden.model.DetalleOrdenModel;
 import Orden.example.Orden.model.HistorialModel;
@@ -41,6 +42,7 @@ class OrdenServiceTest {
     @Mock private EstadoClient estadoClient;
     @Mock private ProductoClient productoClient;
     @Mock private OrdenEventProducer eventProducer;
+    @Mock private LogisticaRabbitProducer logisticaRabbitProducer;
 
     @BeforeEach
     void setUp() {
@@ -259,7 +261,7 @@ class OrdenServiceTest {
 
     @Test
     void getAll_debeRetornarTodasLasOrdenes() {
-        when(ordenRepository.findAll()).thenReturn(List.of(
+        when(ordenRepository.findAllWithDetails()).thenReturn(List.of(
                 ordenSample(UUID.randomUUID()),
                 ordenSample(UUID.randomUUID())
         ));
@@ -351,6 +353,28 @@ class OrdenServiceTest {
 
         assertNotNull(result);
         verify(historialRepository, times(1)).save(any());
+    }
+
+    @Test
+    void addHistorial_saltoDeEstadoPendienteAEntregado_debeLanzarExcepcion() {
+        UUID userId = UUID.randomUUID();
+        UUID estadoId = UUID.randomUUID();
+        OrdenModel orden = ordenSample(userId);
+        orden.setEstadoActual("pendiente");
+
+        HistorialRequestDto dto = new HistorialRequestDto();
+        dto.setEstadoId(estadoId);
+        dto.setEstadoNombre("Entregado");
+        dto.setComentario("Intento de saltar directo a entregado");
+
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> ordenService.addHistorial(1L, dto, userId, ROL_ADMIN));
+
+        assertTrue(ex.getMessage().contains("siguiente estado válido"));
+        verify(historialRepository, never()).save(any());
+        verify(eventProducer, never()).publishEstadoOrden(any());
     }
 
     @Test

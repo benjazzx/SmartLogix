@@ -1,0 +1,53 @@
+env:
+  contexts:
+    - name: SmartLogix
+      urls:
+        - http://localhost:8081
+        - http://localhost:8082
+        - http://localhost:8083
+        - http://localhost:8084
+        - http://localhost:8085
+        - http://localhost:8086
+  parameters:
+    failOnError: false
+    progressToStdout: true
+jobs:
+  - type: openapi
+    parameters:
+      apiUrl: http://localhost:8081/api-docs
+      targetUrl: http://localhost:8081
+  - type: openapi
+    parameters:
+      apiUrl: http://localhost:8082/api-docs
+      targetUrl: http://localhost:8082
+  - type: openapi
+    parameters:
+      apiUrl: http://localhost:8083/api-docs
+      targetUrl: http://localhost:8083
+  - type: openapi
+    parameters:
+      apiUrl: http://localhost:8084/api-docs
+      targetUrl: http://localhost:8084
+  - type: openapi
+    parameters:
+      apiUrl: http://localhost:8085/api-docs
+      targetUrl: http://localhost:8085
+  - type: openapi
+    parameters:
+      apiUrl: http://localhost:8086/api-docs
+      targetUrl: http://localhost:8086
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+  - type: activeScan
+    parameters:
+      context: SmartLogix
+      maxDuration: 10
+      maxRuleDurationInMins: 2
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: C:\Users\pc nuevbvo\Desktop\Smart\Docs\evidencia-pruebas
+      reportFile: zap-report-apis-openapi
+      reportTitle: SmartLogix - Escaneo de seguridad de APIs (OpenAPI)
+      reportDescription: Escaneo activo de los 6 microservicios Spring Boot via sus contratos OpenAPI

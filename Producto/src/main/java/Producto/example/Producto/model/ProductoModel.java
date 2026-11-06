@@ -3,7 +3,9 @@ package Producto.example.Producto.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -51,8 +53,9 @@ public class ProductoModel {
     @Column(name = "estado_nombre", length = 50)
     private String estadoNombre;
 
-    // Imagen almacenada directamente en BD para que persista entre rebuilds del contenedor
-    @Lob
+    // Imagen almacenada directamente en BD para que persista entre rebuilds del contenedor.
+    // VARBINARY (no @Lob) mapea a bytea en Postgres y a BLOB en Oracle sin usar large objects.
+    @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(name = "imagen_data")
     private byte[] imagenData;
 

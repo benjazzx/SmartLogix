@@ -1,0 +1,29 @@
+k6 — Prueba de ESTRES sobre el camino de ESCRITURA (stress-test-write.js)
+Target: http://localhost:8084 (Orden, directo, mismo camino que usa el BFF via BffTrustFilter)
+Endpoint: POST /api/ordenes (reserva de stock + llamadas a Users/Producto + Kafka + Postgres)
+Escenario: ramping-vus — 10 -> 25 -> 50 -> 75 VUs (20s cada escalon), luego 0
+Producto usado: "sdvazsa" (id cd2a785e-070e-4ce7-b083-e83acfc2ad64), stock inicial 399
+Fecha: 2026-10-22
+
+RESULTADOS
+  http_reqs...........: 6226    62.10/s
+  Ordenes creadas (200): ~398 (hasta agotar stock)
+  Rechazos por stock (400): 5828 (93.6% del total -- rechazo de NEGOCIO, no error de sistema)
+  Errores 5xx.........: 0
+  Timeouts............: 0
+  http_req_duration (solo 200 exitosos): avg=48.14ms med=24.96ms p(90)=51.33ms p(95)=117.82ms max=538.85ms
+
+VERIFICACION POST-PRUEBA (contra la base real, no solo la metrica de k6)
+  Stock final del producto: 0 (exacto, NO negativo)
+  -> Confirma que la reserva atomica de stock (verificacion + descuento en una
+     sola operacion, documentada en el informe tecnico) se sostiene bajo
+     concurrencia real de 75 VUs simultaneos escribiendo sobre el mismo producto.
+     No se encontro overselling / condicion de carrera.
+
+CONCLUSION HONESTA: no se encontro el punto de quiebre de INFRAESTRUCTURA (cero
+500/502/503, cero timeouts incluso en el pico de escritura real). Lo que si se
+encontro fue el limite de NEGOCIO (inventario), y el sistema lo manejo de forma
+correcta: rechazo controlado con 400 en vez de corromper datos. La latencia de
+escritura (p95=117.8ms) es mayor que la de lectura (p95=13.6ms en stress-test.js)
+porque cada request hace trabajo real: 2 llamadas HTTP a otros microservicios,
+escritura en Postgres y publicacion a Kafka -- consistente con lo esperado.

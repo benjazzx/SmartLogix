@@ -93,6 +93,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/users/me").authenticated()
                 // Consulta interna servicio-a-servicio (Orden), protegida por InternalKeyFilter, no por JWT
                 .requestMatchers(HttpMethod.GET,    "/api/users/*/interno").permitAll()
+                // Microservicio administrador de RabbitMQ (EP3 DSY1107): solo admin
+                .requestMatchers("/api/rabbitmq/**").hasRole("admin")
                 // Solo ADMIN puede hacer CRUD de usuarios
                 .requestMatchers(HttpMethod.POST,   "/api/users/**").hasRole("admin")
                 .requestMatchers(HttpMethod.PUT,    "/api/users/**").hasRole("admin")

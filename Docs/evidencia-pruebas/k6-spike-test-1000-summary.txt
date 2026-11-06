@@ -1,0 +1,53 @@
+k6 — Prueba de PICO (spike-test-1000.js) — 1000 solicitudes
+Target: http://localhost:8084 (Orden, directo)
+Endpoint: POST /api/ordenes
+Ejecutor: shared-iterations, 100 VUs, 1000 iteraciones totales (sin rampa, disparo casi simultaneo)
+Producto usado: "dd" (id 3964b3ba-09f8-48f2-acb7-b5d2d415d767), stock inicial 99
+Fecha: 2026-10-22, 21:57 UTC
+
+RESULTADOS GLOBALES (k6)
+  Duracion real: 2.1s
+  http_reqs...........: 1000    465.15/s
+  http_req_duration (200 exitosos): avg=452.85ms med=453.07ms p(90)=772.87ms p(95)=814.9ms max=860.47ms
+  Codigos: 200=99, 400=901
+  5xx.................: 0
+  Timeouts............: 0
+
+DESGLOSE REAL DE LOS 901 RECHAZOS (logs de orden-service, no solo el status HTTP)
+  896 -- Circuit Breaker 'productoClient' ABIERTO ("Producto no disponible")
+   10 -- "Stock insuficiente" (rechazo de negocio genuino)
+  (99 + 10 = 109 intentos tocaron stock real; el resto del stock se agoto
+   dentro de la ventana en que el circuit breaker ya estaba cerrando el paso)
+
+SECUENCIA DEL CIRCUIT BREAKER
+  Se abrio a las 21:57:12.420, menos de 2s despues de iniciado el pico.
+  Ventana configurada: slidingWindowSize=10, minimumNumberOfCalls=5,
+  failureRateThreshold=50%, waitDurationInOpenState=10s.
+  Con 100 VUs simultaneos, Producto se saturo lo suficiente (ver CPU abajo)
+  para que >=5 de las primeras 10 llamadas fallaran/tardaran, disparando
+  la apertura casi instantanea.
+
+USO DE RECURSOS (docker stats, muestra durante el pico vs 5s despues)
+  Servicio            CPU durante pico   CPU 5s despues   Memoria (estable)
+  orden-service        119.98%            0.13%            ~632MB
+  producto-service     104.22%            0.16%            ~591MB
+  users-service         98.35%            0.30%            ~587MB
+  postgres              50.25%            0.03%            ~90MB
+
+ESTADO POST-PRUEBA
+  Los 11 contenedores (8 microservicios + Kafka + Postgres + Kafdrop) siguen
+  "healthy" inmediatamente despues de la prueba. Sin caidas, sin fugas de
+  memoria visibles, recuperacion de CPU en menos de 5 segundos.
+  Stock final del producto atacado: 0 (exacto, no negativo -- sin overselling).
+
+HALLAZGO PRINCIPAL
+  El sistema NO se cayo bajo 1000 solicitudes en pico -- se protegio
+  correctamente via circuit breaker, sin 5xx ni timeouts. PERO esto expone
+  un defecto real de experiencia de usuario, ya sospechado antes (ver
+  CP-33 / seccion de defectos del informe original): cuando el circuit
+  breaker se abre por saturacion transitoria, el mensaje que recibe el
+  usuario final es "Producto no disponible", indistinguible de un producto
+  realmente inexistente o agotado. De los 901 rechazos de esta prueba, el
+  99.4% (896) fueron por esta causa, no por falta real de stock. Recomendacion:
+  diferenciar el mensaje cuando la causa es CircuitBreaker OPEN (ej. "Sistema
+  ocupado, reintenta en unos segundos") de cuando es stock real agotado.

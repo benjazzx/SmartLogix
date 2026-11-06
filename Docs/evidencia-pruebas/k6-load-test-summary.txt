@@ -1,0 +1,19 @@
+k6 — Prueba de CARGA (load-test.js)
+Target: http://localhost:80 (Gateway)
+Escenario: ramping-vus — 0->10 VUs (30s), sostenido 10 VUs (1m), 10->0 VUs (30s)
+Endpoints probados: GET /actuator/health, GET /api/productos
+Fecha: 2026-10-22
+
+RESULTADOS
+  checks_total........: 2673    (100% succeeded, 0% failed)
+  http_reqs...........: 1782    14.77/s
+  http_req_duration...: avg=6.79ms  min=0.51ms  med=5.78ms  max=222.97ms  p(90)=12.88ms  p(95)=18.73ms
+  http_req_failed.....: 0.00%
+  iterations..........: 891
+
+THRESHOLDS
+  http_req_duration p(95)<500ms .... PASS (18.73ms)
+  http_req_failed rate<0.01 ........ PASS (0.00%)
+
+CONCLUSION: bajo carga normal esperada (10 usuarios concurrentes sostenidos), el sistema
+responde muy por debajo del umbral aceptable, sin ningun error. Rendimiento sano.

@@ -4,6 +4,7 @@ import Producto.example.Producto.client.InventarioClient;
 import Producto.example.Producto.dto.ProductoActualizadoEvent;
 import Producto.example.Producto.dto.ProductoRequestDTO;
 import Producto.example.Producto.dto.ProductoResponseDTO;
+import Producto.example.Producto.messaging.LogisticaRabbitProducer;
 import Producto.example.Producto.messaging.ProductoEventProducer;
 import Producto.example.Producto.model.CategoriaModel;
 import Producto.example.Producto.model.ProductoModel;
@@ -32,6 +33,7 @@ class ProductoServiceTest {
     @Mock private ProductoRepository productoRepository;
     @Mock private CategoriaRepository categoriaRepository;
     @Mock private ProductoEventProducer eventProducer;
+    @Mock private LogisticaRabbitProducer logisticaRabbitProducer;
     @Mock private HistorialStockRepository historialStockRepository;
     @Mock private InventarioClient inventarioClient;
 

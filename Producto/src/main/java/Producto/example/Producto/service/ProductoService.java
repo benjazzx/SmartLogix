@@ -4,6 +4,8 @@ import Producto.example.Producto.client.InventarioClient;
 import Producto.example.Producto.dto.ProductoActualizadoEvent;
 import Producto.example.Producto.dto.ProductoRequestDTO;
 import Producto.example.Producto.dto.ProductoResponseDTO;
+import Producto.example.Producto.dto.ProductoCreadoRabbitEvent;
+import Producto.example.Producto.messaging.LogisticaRabbitProducer;
 import Producto.example.Producto.messaging.ProductoEventProducer;
 import Producto.example.Producto.model.CategoriaModel;
 import Producto.example.Producto.model.HistorialStockModel;
@@ -32,6 +34,7 @@ public class ProductoService {
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
     private final ProductoEventProducer eventProducer;
+    private final LogisticaRabbitProducer logisticaRabbitProducer;
     private final HistorialStockRepository historialStockRepository;
     private final InventarioClient inventarioClient;
 
@@ -139,6 +142,12 @@ public class ProductoService {
                 null, null);
 
         eventProducer.publishProductoActualizado(saved, ProductoActualizadoEvent.TipoEvento.CREADO);
+
+        // RabbitMQ (EP3 DSY1107): tarea asincrona, Inventario asigna/confirma la ubicacion
+        // real en segundo plano sin bloquear la respuesta de creacion del producto.
+        logisticaRabbitProducer.publicarProductoCreado(
+                new ProductoCreadoRabbitEvent(saved.getId(), saved.getNombre()));
+
         return ProductoResponseDTO.from(saved);
     }
 
@@ -357,8 +366,9 @@ public class ProductoService {
 
     @Transactional(readOnly = true)
     public List<HistorialStockModel> getHistorialStock(UUID productoId) {
-        productoRepository.findById(productoId)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Producto no encontrado con id: " + productoId));
+        if (!productoRepository.existsById(productoId)) {
+            throw new jakarta.persistence.EntityNotFoundException("Producto no encontrado con id: " + productoId);
+        }
         return historialStockRepository.findByProductoIdOrderByFechaDesc(productoId);
     }
 

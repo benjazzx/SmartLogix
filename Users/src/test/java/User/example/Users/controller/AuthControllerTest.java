@@ -222,13 +222,23 @@ class AuthControllerTest {
     }
 
     @Test
-    void cambiarClave_claveCorta_retorna400() throws Exception {
-        String body = "{\"solicitudId\":\"" + UUID.randomUUID() + "\",\"nuevaClave\":\"abc\"}";
+    void cambiarClave_claveCorta_retorna403() throws Exception {
+        // recuperacionService esta mockeado en este test de controller, asi que la
+        // validacion real de contraseña (UserService.validarContraseña, que vive en el
+        // servicio, no en el controller) nunca se ejecuta sola — hay que simularla
+        // explicitamente para probar como el controller traduce ese fallo.
+        UUID solicitudId = UUID.randomUUID();
+        doThrow(new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres"))
+                .when(recuperacionService).cambiarClave(eq(solicitudId), anyString());
 
+        String body = "{\"solicitudId\":\"" + solicitudId + "\",\"nuevaClave\":\"abc\"}";
+
+        // El controller atrapa IllegalArgumentException/IllegalStateException y
+        // responde 403 (no 400) — ver AuthController.cambiarClave.
         mockMvc.perform(post("/auth/cambiar-clave")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     @Test
