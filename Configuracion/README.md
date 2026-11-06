@@ -16,6 +16,13 @@ Permite personalizar la interfaz (ej. tema de color) de forma independiente por 
 
 El `userId` se extrae automáticamente del JWT validado por el API Gateway.
 
+## Mensajería (RabbitMQ)
+
+Consume `usuario.registrado` (exchange `usuarios-exchange`, cola `configuracion-usuario-registrado-queue`, DLQ
+`configuracion-usuario-registrado-dlq`) y crea la preferencia `onboarding=pendiente` del usuario nuevo, sin pisar
+una que ya exista. Variables: `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`.
+El health check de RabbitMQ está desactivado a propósito: sin broker el servicio sigue sirviendo preferencias.
+
 ## Requisitos
 
 - Java 21

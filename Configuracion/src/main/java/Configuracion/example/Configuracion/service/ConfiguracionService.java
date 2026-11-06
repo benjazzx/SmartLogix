@@ -33,6 +33,17 @@ public class ConfiguracionService {
         repository.save(pref);
     }
 
+    // Crea la preferencia solo si NO existe: una reentrega del mensaje RabbitMQ (o un valor que el
+    // usuario ya cambió) nunca se pisa. Devuelve true si la creó, false si ya existía.
+    @Transactional
+    public boolean crearPreferenciaInicial(UUID userId, String clave, String valor) {
+        if (repository.findByUserIdAndClave(userId, clave).isPresent()) {
+            return false;
+        }
+        repository.save(new PreferenciaModel(userId, clave, valor));
+        return true;
+    }
+
     public String getPreferencia(UUID userId, String clave) {
         return repository.findByUserIdAndClave(userId, clave)
                 .map(PreferenciaModel::getValor)
