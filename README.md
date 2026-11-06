@@ -54,6 +54,48 @@ El frontend Angular se encuentra en: [vvillalobos7/SmartLogix](https://github.co
 | Resilience4j | 3.x |
 | Docker / Docker Compose | — |
 
+## Mensajería
+
+Conviven dos brokers: **Kafka** para eventos de dominio entre Users, Rol y Estado (más Producto ↔ Inventario),
+y **RabbitMQ** para tareas asíncronas de logística y onboarding.
+
+### RabbitMQ (colas con DLQ, ACK manual)
+
+| Routing key | Exchange | Productor | Consumidor | Qué hace el consumidor |
+|---|---|---|---|---|
+| `producto.creado` | `logistica-exchange` | Producto | Inventario | Elige la ubicación con menos ocupación |
+| `producto.ubicacion-asignada` | `logistica-exchange` | Inventario | Producto | Guarda bodega/pasillo/estante (solo si el producto no tenía ubicación) |
+| `orden.creada` | `logistica-exchange` | Orden | Inventario | Elige la bodega de despacho con menos ocupación |
+| `orden.bodega-asignada` | `logistica-exchange` | Inventario | Orden | Guarda la bodega en `orden.bodega_despacho` |
+| `usuario.registrado` | `usuarios-exchange` | Users | Configuracion | Crea la preferencia `onboarding=pendiente` |
+
+Política de los consumidores: ACK solo **después** de confirmar la transacción de base de datos y de publicar el
+resultado; mensaje inválido → DLQ; fallo recuperable → un reintento y luego DLQ. Los productores publican **después
+del commit** y, si RabbitMQ falla, no abortan la operación de negocio (solo registran el error en el log).
+
+Nombres de colas, exchanges y routing keys: `application.properties` de cada servicio (`rabbitmq.*`); la topología
+(Queue/Exchange/Binding) está en la clase `RabbitConfig` de cada servicio.
+
+### Administración de RabbitMQ
+
+`/api/rabbitmq/**` (rol `admin`) se accede por el Gateway; lo implementa el servicio Users.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/rabbitmq/queues`, `/exchanges`, `/bindings` | Lista (vía API de management, puerto 15672) |
+| POST | `/api/rabbitmq/queues` | Crea cola (`nombre`, `durable`, `deadLetterExchange`, `deadLetterRoutingKey`, `ttlMs`) |
+| DELETE | `/api/rabbitmq/queues/{nombre}` | Elimina cola |
+| POST / DELETE | `/api/rabbitmq/exchanges` · `/exchanges/{nombre}` | Crea (`topic`/`direct`/`fanout`) / elimina exchange |
+| POST | `/api/rabbitmq/bindings` | Crea binding (cuerpo JSON) |
+| DELETE | `/api/rabbitmq/bindings?cola=&exchange=&routingKey=` | Elimina binding (query params) |
+
+Las colas y exchanges que usa la propia aplicación están protegidos contra borrado
+(`rabbitmq.admin.protected-names` en Users) y los nombres `amq.*` están reservados.
+
+> **Cambio de esquema:** la tabla `orden` tiene una columna nueva, `bodega_despacho`. El perfil `aws-ep1`/EC2 usa
+> `ddl-auto=update` y la crea sola; en una base existente con `ddl-auto=validate` ejecuta antes:
+> `ALTER TABLE orden ADD COLUMN bodega_despacho VARCHAR(200);`
+
 ## Levantar el proyecto
 
 ```bash

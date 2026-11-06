@@ -144,6 +144,13 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${FRONTEND_URL}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartlogix}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-changeme-rabbitmq}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8087/actuator/health || exit 1"]
       interval: 15s
