@@ -306,6 +306,33 @@ public class ProductoService {
         return ProductoResponseDTO.from(saved);
     }
 
+    // Lo invoca el consumidor RabbitMQ cuando Inventario asigna ubicación a un producto recién creado.
+    // Solo completa productos SIN ubicación: nunca pisa una que ya eligió el bodeguero a mano.
+    // Devuelve true si se aplicó, false si el producto ya tenía ubicación (mensaje reentregado o manual).
+    @Transactional
+    public boolean asignarUbicacionAutomatica(UUID id, Long idBodega, Long idPasillo, Long idEstante) {
+        ProductoModel p = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + id));
+
+        if (p.getIdBodega() != null || p.getIdPasillo() != null || p.getIdEstante() != null) {
+            log.info("[Producto] Producto {} ya tiene ubicación — se conserva (asignación automática ignorada)", id);
+            return false;
+        }
+
+        p.setIdBodega(idBodega);
+        p.setIdPasillo(idPasillo);
+        p.setIdEstante(idEstante);
+        ProductoModel saved = productoRepository.save(p);
+
+        eventProducer.publishUbicacionChanged(idEstante, 1);
+        registrarHistorialStock(saved, saved.getStock(), saved.getStock(), null, null,
+                TipoAccionHistorial.UBICACION_CAMBIADA,
+                "Ubicación asignada automáticamente por Inventario: bodega " + idBodega
+                        + ", pasillo " + idPasillo + ", estante " + idEstante,
+                null, idEstante);
+        return true;
+    }
+
     @Transactional
     public void liberarUbicacionPorBodega(Long idBodega) {
         List<ProductoModel> productos = productoRepository.findByIdBodega(idBodega);

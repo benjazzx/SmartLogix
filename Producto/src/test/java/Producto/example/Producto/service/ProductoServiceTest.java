@@ -316,4 +316,59 @@ class ProductoServiceTest {
 
         assertThrows(RuntimeException.class, () -> productoService.desactivar(id, null, null));
     }
+
+    // ── asignarUbicacionAutomatica (consumidor RabbitMQ) ─────────────────────
+
+    @Test
+    void asignarUbicacionAutomatica_productoSinUbicacion_laAsignaYPublicaElCambio() {
+        ProductoModel producto = productoSample(categoriaSample());
+        when(productoRepository.findById(producto.getId())).thenReturn(Optional.of(producto));
+        when(productoRepository.save(any(ProductoModel.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        boolean aplicada = productoService.asignarUbicacionAutomatica(producto.getId(), 1L, 2L, 3L);
+
+        assertTrue(aplicada);
+        assertEquals(1L, producto.getIdBodega());
+        assertEquals(2L, producto.getIdPasillo());
+        assertEquals(3L, producto.getIdEstante());
+        verify(productoRepository).save(producto);
+        verify(eventProducer).publishUbicacionChanged(3L, 1);
+        verify(historialStockRepository).save(any());
+    }
+
+    @Test
+    void asignarUbicacionAutomatica_productoConUbicacionManual_noLaPisa() {
+        ProductoModel producto = productoSample(categoriaSample());
+        producto.setIdBodega(9L);
+        producto.setIdPasillo(9L);
+        producto.setIdEstante(9L);
+        when(productoRepository.findById(producto.getId())).thenReturn(Optional.of(producto));
+
+        boolean aplicada = productoService.asignarUbicacionAutomatica(producto.getId(), 1L, 2L, 3L);
+
+        assertFalse(aplicada);
+        assertEquals(9L, producto.getIdEstante());
+        verify(productoRepository, never()).save(any());
+        verify(eventProducer, never()).publishUbicacionChanged(any(), anyInt());
+    }
+
+    @Test
+    void asignarUbicacionAutomatica_mensajeReentregado_esIdempotente() {
+        ProductoModel producto = productoSample(categoriaSample());
+        when(productoRepository.findById(producto.getId())).thenReturn(Optional.of(producto));
+        when(productoRepository.save(any(ProductoModel.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertTrue(productoService.asignarUbicacionAutomatica(producto.getId(), 1L, 2L, 3L));
+        assertFalse(productoService.asignarUbicacionAutomatica(producto.getId(), 1L, 2L, 3L));
+
+        verify(productoRepository, times(1)).save(any());
+    }
+
+    @Test
+    void asignarUbicacionAutomatica_productoInexistente_lanzaRuntimeException() {
+        UUID id = UUID.randomUUID();
+        when(productoRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> productoService.asignarUbicacionAutomatica(id, 1L, 2L, 3L));
+    }
 }

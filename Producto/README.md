@@ -66,6 +66,12 @@ categoria  → id (UUID), nombre, descripcion
 | `stock-decremented-topic` | Producer | Notifica descuento de stock al Inventario service |
 | `orden-creada-topic` | Consumer | Recibe nueva orden para descontar stock |
 
+### RabbitMQ
+| Routing key | Tipo | Descripción |
+|---|---|---|
+| `producto.creado` | Producer | Se publica tras el commit; Inventario elige la ubicación |
+| `producto.ubicacion-asignada` | Consumer (`producto-ubicacion-asignada-queue`, DLQ `producto-ubicacion-asignada-dlq`) | Guarda bodega/pasillo/estante; no pisa una ubicación ya elegida a mano |
+
 ## Variables de entorno
 
 ```env
