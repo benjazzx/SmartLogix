@@ -7,9 +7,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-// Productor RabbitMQ (EP3 DSY1107) — separado de ProductoEventProducer (Kafka), que
-// publica eventos de dominio para otros servicios; este exclusivamente dispara la
-// tarea asincrona de asignacion de ubicacion que resuelve Inventario.
 @Slf4j
 @Component
 @RequiredArgsConstructor

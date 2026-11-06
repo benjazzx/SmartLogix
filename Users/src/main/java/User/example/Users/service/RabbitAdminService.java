@@ -16,10 +16,6 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.stereotype.Service;
 
-// Microservicio administrador de RabbitMQ (EP3 DSY1107): toda la lógica de creación y
-// eliminación de colas, exchanges y bindings vive acá, encapsulada — los controladores
-// no conocen AmqpAdmin ni ningún detalle de RabbitMQ. Usa AmqpAdmin (Spring AMQP), que
-// gestiona el broker directamente; no hace falta llamar a su API HTTP de administración.
 @Slf4j
 @Service
 @RequiredArgsConstructor

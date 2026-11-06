@@ -11,9 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// Microservicio administrador de RabbitMQ (EP3 DSY1107): endpoints REST para crear y
-// eliminar colas, exchanges y bindings. Solo admin — es infraestructura de mensajería,
-// no una operación de negocio.
 @RestController
 @RequestMapping("/api/rabbitmq")
 @Tag(name = "RabbitMQ Admin", description = "Administración de colas, exchanges y bindings de RabbitMQ")

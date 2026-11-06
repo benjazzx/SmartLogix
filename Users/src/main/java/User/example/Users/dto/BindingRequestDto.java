@@ -4,8 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
-// Petición del microservicio administrador de RabbitMQ (EP3 DSY1107) para enlazar
-// una cola existente a un exchange existente con una routing key.
 @Data
 public class BindingRequestDto {
 

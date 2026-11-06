@@ -49,7 +49,6 @@ services:
       timeout: 10s
       retries: 10
 
-  # RabbitMQ: mensajeria para tareas asincronas (notificaciones), separada de Kafka.
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq

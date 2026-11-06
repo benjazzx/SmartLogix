@@ -21,11 +21,6 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 
-// Consumidor del dominio "logistica" (EP3 DSY1107): Inventario decide ubicaciones y
-// bodegas porque es el unico servicio con visibilidad real de la ocupacion. ACK/NACK
-// manual en ambos casos de uso, con la misma politica: exito -> ACK; fallo visto por
-// primera vez -> NACK + reencolar (un reintento); fallo ya reintentado o dato invalido
-// -> NACK sin reencolar (va a la DLQ via x-dead-letter-exchange de RabbitConfig).
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -33,8 +28,6 @@ public class LogisticaRabbitConsumer {
 
     private final EstPasiRepository estPasiRepository;
     private final BodegaRepository bodegaRepository;
-
-    // ── Caso de uso 1: producto creado → asignar ubicacion ────────────────────────
 
     @RabbitListener(queues = "${rabbitmq.logistica.producto-creado.queue}")
     @Transactional(rollbackFor = Exception.class)
@@ -73,8 +66,6 @@ public class LogisticaRabbitConsumer {
                 .orElseThrow(() -> new SinCapacidadException("No hay ubicaciones habilitadas en ningún pasillo"));
     }
 
-    // ── Caso de uso 2: orden creada → asignar bodega de despacho ──────────────────
-
     @RabbitListener(queues = "${rabbitmq.logistica.orden-creada.queue}")
     public void asignarBodegaDespacho(@Payload OrdenCreadaRabbitEvent evento,
                                        Message mensaje,
@@ -111,8 +102,6 @@ public class LogisticaRabbitConsumer {
                 }))
                 .orElseThrow(() -> new SinCapacidadException("No hay bodegas activas"));
     }
-
-    // ── Politica comun de reintento/DLQ ────────────────────────────────────────────
 
     private void resolverFalloRecuperable(String evento, Object id, Message mensaje, Channel channel,
                                            long deliveryTag, Exception causa) throws IOException {

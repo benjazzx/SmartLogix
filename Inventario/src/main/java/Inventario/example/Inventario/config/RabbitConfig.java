@@ -11,10 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// Configuracion centralizada de RabbitMQ (EP3 DSY1107): un exchange de topico para el
-// dominio "logistica", con una cola y su DLQ por cada caso de uso (producto creado,
-// orden creada). Todos los nombres vienen de application.properties, nunca
-// hardcodeados en RabbitConfig ni en los consumidores/productores.
 @Configuration
 public class RabbitConfig {
 
@@ -58,8 +54,6 @@ public class RabbitConfig {
         return new TopicExchange(dlxName, true, false);
     }
 
-    // ── Caso de uso 1: producto creado → asignar ubicacion (bodega/pasillo/estante) ──
-
     @Bean
     public Queue productoUbicacionQueue() {
         return QueueBuilder.durable(productoQueueName)
@@ -82,8 +76,6 @@ public class RabbitConfig {
     public Binding productoUbicacionDlqBinding() {
         return BindingBuilder.bind(productoUbicacionDlq()).to(logisticaDlx()).with(productoDlqRoutingKey);
     }
-
-    // ── Caso de uso 2: orden creada → asignar bodega de despacho ──────────────────
 
     @Bean
     public Queue ordenBodegaQueue() {

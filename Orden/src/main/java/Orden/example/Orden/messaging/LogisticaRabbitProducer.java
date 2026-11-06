@@ -7,8 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-// Productor RabbitMQ (EP3 DSY1107) — separado de OrdenEventProducer (Kafka); dispara
-// la tarea asincrona de asignacion de bodega de despacho que resuelve Inventario.
 @Slf4j
 @Component
 public class LogisticaRabbitProducer {

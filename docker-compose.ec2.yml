@@ -13,7 +13,6 @@ name: smartlogix-ec2
 
 services:
 
-  # RabbitMQ: mensajeria EP3 (asignacion de bodega/pasillo al crear producto u orden).
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
