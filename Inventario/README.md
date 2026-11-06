@@ -71,6 +71,16 @@ est_pasi  → id, id_estante, id_pasillo  ← relación N:M estante ↔ pasillo
 |---|---|---|
 | `stock-decremented-topic` | Consumer | Recibe notificación de Producto para actualizar stock disponible en bodega |
 
+### RabbitMQ (exchange `logistica-exchange`, DLX `logistica-dlx`)
+| Routing key | Tipo | Descripción |
+|---|---|---|
+| `producto.creado` | Consumer (`producto-ubicacion-queue`, DLQ `producto-ubicacion-dlq`) | Elige la ubicación con menos ocupación |
+| `orden.creada` | Consumer (`orden-bodega-queue`, DLQ `orden-bodega-dlq`) | Elige la bodega de despacho con menos ocupación promedio |
+| `producto.ubicacion-asignada` | Producer | Resultado hacia Producto |
+| `orden.bodega-asignada` | Producer | Resultado hacia Orden |
+
+ACK manual: se confirma después de la transacción de base de datos (`LogisticaService`) y de publicar el resultado.
+
 ## Variables de entorno
 
 ```env

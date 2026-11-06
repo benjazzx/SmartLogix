@@ -1,11 +1,10 @@
 package Inventario.example.Inventario.messaging;
 
+import Inventario.example.Inventario.dto.OrdenBodegaAsignadaRabbitEvent;
 import Inventario.example.Inventario.dto.OrdenCreadaRabbitEvent;
 import Inventario.example.Inventario.dto.ProductoCreadoRabbitEvent;
-import Inventario.example.Inventario.model.BodegaModel;
-import Inventario.example.Inventario.model.EstPasiModel;
-import Inventario.example.Inventario.repository.BodegaRepository;
-import Inventario.example.Inventario.repository.EstPasiRepository;
+import Inventario.example.Inventario.dto.ProductoUbicacionAsignadaRabbitEvent;
+import Inventario.example.Inventario.service.LogisticaService;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,39 +14,42 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
 
+/**
+ * Consumidor de las tareas de logística (ACK manual).
+ *
+ * Política de errores, igual para los dos listeners:
+ *  - mensaje inválido            → NACK sin reencolar → va a la DLQ (no tiene sentido reintentarlo)
+ *  - fallo recuperable (1ª vez)  → NACK con reencolado, un reintento
+ *  - fallo tras el reintento     → NACK sin reencolar → va a la DLQ
+ *  - éxito                       → ACK, siempre DESPUÉS de confirmar la transacción de base de datos
+ *                                  (LogisticaService) y de publicar el resultado.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class LogisticaRabbitConsumer {
 
-    private final EstPasiRepository estPasiRepository;
-    private final BodegaRepository bodegaRepository;
+    private final LogisticaService logisticaService;
+    private final LogisticaRabbitProducer logisticaRabbitProducer;
+
+    // ── Dominio productos: ubicación física del producto ─────────────────────
 
     @RabbitListener(queues = "${rabbitmq.logistica.producto-creado.queue}")
-    @Transactional(rollbackFor = Exception.class)
     public void asignarUbicacionProducto(@Payload ProductoCreadoRabbitEvent evento,
                                           Message mensaje,
                                           Channel channel,
                                           @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        Object id = evento != null ? evento.getProductoId() : null;
         try {
-            if (evento.getProductoId() == null) {
+            if (id == null) {
                 throw new MensajeInvalidoException("productoId vacío");
             }
-            EstPasiModel destino = elegirMejorUbicacion();
-            double pctAntes = destino.getOcupacionPct() != null ? destino.getOcupacionPct() : 0.0;
-            destino.setOcupacionPct(Math.min(100.0, pctAntes + 1.0));
-            estPasiRepository.save(destino);
-
-            log.info("[Inventario RABBIT] Producto '{}' ({}) asignado — estante={} pasillo={} bodega={} ocupación {}%→{}%",
-                    evento.getNombre(), evento.getProductoId(),
-                    destino.getEstante().getCodigo(), destino.getPasillo().getIdPasillo(),
-                    destino.getPasillo().getBodega().getNombre(), pctAntes, destino.getOcupacionPct());
+            ProductoUbicacionAsignadaRabbitEvent resultado =
+                    logisticaService.asignarUbicacion(evento.getProductoId(), evento.getNombre());
+            logisticaRabbitProducer.publicarUbicacionAsignada(resultado);
 
             channel.basicAck(deliveryTag, false);
 
@@ -55,30 +57,24 @@ public class LogisticaRabbitConsumer {
             log.error("[Inventario RABBIT] producto.creado invalido, a DLQ sin reintentar: {}", e.getMessage());
             channel.basicNack(deliveryTag, false, false);
         } catch (Exception e) {
-            resolverFalloRecuperable("producto.creado", evento.getProductoId(), mensaje, channel, deliveryTag, e);
+            resolverFalloRecuperable("producto.creado", id, mensaje, channel, deliveryTag, e);
         }
     }
 
-    private EstPasiModel elegirMejorUbicacion() {
-        List<EstPasiModel> habilitadas = estPasiRepository.findByHabilitadaTrue();
-        return habilitadas.stream()
-                .min(Comparator.comparing(ep -> ep.getOcupacionPct() != null ? ep.getOcupacionPct() : 0.0))
-                .orElseThrow(() -> new SinCapacidadException("No hay ubicaciones habilitadas en ningún pasillo"));
-    }
+    // ── Dominio órdenes: bodega de despacho ──────────────────────────────────
 
     @RabbitListener(queues = "${rabbitmq.logistica.orden-creada.queue}")
     public void asignarBodegaDespacho(@Payload OrdenCreadaRabbitEvent evento,
                                        Message mensaje,
                                        Channel channel,
                                        @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        Object id = evento != null ? evento.getOrdenId() : null;
         try {
-            if (evento.getOrdenId() == null) {
+            if (id == null) {
                 throw new MensajeInvalidoException("ordenId vacío");
             }
-            BodegaModel bodega = elegirBodegaConMasCapacidad();
-
-            log.info("[Inventario RABBIT] Orden #{} asignada para despacho desde bodega '{}' (id={})",
-                    evento.getOrdenId(), bodega.getNombre(), bodega.getIdBodega());
+            OrdenBodegaAsignadaRabbitEvent resultado = logisticaService.elegirBodegaDespacho(evento.getOrdenId());
+            logisticaRabbitProducer.publicarBodegaAsignada(resultado);
 
             channel.basicAck(deliveryTag, false);
 
@@ -86,21 +82,8 @@ public class LogisticaRabbitConsumer {
             log.error("[Inventario RABBIT] orden.creada invalido, a DLQ sin reintentar: {}", e.getMessage());
             channel.basicNack(deliveryTag, false, false);
         } catch (Exception e) {
-            resolverFalloRecuperable("orden.creada", evento.getOrdenId(), mensaje, channel, deliveryTag, e);
+            resolverFalloRecuperable("orden.creada", id, mensaje, channel, deliveryTag, e);
         }
-    }
-
-    private BodegaModel elegirBodegaConMasCapacidad() {
-        List<BodegaModel> activas = bodegaRepository.findByActivaTrue();
-        if (activas.isEmpty()) {
-            throw new SinCapacidadException("No hay bodegas activas");
-        }
-        return activas.stream()
-                .min(Comparator.comparing(b -> {
-                    Double prom = estPasiRepository.calcularOcupacionPromedioPorBodega(b.getIdBodega());
-                    return prom != null ? prom : 0.0;
-                }))
-                .orElseThrow(() -> new SinCapacidadException("No hay bodegas activas"));
     }
 
     private void resolverFalloRecuperable(String evento, Object id, Message mensaje, Channel channel,
@@ -117,9 +100,5 @@ public class LogisticaRabbitConsumer {
 
     public static class MensajeInvalidoException extends RuntimeException {
         public MensajeInvalidoException(String message) { super(message); }
-    }
-
-    public static class SinCapacidadException extends RuntimeException {
-        public SinCapacidadException(String message) { super(message); }
     }
 }
