@@ -701,7 +701,7 @@ class OrdenServiceTest {
     }
 
     @Test
-    void addHistorial_conRealizadoPorEnDto_usaDatosDelDto() {
+    void addHistorial_ignoraElAutorDelDto_usaElUsuarioAutenticado() {
         UUID userId = UUID.randomUUID();
         UUID realizadoPorId = UUID.randomUUID();
         OrdenModel orden = ordenSample(userId);
@@ -710,8 +710,9 @@ class OrdenServiceTest {
         dto.setEstadoId(UUID.randomUUID());
         dto.setEstadoNombre("Procesando");
         dto.setComentario("En bodega");
-        dto.setRealizadoPorId(realizadoPorId);
-        dto.setRealizadoPorNombre("Bodeguero Juan");
+        dto.setRealizadoPorId(realizadoPorId);   // DA-03: debe ignorarse
+        dto.setRealizadoPorNombre("Usuario Falso");
+        when(usersClient.getNombreUsuario(userId)).thenReturn("Ana Bodega");
 
         when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
         when(estadoClient.existeEstado(any())).thenReturn(true);
@@ -725,7 +726,10 @@ class OrdenServiceTest {
         OrdenResponseDto result = ordenService.addHistorial(1L, dto, userId, ROL_ADMIN);
 
         assertNotNull(result);
-        verify(usersClient, never()).getNombreUsuario(any()); // no debería llamar si ya viene en el dto
+        org.mockito.ArgumentCaptor<HistorialModel> guardado = org.mockito.ArgumentCaptor.forClass(HistorialModel.class);
+        verify(historialRepository).save(guardado.capture());
+        assertEquals(userId, guardado.getValue().getRealizadoPorId());
+        assertEquals("Ana Bodega", guardado.getValue().getRealizadoPorNombre());
     }
 
     // ── registrarBodegaDespacho (consumidor RabbitMQ) ────────────────────────

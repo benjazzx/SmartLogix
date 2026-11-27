@@ -1,5 +1,12 @@
 package Producto.example.Producto.config;
 
+import org.springframework.web.ErrorResponse;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -48,6 +55,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+        // Errores estándar de Spring MVC (método no permitido, parámetro ausente, ruta inexistente...)
+        if (ex instanceof ErrorResponse respuesta) {
+            return buildError(HttpStatus.valueOf(respuesta.getStatusCode().value()),
+                    "La solicitud no es válida para este recurso");
+        }
         String msg = ex.getMessage() != null ? ex.getMessage() : "";
         if (msg.contains("no encontrado") || msg.contains("not found")) {
             log.warn("[Producto] No encontrado: {}", msg);
@@ -57,13 +69,42 @@ public class GlobalExceptionHandler {
             log.warn("[Producto] Stock insuficiente: {}", msg);
             return buildError(HttpStatus.CONFLICT, msg);
         }
+        // Fallas no previstas (errores de programación o de base de datos): sin detalle interno.
+        if (ex.getClass() != RuntimeException.class && !(ex instanceof IllegalStateException)) {
+            log.error("[Producto] Falla no prevista", ex);
+            return buildError(HttpStatus.BAD_REQUEST, "La solicitud no se pudo procesar");
+        }
         log.error("[Producto] RuntimeException inesperada: {}", msg);
         return buildError(HttpStatus.BAD_REQUEST, msg);
     }
 
+    // D-02: una entrada inválida del cliente nunca termina en 500 ni revela detalles internos.
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class,
+            ConstraintViolationException.class, InvalidDataAccessApiUsageException.class})
+    public ResponseEntity<Map<String, Object>> handleEntradaInvalida(Exception ex) {
+        log.warn("[Producto] Entrada inválida: {}", ex.getMessage());
+        return buildError(HttpStatus.BAD_REQUEST, "La solicitud tiene datos inválidos o mal formados");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleIntegridad(DataIntegrityViolationException ex) {
+        log.warn("[Producto] Restricción de datos: {}", ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, "No se pudo guardar: el dato ya existe o falta un dato obligatorio");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccesoDenegado(AccessDeniedException ex) {
+        return buildError(HttpStatus.FORBIDDEN, "No tienes permiso para realizar esta acción");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        log.error("[Producto] Error interno no controlado: {}", ex.getMessage(), ex);
+        // Errores estándar de Spring MVC (método no permitido, parámetro ausente, ruta inexistente...)
+        if (ex instanceof ErrorResponse respuesta) {
+            return buildError(HttpStatus.valueOf(respuesta.getStatusCode().value()),
+                    "La solicitud no es válida para este recurso");
+        }
+        log.error("[Producto] Error interno no controlado", ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor");
     }
 

@@ -92,6 +92,7 @@ public class OrdenResponseDto {
         private UUID estadoId;
         private String estadoNombre;
         private String comentario;
+        private String realizadoPorNombre;
 
         public static HistorialDto from(HistorialModel h) {
             HistorialDto dto = new HistorialDto();
@@ -100,6 +101,7 @@ public class OrdenResponseDto {
             dto.setEstadoId(h.getEstadoId());
             dto.setEstadoNombre(h.getEstadoNombre());
             dto.setComentario(h.getComentario());
+            dto.setRealizadoPorNombre(h.getRealizadoPorNombre());
             return dto;
         }
     }

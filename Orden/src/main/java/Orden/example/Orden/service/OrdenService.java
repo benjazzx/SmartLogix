@@ -195,11 +195,9 @@ public class OrdenService {
             devolverStockPorCancelacion(orden);
         }
 
-        // Si el DTO trae quién lo hizo, usarlo; si no, resolver desde Users
-        UUID realizadoPorId = dto.getRealizadoPorId() != null ? dto.getRealizadoPorId() : requestingUserId;
-        String realizadoPorNombre = dto.getRealizadoPorNombre() != null
-            ? dto.getRealizadoPorNombre()
-            : usersClient.getNombreUsuario(requestingUserId);
+        // DA-03: el autor sale siempre del usuario autenticado; lo que traiga la petición se ignora.
+        UUID realizadoPorId = requestingUserId;
+        String realizadoPorNombre = usersClient.getNombreUsuario(requestingUserId);
 
         HistorialModel historial = OrdenFactory.crearHistorial(
             orden, dto.getEstadoId(), dto.getEstadoNombre(), dto.getComentario(),

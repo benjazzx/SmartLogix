@@ -67,6 +67,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
+        // Errores estándar de Spring MVC (ruta inexistente, método no permitido...): su propio código, no 500.
+        if (ex instanceof org.springframework.web.ErrorResponse respuesta) {
+            return buildError(HttpStatus.valueOf(respuesta.getStatusCode().value()),
+                    "La solicitud no es válida para este recurso");
+        }
         log.error("[Orden] Error interno no controlado: {}", ex.getMessage(), ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor");
     }

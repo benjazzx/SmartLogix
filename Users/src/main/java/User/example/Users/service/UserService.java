@@ -1,5 +1,7 @@
 package User.example.Users.service;
 
+import java.util.Set;
+import java.util.Locale;
 import User.example.Users.client.EstadoClient;
 import User.example.Users.client.RolClient;
 import User.example.Users.dto.EstadoDto;
@@ -125,8 +127,7 @@ public class UserService {
             if (estado != null) {
                 user.setEstadoId(estado.getId());
                 user.setEstadoNombre(estado.getNombre());
-                user.setActivo("activo".equalsIgnoreCase(estado.getNombre())
-                            || "disponible".equalsIgnoreCase(estado.getNombre()));
+                user.setActivo(esEstadoDeCuentaActiva(estado.getNombre()));
                 System.out.println("[Users] estadoId resuelto: " + estado.getId() + " (" + estado.getNombre() + ") para rol=" + user.getRolNombre());
             } else {
                 System.err.println("[Users] ADVERTENCIA: no se pudo resolver estadoId para rolNombre=" + user.getRolNombre() + " (¿microservicio Estado en puerto 8086 está corriendo?)");
@@ -236,7 +237,6 @@ public class UserService {
         };
     }
 
-    // Llamado desde el consumer de Kafka cuando Estado publica un evento de asignación
     @Transactional
     public UserModel toggleActivo(UUID id) {
         UserModel user = userRepository.findById(id)
@@ -246,13 +246,22 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    // Regla única de "cuenta activa": el estado de cuenta "activo" y los estados laborales de un
+    // empleado (disponible, ocupado, en descanso). Cualquier otro estado deja la cuenta inactiva.
+    private static final Set<String> ESTADOS_CUENTA_ACTIVA = Set.of("activo", "disponible", "ocupado", "en_descanso");
+
+    private static boolean esEstadoDeCuentaActiva(String estadoNombre) {
+        return estadoNombre != null && ESTADOS_CUENTA_ACTIVA.contains(estadoNombre.toLowerCase(Locale.ROOT));
+    }
+
+    // Llamado desde el consumer de Kafka cuando Estado publica un evento de asignación
     @Transactional
     public void actualizarEstadoPorCorreo(String correo, UUID estadoId, String estadoNombre) {
         userRepository.findByCorreo(correo).ifPresent(user -> {
             user.setEstadoId(estadoId);
             user.setEstadoNombre(estadoNombre);
-            // Sincronizar campo activo: true si el estado es "activo", false en otro caso
-            user.setActivo("activo".equalsIgnoreCase(estadoNombre));
+            // Sincronizar campo activo con la misma regla que se usa al crear la cuenta
+            user.setActivo(esEstadoDeCuentaActiva(estadoNombre));
             userRepository.save(user);
             System.out.println("[Users] Estado actualizado para " + correo + " → " + estadoNombre);
         });

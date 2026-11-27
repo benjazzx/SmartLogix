@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import Rol.example.Rol.dto.AssignRoleRequestDto;
 import Rol.example.Rol.dto.RolRequestDto;
 import Rol.example.Rol.model.RolModel;
 import Rol.example.Rol.service.RolService;
@@ -102,9 +103,19 @@ public class RolControllerTest {
     void testAssignRoleByEmail_bodeguero() throws Exception {
         when(rolService.assignRoleByEmail("juan@smartb.cl")).thenReturn(rolModel);
 
-        mockMvc.perform(get("/api/roles/assign").param("email", "juan@smartb.cl"))
+        mockMvc.perform(post("/api/roles/assign")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"juan@smartb.cl\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("bodeguero"));
+    }
+
+    @Test
+    void testAssignRole_correoInvalido_retorna400() throws Exception {
+        mockMvc.perform(post("/api/roles/assign")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"no-es-correo\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -113,7 +124,7 @@ public class RolControllerTest {
         when(rolService.getRolByNombre(ROL_CLIENTE)).thenReturn(clienteRol);
 
         RolModel fallback = rolController
-                .fallbackAssignRole("user@test.cl", new RuntimeException("falla"))
+                .fallbackAssignRole(new AssignRoleRequestDto(), new RuntimeException("falla"))
                 .getBody();
 
         assertNotNull(fallback);
@@ -125,7 +136,7 @@ public class RolControllerTest {
     void testFallbackAssignRole_rolNoExisteEnBD_retorna503() {
         when(rolService.getRolByNombre(ROL_CLIENTE)).thenReturn(null);
 
-        var resp = rolController.fallbackAssignRole("user@test.cl", new RuntimeException("falla"));
+        var resp = rolController.fallbackAssignRole(new AssignRoleRequestDto(), new RuntimeException("falla"));
 
         assertEquals(503, resp.getStatusCode().value());
     }

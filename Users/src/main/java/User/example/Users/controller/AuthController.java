@@ -127,7 +127,9 @@ public class AuthController {
         try {
             recuperacionService.cambiarClave(UUID.fromString(solicitudIdStr), nuevaClave);
             return ResponseEntity.ok(java.util.Map.of("mensaje", "Contraseña actualizada exitosamente"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
     }

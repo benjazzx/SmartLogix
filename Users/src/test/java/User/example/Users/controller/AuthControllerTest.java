@@ -222,7 +222,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void cambiarClave_claveCorta_retorna403() throws Exception {
+    void cambiarClave_claveCorta_retorna400() throws Exception {
         // recuperacionService esta mockeado en este test de controller, asi que la
         // validacion real de contraseña (UserService.validarContraseña, que vive en el
         // servicio, no en el controller) nunca se ejecuta sola — hay que simularla
@@ -233,11 +233,22 @@ class AuthControllerTest {
 
         String body = "{\"solicitudId\":\"" + solicitudId + "\",\"nuevaClave\":\"abc\"}";
 
-        // El controller atrapa IllegalArgumentException/IllegalStateException y
-        // responde 403 (no 400) — ver AuthController.cambiarClave.
+        // Un dato inválido responde 400; 403 queda para solicitudes no verificadas o vencidas.
         mockMvc.perform(post("/auth/cambiar-clave")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cambiarClave_solicitudSinVerificar_retorna403() throws Exception {
+        UUID solicitudId = UUID.randomUUID();
+        doThrow(new IllegalStateException("La solicitud no ha sido verificada exitosamente"))
+                .when(recuperacionService).cambiarClave(eq(solicitudId), anyString());
+
+        mockMvc.perform(post("/auth/cambiar-clave")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"solicitudId\":\"" + solicitudId + "\",\"nuevaClave\":\"Clave.Nueva1\"}"))
                 .andExpect(status().isForbidden());
     }
 

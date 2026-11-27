@@ -1,5 +1,7 @@
 package Rol.example.Rol.controller;
 
+import Rol.example.Rol.dto.AssignRoleRequestDto;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 
@@ -64,14 +66,12 @@ public class RolController {
         @ApiResponse(responseCode = "200", description = "Rol de emergencia asignado (circuit breaker activo)")
     })
     @CircuitBreaker(name = "rolService", fallbackMethod = "fallbackAssignRole")
-    @GetMapping("/assign")
-    public ResponseEntity<RolModel> assignRoleByEmail(
-            @Parameter(description = "Email del usuario a asignar rol", example = "juan@smartb.cl")
-            @RequestParam String email) {
-        return ResponseEntity.ok(rolService.assignRoleByEmail(email));
+    @PostMapping("/assign")
+    public ResponseEntity<RolModel> assignRoleByEmail(@Valid @RequestBody AssignRoleRequestDto dto) {
+        return ResponseEntity.ok(rolService.assignRoleByEmail(dto.getEmail()));
     }
 
-    public ResponseEntity<RolModel> fallbackAssignRole(String email, Throwable exception) {
+    public ResponseEntity<RolModel> fallbackAssignRole(AssignRoleRequestDto dto, Throwable exception) {
         RolModel clienteRol = rolService.getRolByNombre("cliente");
         if (clienteRol != null) {
             return ResponseEntity.ok(clienteRol);
