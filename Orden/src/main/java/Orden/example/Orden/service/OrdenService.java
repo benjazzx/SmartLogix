@@ -14,6 +14,7 @@ import Orden.example.Orden.messaging.LogisticaRabbitProducer;
 import Orden.example.Orden.messaging.OrdenEventProducer;
 import Orden.example.Orden.repository.HistorialRepository;
 import Orden.example.Orden.repository.OrdenRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class OrdenService {
 
@@ -118,6 +120,27 @@ public class OrdenService {
         }
     }
 
+    // Devuelve el stock de cada detalle de una orden que se cancela. Si alguna devolución falla,
+    // vuelve a reservar las ya devueltas para que la orden siga como estaba.
+    private void devolverStockPorCancelacion(OrdenModel orden) {
+        List<DetalleOrdenModel> devueltos = new ArrayList<>();
+        for (DetalleOrdenModel d : orden.getDetalles()) {
+            if (!productoClient.registrarDevolucion(d.getProductoId(), d.getCantidad(), false, orden.getId())) {
+                for (DetalleOrdenModel ya : devueltos) {
+                    try {
+                        productoClient.reservarStock(ya.getProductoId(), ya.getCantidad(), orden.getId());
+                    } catch (ServicioOcupadoException e) {
+                        log.error("Orden {}: no se pudo volver a reservar el producto {} ({} unidades)",
+                                orden.getId(), ya.getProductoId(), ya.getCantidad(), e);
+                    }
+                }
+                throw new ServicioOcupadoException(
+                        "No se pudo devolver el stock, por lo que la orden no se canceló. Intenta de nuevo en unos segundos.");
+            }
+            devueltos.add(d);
+        }
+    }
+
     // Lo invoca el consumidor RabbitMQ cuando Inventario asigna la bodega de despacho.
     // Idempotente: si el mensaje se reentrega con la misma bodega, no cambia nada.
     @Transactional
@@ -165,6 +188,12 @@ public class OrdenService {
         }
 
         estadoClient.existeEstado(dto.getEstadoId());
+
+        // DA-01: al cancelar, las unidades reservadas vuelven al inventario. Se hace antes de guardar
+        // el cambio de estado: si Producto no responde, la orden no queda cancelada.
+        if ("cancelado".equalsIgnoreCase(dto.getEstadoNombre().trim())) {
+            devolverStockPorCancelacion(orden);
+        }
 
         // Si el DTO trae quién lo hizo, usarlo; si no, resolver desde Users
         UUID realizadoPorId = dto.getRealizadoPorId() != null ? dto.getRealizadoPorId() : requestingUserId;
@@ -342,6 +371,13 @@ public class OrdenService {
         String nuevo  = estadoNuevo  == null ? "" : estadoNuevo.toLowerCase().trim();
         int idxActual = SECUENCIA_ESTADOS.indexOf(actual);
         int idxNuevo  = SECUENCIA_ESTADOS.indexOf(nuevo);
+
+        // Estados en los que el stock ya volvió (o está por resolverse) no admiten más cambios:
+        // reabrir una orden cancelada y cancelarla otra vez devolvería el stock dos veces.
+        if ("cancelado".equals(actual) || actual.startsWith("devolución")) {
+            throw new IllegalStateException(
+                "La orden está en estado \"" + estadoActual + "\" y no admite cambios de estado.");
+        }
 
         if ("cancelado".equals(nuevo)) {
             int idxEntregado = SECUENCIA_ESTADOS.indexOf("entregado");

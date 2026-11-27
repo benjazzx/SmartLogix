@@ -47,6 +47,10 @@ public class HistorialController {
                 : "";
         try {
             return ResponseEntity.ok(ordenService.addHistorial(ordenId, dto, userId, rolNombre));
+        } catch (Orden.example.Orden.exception.ServicioOcupadoException e) {
+            // falla transitoria al devolver el stock de una cancelación: no es un error del usuario
+            log.warn("addHistorial ordenId={}: {}", ordenId, e.getMessage());
+            return ResponseEntity.status(503).body(java.util.Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
             log.warn("addHistorial ordenId={}: {}", ordenId, e.getMessage());
             String msg = e.getMessage() != null ? e.getMessage() : "";

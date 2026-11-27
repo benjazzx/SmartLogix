@@ -4,6 +4,7 @@ import Orden.example.Orden.client.EstadoClient;
 import Orden.example.Orden.client.ProductoClient;
 import Orden.example.Orden.client.UsersClient;
 import Orden.example.Orden.dto.*;
+import Orden.example.Orden.exception.ServicioOcupadoException;
 import Orden.example.Orden.messaging.LogisticaRabbitProducer;
 import Orden.example.Orden.messaging.OrdenEventProducer;
 import Orden.example.Orden.model.DetalleOrdenModel;
@@ -21,6 +22,8 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -65,6 +68,85 @@ class OrdenServiceTest {
         data.put("nombre", "Laptop Pro");
         data.put("precio", 999.99);
         return data;
+    }
+
+    // ---------- DA-01: la cancelación devuelve el stock ----------
+
+    private DetalleOrdenModel detalle(int cantidad) {
+        DetalleOrdenModel d = new DetalleOrdenModel();
+        d.setProductoId(UUID.randomUUID());
+        d.setCantidad(cantidad);
+        return d;
+    }
+
+    private HistorialRequestDto cambioA(String estado) {
+        HistorialRequestDto dto = new HistorialRequestDto();
+        dto.setEstadoId(UUID.randomUUID());
+        dto.setEstadoNombre(estado);
+        return dto;
+    }
+
+    @Test
+    void addHistorial_cancelar_devuelveElStockDeCadaDetalle() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        DetalleOrdenModel a = detalle(2);
+        DetalleOrdenModel b = detalle(5);
+        orden.getDetalles().add(a);
+        orden.getDetalles().add(b);
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(productoClient.registrarDevolucion(any(), anyInt(), anyBoolean(), any())).thenReturn(true);
+
+        ordenService.addHistorial(1L, cambioA("cancelado"), UUID.randomUUID(), "admin");
+
+        verify(productoClient).registrarDevolucion(a.getProductoId(), 2, false, 1L);
+        verify(productoClient).registrarDevolucion(b.getProductoId(), 5, false, 1L);
+        assertEquals("cancelado", orden.getEstadoActual());
+    }
+
+    @Test
+    void addHistorial_cancelarSinPoderDevolver_noCancelaYVuelveAReservar() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        DetalleOrdenModel a = detalle(2);
+        DetalleOrdenModel b = detalle(5);
+        orden.getDetalles().add(a);
+        orden.getDetalles().add(b);
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+        when(productoClient.registrarDevolucion(a.getProductoId(), 2, false, 1L)).thenReturn(true);
+        when(productoClient.registrarDevolucion(b.getProductoId(), 5, false, 1L)).thenReturn(false);
+        HistorialRequestDto dto = cambioA("cancelado");
+
+        assertThrows(ServicioOcupadoException.class,
+                () -> ordenService.addHistorial(1L, dto, UUID.randomUUID(), "admin"));
+
+        verify(productoClient).reservarStock(a.getProductoId(), 2, 1L);
+        verify(historialRepository, never()).save(any());
+        assertEquals(ESTADO_PENDIENTE, orden.getEstadoActual());
+    }
+
+    @Test
+    void addHistorial_avanzarDeEstado_noDevuelveStock() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.getDetalles().add(detalle(1));
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        ordenService.addHistorial(1L, cambioA("procesando"), UUID.randomUUID(), "admin");
+
+        verify(productoClient, never()).registrarDevolucion(any(), anyInt(), anyBoolean(), any());
+    }
+
+    @Test
+    void addHistorial_ordenCancelada_noAdmiteMasCambios() {
+        OrdenModel orden = ordenSample(UUID.randomUUID());
+        orden.getDetalles().add(detalle(1));
+        orden.setEstadoActual("cancelado");
+        when(ordenRepository.findById(1L)).thenReturn(Optional.of(orden));
+
+        for (String estado : new String[]{"pendiente", "cancelado", "Devolución solicitada"}) {
+            HistorialRequestDto dto = cambioA(estado);
+            assertThrows(IllegalStateException.class,
+                    () -> ordenService.addHistorial(1L, dto, UUID.randomUUID(), "admin"), estado);
+        }
+        verify(productoClient, never()).registrarDevolucion(any(), anyInt(), anyBoolean(), any());
     }
 
     @Test
