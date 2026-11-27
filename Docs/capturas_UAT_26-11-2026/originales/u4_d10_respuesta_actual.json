@@ -1,0 +1,9 @@
+{
+  "id": "29184.123",
+  "url": "http://localhost:4200/api/ordenes",
+  "status": 503,
+  "statusText": "Service Unavailable",
+  "done": true,
+  "body": "{\"error\":\"El servicio de productos está temporalmente saturado. Intenta de nuevo en unos segundos.\"}",
+  "fecha": "2026-11-26T05:39:36.377Z"
+}

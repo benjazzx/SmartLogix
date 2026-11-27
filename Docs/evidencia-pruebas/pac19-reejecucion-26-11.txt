@@ -1,0 +1,14 @@
+PAC-19 repetida tras corregir DA-01 y regresión del flujo de órdenes — 26/11/2026 19:22
+Sistema local (Gateway http://localhost:80), producto «Producto QA Test»
+
+PAC-14   Aprobado: orden #22733, HTTP 200, stock 5689 -> 5686
+PAC-15   Aprobado: HTTP 400, stock sin cambios (5686)
+PAC-16   Aprobado: HTTP 403
+PAC-17   Aprobado: códigos [200, 200, 200, 200, 200, 200], estado final entregado
+PAC-18   Aprobado: orden #22735, HTTP 400
+PAC-19   Aprobado: orden #22735, HTTP 200, estado cancelado, stock antes de cancelar 5685, 4 s después 5686
+Extra    Aprobado: reabrir y volver a cancelar la orden #22735: HTTP 400 y 400, stock sin cambios (5686)
+Extra    Aprobado: cancelar en «procesando» la orden #22736 (2 u.): HTTP 200, stock 5686 -> 5686
+PAC-20   Aprobado: HTTP 400
+Nota: el usuario semilla «bodeguero» respondió HTTP 401 (misma observación del 05/11); los cambios de bodega se hicieron con admin.
+Antes de desplegar se agregó la columna orden.bodega_despacho que pide el README para bases existentes.

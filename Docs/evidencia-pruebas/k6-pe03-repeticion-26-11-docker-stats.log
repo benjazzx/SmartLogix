@@ -1,0 +1,6 @@
+docker stats a los ~112 s de la prueba (17:57:35)
+orden-service CPU=83.69% MEM=652.8MiB / 7.699GiB
+producto-service CPU=92.54% MEM=616.4MiB / 7.699GiB
+users-service CPU=58.19% MEM=621.5MiB / 7.699GiB
+postgres CPU=77.90% MEM=108.7MiB / 7.699GiB
+kafka CPU=45.26% MEM=778.9MiB / 7.699GiB

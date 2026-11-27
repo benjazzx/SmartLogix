@@ -1,0 +1,9 @@
+{
+  "id": "3744.123",
+  "url": "http://localhost:4200/api/ordenes",
+  "status": 400,
+  "statusText": "Bad Request",
+  "done": true,
+  "body": "{\"error\":\"Producto no disponible: 7c445df0-7fb5-4f15-96e1-2921cd97c8c7. Intente nuevamente más tarde.\"}",
+  "fecha": "2026-11-26T05:42:14.736Z"
+}

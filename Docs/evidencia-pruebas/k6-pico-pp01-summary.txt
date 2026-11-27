@@ -1,0 +1,79 @@
+k6 — PRUEBA DE PICO PP-01 (RE-EJECUTADA) — scripts/pico-pp01.js
+Target: http://localhost:8084 (Orden, directo, mismo camino interno que usa el BFF via BffTrustFilter)
+Endpoint: POST /api/ordenes
+Fecha: 2026-11-26
+
+MOTIVO DE LA RE-EJECUCION
+En el PP-01 original (22/10) hubo 901 respuestas 400 de 1000 (90,1%). Segun los
+logs de orden-service, 896 fueron por el circuit breaker 'productoClient' ABIERTO
+(defecto D-10) y no por falta de stock; ademas, el stock inicial (99) era menor
+que las solicitudes (ver k6-spike-test-1000-summary.txt). El revisor pidio repetir el
+pico CON STOCK SUFICIENTE para comprobar que, cuando el stock no es el cuello de
+botella, el sistema NO devuelve 400; y que ante saturacion real responde 503
+(con un mensaje claro), no 400.
+
+Como el codigo distingue los dos casos a proposito:
+  - 400  -> rechazo de NEGOCIO real: Producto confirma con 409 que no hay stock
+            (ProductoClient.esRechazoDeStockReal).
+  - 503  -> ServicioOcupadoException: falla TRANSITORIA del sistema (circuit
+            breaker abierto, timeout, conexion caida). OrdenController:55-59.
+
+================================================================================
+PARTE 1 — PICO DE 1.000 SOLICITUDES CON STOCK SUFICIENTE
+================================================================================
+Producto: "Producto QA Test" (id d5dab102-1d10-4b06-877d-8b735bcb7ff9)
+Stock inicial: 1200  (> 1000 solicitudes -> el stock nunca se agota)
+Escenario: shared-iterations, 100 VUs concurrentes se reparten 1000 iteraciones
+           sin pausa (burst / pico). Cada iteracion: POST /api/ordenes cantidad 1.
+
+RESULTADOS
+  http_reqs...........: 1000
+  status 200 (creada).: 1000   (100%)
+  status 400 (rechazo): 0      <-- afirmacion del revisor comprobada
+  status 503..........: 0
+  http_req_failed.....: 0.00%
+  Errores 5xx.........: 0
+  Duracion del pico...: 20.9 s
+  http_req_duration...: avg=2.02s med=1.63s p(90)=3.76s p(95)=5.43s max=5.65s
+  THRESHOLD 'status_400 == 0': PASA
+
+VERIFICACION POST-PRUEBA (contra la base real, no solo la metrica de k6)
+  Stock final del producto: 200  (= 1200 - 1000, EXACTO, no negativo)
+  -> Las 1000 ordenes descontaron stock de forma atomica, sin overselling ni
+     condicion de carrera, pese a 100 VUs concurrentes sobre el mismo producto.
+
+LECTURA: con stock suficiente, el pico de 1000 solicitudes se absorbio por
+completo con 200. El sistema se puso mas lento (p95 de 5.4s por la concurrencia
+sin pausa, sobre los 2 s de RNF-01) pero NO degenero en fallos ni en rechazos
+400 espurios. Esto no vuelve correctos los 400 del 22/10: 896 de 901 se debieron
+al circuit breaker abierto (D-10), corregido en el commit 1b8b32c.
+
+================================================================================
+PARTE 2 — SATURACION FORZADA: DEBE RESPONDER 503 (NO 400)
+================================================================================
+Metodo: se detuvo el contenedor producto-service para simular que la dependencia
+esta caida/saturada (circuit breaker + conexion rechazada). Se dispararon 5
+solicitudes POST /api/ordenes.
+
+RESULTADOS (5/5 solicitudes)
+  HTTP 503  — body:
+  {"error":"El servicio de productos esta temporalmente saturado. Intenta de nuevo en unos segundos."}
+
+  Ninguna devolvio 400. El mensaje es personalizado y distingue "el sistema esta
+  ocupado, reintenta" de "esto no se puede hacer".
+  Origen: ProductoClient.getProducto / reservarStock lanzan ServicioOcupadoException
+  ante falla transitoria; OrdenController la traduce a 503.
+
+RECUPERACION: tras volver a levantar producto-service (healthy en ~26s), una nueva
+solicitud POST /api/ordenes respondio 200. El sistema se recupera solo.
+
+================================================================================
+CONCLUSION
+================================================================================
+Las dos afirmaciones del revisor quedan comprobadas:
+  (1) Con stock suficiente, un pico de 1000 solicitudes NO produce 400 (1000/1000
+      en 200, cero 400, stock final exacto sin overselling).
+  (2) Ante saturacion real de la dependencia, el sistema responde 503 con mensaje
+      personalizado, nunca 400.
+El codigo diferencia correctamente el rechazo de negocio (400) de la falla
+transitoria de infraestructura (503).

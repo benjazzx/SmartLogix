@@ -1,0 +1,26 @@
+k6 — PRUEBA DE ESTRES DE ESCRITURA PE-03 (REPETIDA) — pe03-repeticion-26-11.js
+Medida correctiva M-05. Fecha: 2026-11-26 (17:55 a 17:58 hora local)
+Target: http://localhost:8084 (Orden, directo). Endpoint: POST /api/ordenes
+Escenario: ramping-vus 10 -> 25 -> 50 -> 75 -> 100 -> 150 VUs (20 s cada escalon) y bajada a 0
+Producto: "Producto QA Test" (d5dab102-1d10-4b06-877d-8b735bcb7ff9), stock inicial 20000
+Calentamiento previo no contabilizado: 35 s con hasta 5 VUs (136 ordenes)
+
+RESULTADOS (salida completa en k6-pe03-repeticion-26-11.txt y .json)
+  http_reqs...........: 14311    101,97/s
+  status 200 (creada).: 14311    (100%)
+  status 400..........: 0
+  status 503..........: 0
+  http_req_failed.....: 0,00%
+  http_req_duration...: avg=75,76ms med=23,83ms p(90)=127,78ms p(95)=178,01ms p(99)=336,06ms max=4,08s
+
+VERIFICACION POST-PRUEBA (base de datos y logs)
+  Ordenes nuevas del producto: 14311 (14311 unidades)
+  Stock final: 5689 (= 20000 - 14311, exacto, no negativo)
+  Lineas ERROR en orden-service y producto-service durante la prueba: 0
+  Contenedores despues de la prueba: healthy
+
+LECTURA
+  Con stock suficiente y el doble de VUs que el 22/10 (150 en vez de 75), la escritura
+  cumple C-09 (p95 < 500 ms y error < 1% con al menos 50 usuarios). No se alcanzo el
+  punto de quiebre: queda por buscarlo con mas carga. PP-01 se repitio el mismo dia con
+  stock suficiente, pero con la misma carga de 100 VUs.
