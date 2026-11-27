@@ -1,22 +1,32 @@
 package Orden.example.Orden.client;
 
+import Orden.example.Orden.exception.ServicioOcupadoException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -74,6 +84,65 @@ class ProductoClientTest {
         Map<String, Object> result = productoClient.getProducto(productoId);
 
         assertNull(result);
+    }
+
+    // ---------- D-10 (M-02): una falla transitoria no es "no existe" ni "sin stock" ----------
+
+    private void ejecutarFallbackCon(Throwable causa) {
+        when(circuitBreakerFactory.create("productoClient")).thenReturn(circuitBreaker);
+        when(circuitBreaker.run(any(Supplier.class), any(Function.class)))
+                .thenAnswer(inv -> ((Function<Throwable, Object>) inv.getArgument(1)).apply(causa));
+    }
+
+    private static CallNotPermittedException circuitoAbierto() {
+        io.github.resilience4j.circuitbreaker.CircuitBreaker real =
+                io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("productoClient");
+        real.transitionToOpenState();
+        return CallNotPermittedException.createCallNotPermittedException(real);
+    }
+
+    static Stream<Throwable> fallasTransitorias() {
+        return Stream.of(
+                circuitoAbierto(),
+                new TimeoutException("sin respuesta de Producto"),
+                new ResourceAccessException("conexión rechazada"),
+                new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE));
+    }
+
+    @ParameterizedTest
+    @MethodSource("fallasTransitorias")
+    void getProducto_fallaTransitoria_lanzaServicioOcupado(Throwable causa) {
+        ejecutarFallbackCon(causa);
+        UUID productoId = UUID.randomUUID();
+
+        ServicioOcupadoException ex = assertThrows(ServicioOcupadoException.class,
+                () -> productoClient.getProducto(productoId));
+
+        assertTrue(ex.getMessage().contains("saturado"));
+    }
+
+    @Test
+    void getProducto_productoInexistente404_retornaNull() {
+        ejecutarFallbackCon(new HttpClientErrorException(HttpStatus.NOT_FOUND));
+
+        assertNull(productoClient.getProducto(UUID.randomUUID()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("fallasTransitorias")
+    void reservarStock_fallaTransitoria_lanzaServicioOcupado(Throwable causa) {
+        ejecutarFallbackCon(causa);
+        UUID productoId = UUID.randomUUID();
+
+        assertThrows(ServicioOcupadoException.class,
+                () -> productoClient.reservarStock(productoId, 1, 1L));
+    }
+
+    @Test
+    void reservarStock_sinStock409_retornaFalse() {
+        ejecutarFallbackCon(new HttpClientErrorException(HttpStatus.CONFLICT));
+
+        assertFalse(productoClient.reservarStock(UUID.randomUUID(), 1, 1L));
     }
 
     @Test
