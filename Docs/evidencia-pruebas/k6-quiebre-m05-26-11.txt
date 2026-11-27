@@ -1,0 +1,34 @@
+
+
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<0.30' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 25267   167.882525/s
+    checks_succeeded...: 100.00% 25267 out of 25267
+    checks_failed......: 0.00%   0 out of 25267
+
+    ✓ orden creada (200)
+
+    HTTP
+    http_req_duration..............: avg=2.34s med=2.56s p(90)=3.95s p(95)=4.75s max=6.94s
+      { expected_response:true }...: avg=2.34s med=2.56s p(90)=3.95s p(95)=4.75s max=6.94s
+    http_req_failed................: 0.00% 0 out of 25267
+    http_reqs......................: 25267 167.882525/s
+
+    EXECUTION
+    iteration_duration.............: avg=2.84s med=3.06s p(90)=4.45s p(95)=5.25s max=7.44s
+    iterations.....................: 25267 167.882525/s
+    vus............................: 98    min=7          max=999 
+    vus_max........................: 1000  min=1000       max=1000
+
+    NETWORK
+    data_received..................: 20 MB 135 kB/s
+    data_sent......................: 10 MB 69 kB/s
+
+
+

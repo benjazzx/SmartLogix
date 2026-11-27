@@ -1,0 +1,42 @@
+Verificación de defectos en el sistema local (antes de corregir) — 26/11/2026 22:03
+
+DA-04  PRESENTE  | el token dura 24 horas (RNF-05 exige 8)
+DA-02  PRESENTE  | alta HTTP 200; a los 8 s activo=False, estado=disponible; inicio de sesión HTTP 403
+D-01   PRESENTE  | solicitud HTTP 200, verificación HTTP 200, clave de 3 caracteres HTTP 403: La contraseña debe tener al menos 8 caracteres
+DA-03  PRESENTE  | orden #22738, HTTP 200; se envió «Usuario Falso» y en la base quedó el autor «Usuario Falso»
+D-02   PRESENTE  | 26 entradas inválidas: 10 respuestas 5xx, 20 con detalle interno
+         PATCH /api/roles -> 500
+         PATCH /api/users -> 500
+         PATCH /api/estados -> 500
+         PATCH /api/productos -> 500
+         POST /api/inventario/bodegas -> 500
+         GET /api/inventario/bodegas/no-es-un-id -> 500
+         PATCH /api/inventario/bodegas -> 500
+         PUT /api/inventario/bodegas/no-es-un-id -> 500
+         POST /api/inventario/bodegas -> 500
+         GET /api/estados/assign -> 500
+         detalle: POST /api/roles -> 400
+         detalle: GET /api/roles/no-es-un-id -> 400
+         detalle: PUT /api/roles/no-es-un-id -> 400
+         detalle: POST /api/roles -> 400
+         detalle: POST /api/users -> 400
+         detalle: GET /api/users/no-es-un-id -> 400
+         detalle: PUT /api/users/no-es-un-id -> 400
+         detalle: POST /api/users -> 400
+         detalle: POST /api/estados -> 400
+         detalle: GET /api/estados/no-es-un-id -> 400
+         detalle: PUT /api/estados/no-es-un-id -> 400
+         detalle: POST /api/estados -> 400
+         detalle: POST /api/productos -> 400
+         detalle: GET /api/productos/no-es-un-id -> 400
+         detalle: PUT /api/productos/no-es-un-id -> 400
+         detalle: POST /api/productos -> 400
+         detalle: POST /api/inventario/bodegas -> 500
+         detalle: GET /api/inventario/bodegas/no-es-un-id -> 500
+         detalle: PUT /api/inventario/bodegas/no-es-un-id -> 500
+         detalle: POST /api/inventario/bodegas -> 500
+D-08   PRESENTE  | GET /api/roles/assign?email=… HTTP 200
+         POST /api/roles/assign con el correo en el cuerpo: HTTP 500
+D-03   PRESENTE  | HTTP 200; CSP=no, X-Frame-Options=no
+D-04   PRESENTE  | GET /actuator/health por el proxy del frontend: HTTP 504
+D-09   PRESENTE  | X-Powered-By=Express, X-Content-Type-Options=no

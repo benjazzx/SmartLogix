@@ -1,0 +1,673 @@
+{
+	"@programName": "ZAP",
+	"@version": "2.17.0",
+	"@generated": "jue, 26 nov 2026 22:41:12",
+	"created": "2026-11-27T01:41:12.152892400Z",
+	"insights":[
+		{
+			"level": "Medio",
+			"reason": "Exceeded Low",
+			"site": "",
+			"key": "insight.memory.usage",
+			"description": "Percentage of memory used",
+			"statistic": "81"
+		},
+		{
+			"level": "Bajo",
+			"reason": "Advertencia",
+			"site": "",
+			"key": "insight.log.error",
+			"description": "ZAP errors logged - see the zap.log file for details",
+			"statistic": "1"
+		},
+		{
+			"level": "Bajo",
+			"reason": "Advertencia",
+			"site": "",
+			"key": "insight.log.warn",
+			"description": "ZAP warnings logged - see the zap.log file for details",
+			"statistic": "19"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "14"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "85"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "48"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "20"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "48"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "20"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "12"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "25"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8081",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "2"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "1"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "98"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "18"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.ctype.text/plain",
+			"description": "Percentage of endpoints with content type text/plain",
+			"statistic": "2"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "10"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "50"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.method.PATCH",
+			"description": "Percentage of endpoints with method PATCH",
+			"statistic": "2"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "31"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "5"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "38"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8082",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "1"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "16"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "83"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "18"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "12"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "59"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.method.PATCH",
+			"description": "Percentage of endpoints with method PATCH",
+			"statistic": "3"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "12"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "12"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "32"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8083",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "2"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "6"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "93"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "8"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "50"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "50"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "12"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8084",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "6"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "21"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "78"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "100"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "10"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "55"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.method.PATCH",
+			"description": "Percentage of endpoints with method PATCH",
+			"statistic": "17"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "10"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "6"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "29"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8085",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "2"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "30"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "70"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "57"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "14"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "57"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "14"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "14"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "14"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:8086",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "5"
+		}
+	],
+	"site":[ 
+		{
+			"@name": "http://localhost:8086",
+			"@host": "localhost",
+			"@port": "8086",
+			"@ssl": "false",
+			"alerts": [ 
+			]
+		},
+		{
+			"@name": "http://localhost:8085",
+			"@host": "localhost",
+			"@port": "8085",
+			"@ssl": "false",
+			"alerts": [ 
+				{
+					"pluginid": "10096",
+					"alertRef": "10096",
+					"alert": "Divulgaci\u00F3n de Marcas de Tiempo - Unix",
+					"name": "Divulgaci\u00F3n de Marcas de Tiempo - Unix",
+					"riskcode": "1",
+					"confidence": "1",
+					"riskdesc": "Bajo (Baja)",
+					"desc": "<p>Una marca de tiempo fue revelada por la aplicaci\u00F3n/servidor web. - Unix</p>",
+					"instances":[ 
+						{
+							"id": "10",
+							"uri": "http://localhost:8085/api/productos",
+							"nodeName": "http:\/\/localhost:8085\/api\/productos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830455",
+							"otherinfo": "1790830455, que se eval\u00FAa como: 2026-10-01 01:54:15."
+						},
+						{
+							"id": "11",
+							"uri": "http://localhost:8085/api/productos",
+							"nodeName": "http:\/\/localhost:8085\/api\/productos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830504",
+							"otherinfo": "1790830504, que se eval\u00FAa como: 2026-10-01 01:55:04."
+						},
+						{
+							"id": "7",
+							"uri": "http://localhost:8085/api/productos",
+							"nodeName": "http:\/\/localhost:8085\/api\/productos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830594",
+							"otherinfo": "1790830594, que se eval\u00FAa como: 2026-10-01 01:56:34."
+						},
+						{
+							"id": "8",
+							"uri": "http://localhost:8085/api/productos",
+							"nodeName": "http:\/\/localhost:8085\/api\/productos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1793887468",
+							"otherinfo": "1793887468, que se eval\u00FAa como: 2026-11-05 11:04:28."
+						},
+						{
+							"id": "9",
+							"uri": "http://localhost:8085/api/productos",
+							"nodeName": "http:\/\/localhost:8085\/api\/productos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1795742418",
+							"otherinfo": "1795742418, que se eval\u00FAa como: 2026-11-26 22:20:18."
+						}
+					],
+					"count": "5",
+					"systemic": true,
+					"solution": "<p>Confirmar que los datos encontrados de informaci\u00F3n sobre la marca de tiempo no son sensibles, ni se pueden usar en patrones explotables de divulgaci\u00F3n.</p>",
+					"otherinfo": "<p>1790830455, que se eval\u00FAa como: 2026-10-01 01:54:15.</p>",
+					"reference": "<p>https://cwe.mitre.org/data/definitions/200.html</p>",
+					"cweid": "497",
+					"wascid": "13",
+					"sourceid": "169"
+				}
+			]
+		},
+		{
+			"@name": "http://localhost:8084",
+			"@host": "localhost",
+			"@port": "8084",
+			"@ssl": "false",
+			"alerts": [ 
+			]
+		},
+		{
+			"@name": "http://localhost:8083",
+			"@host": "localhost",
+			"@port": "8083",
+			"@ssl": "false",
+			"alerts": [ 
+				{
+					"pluginid": "10096",
+					"alertRef": "10096",
+					"alert": "Divulgaci\u00F3n de Marcas de Tiempo - Unix",
+					"name": "Divulgaci\u00F3n de Marcas de Tiempo - Unix",
+					"riskcode": "1",
+					"confidence": "1",
+					"riskdesc": "Bajo (Baja)",
+					"desc": "<p>Una marca de tiempo fue revelada por la aplicaci\u00F3n/servidor web. - Unix</p>",
+					"instances":[ 
+						{
+							"id": "1",
+							"uri": "http://localhost:8083/api/inventario/estantes",
+							"nodeName": "http:\/\/localhost:8083\/api\/inventario\/estantes",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830455",
+							"otherinfo": "1790830455, que se eval\u00FAa como: 2026-10-01 01:54:15."
+						},
+						{
+							"id": "3",
+							"uri": "http://localhost:8083/api/inventario/estantes",
+							"nodeName": "http:\/\/localhost:8083\/api\/inventario\/estantes",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830504",
+							"otherinfo": "1790830504, que se eval\u00FAa como: 2026-10-01 01:55:04."
+						},
+						{
+							"id": "0",
+							"uri": "http://localhost:8083/api/inventario/estantes/10",
+							"nodeName": "http:\/\/localhost:8083\/api\/inventario\/estantes\/10",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830455",
+							"otherinfo": "1790830455, que se eval\u00FAa como: 2026-10-01 01:54:15."
+						},
+						{
+							"id": "2",
+							"uri": "http://localhost:8083/api/inventario/estantes/activos",
+							"nodeName": "http:\/\/localhost:8083\/api\/inventario\/estantes\/activos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830455",
+							"otherinfo": "1790830455, que se eval\u00FAa como: 2026-10-01 01:54:15."
+						},
+						{
+							"id": "4",
+							"uri": "http://localhost:8083/api/inventario/estantes/activos",
+							"nodeName": "http:\/\/localhost:8083\/api\/inventario\/estantes\/activos",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1790830504",
+							"otherinfo": "1790830504, que se eval\u00FAa como: 2026-10-01 01:55:04."
+						}
+					],
+					"count": "5",
+					"systemic": true,
+					"solution": "<p>Confirmar que los datos encontrados de informaci\u00F3n sobre la marca de tiempo no son sensibles, ni se pueden usar en patrones explotables de divulgaci\u00F3n.</p>",
+					"otherinfo": "<p>1790830455, que se eval\u00FAa como: 2026-10-01 01:54:15.</p>",
+					"reference": "<p>https://cwe.mitre.org/data/definitions/200.html</p>",
+					"cweid": "497",
+					"wascid": "13",
+					"sourceid": "114"
+				}
+			]
+		},
+		{
+			"@name": "http://localhost:8082",
+			"@host": "localhost",
+			"@port": "8082",
+			"@ssl": "false",
+			"alerts": [ 
+			]
+		},
+		{
+			"@name": "http://localhost:8081",
+			"@host": "localhost",
+			"@port": "8081",
+			"@ssl": "false",
+			"alerts": [ 
+			]
+		}
+	],
+	"sequences":[
+	]
+
+}

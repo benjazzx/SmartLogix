@@ -1,0 +1,12 @@
+Verificación de defectos en el sistema local (despues de corregir) — 26/11/2026 22:31
+
+DA-04  no ocurre | el token dura 8 horas (RNF-05 exige 8)
+DA-02  no ocurre | alta HTTP 200; a los 8 s activo=True, estado=disponible; inicio de sesión HTTP 200
+D-01   no ocurre | solicitud HTTP 200, verificación HTTP 200, clave de 3 caracteres HTTP 400: La contraseña debe tener al menos 8 caracteres
+DA-03  no ocurre | orden #22748, HTTP 200; se envió «Usuario Falso» y en la base quedó el autor «Admin»
+D-02   no ocurre | 26 entradas inválidas: 0 respuestas 5xx, 0 con detalle interno
+D-08   no ocurre | GET /api/roles/assign?email=… HTTP 400
+         POST /api/roles/assign con el correo en el cuerpo: HTTP 200
+D-03   no ocurre | HTTP 200; CSP=sí, X-Frame-Options=DENY
+D-04   no ocurre | GET /actuator/health por el proxy del frontend: HTTP 404
+D-09   no ocurre | X-Powered-By=no, X-Content-Type-Options=nosniff

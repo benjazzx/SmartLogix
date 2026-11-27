@@ -1,0 +1,6 @@
+rol: 0
+users: 0
+inventario: 0
+orden: 3
+producto: 0
+estado: 0

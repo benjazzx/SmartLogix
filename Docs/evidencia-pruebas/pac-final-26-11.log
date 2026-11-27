@@ -1,0 +1,30 @@
+PAC-02 Aprobado: HTTP 401, token entregado: no, respuesta: Credenciales inválidas
+PAC-03 Aprobado: HTTP 401, respuesta: Credenciales inválidas. La validación de formato se hace en el frontend (botón deshabilitado, caso Katalon LoginCorreoInvalido); la API res
+PAC-04 Aprobado: /api/ordenes → HTTP 403; /api/users → HTTP 403
+PAC-05 Aprobado: HTTP 401
+PAC-06 Aprobado: exp − iat = 28800 s (8 h); configurado en Users: jwt.expiration=28800000 ms
+PAC-07 Aprobado: POST /api/users → HTTP 200; en listado: sí, rol=bodeguero, estado=disponible, activo=True; clave expuesta en respuesta: no
+PAC-08 Aprobado: 5 s después de crearla: activo=True, estado=disponible; login del nuevo bodeguero → HTTP 200
+PAC-01 Aprobado: admin: HTTP 200, rol=admin, 468 ms; bodeguero: HTTP 200, rol=bodeguero, 75 ms; transportista: HTTP 200, rol=transportista, 225 ms; cliente: HTTP 200, rol=client
+PAC-09 Aprobado: GET → HTTP 403; POST → HTTP 403
+PAC-10 Aprobado: HTTP 201; visible para el cliente: sí; stock=20, precio=1500.0
+PAC-11 Aprobado: precio 0 → HTTP 400 {"error": "Validación fallida", "errores": {"precio": "El precio debe ser mayor que 0"}, "timestamp": "2026-11-27T01:46:; stock −5 → HTTP 40
+PAC-12 Aprobado: HTTP 403
+PAC-13 Aprobado: PUT → HTTP 200; stock final=30; registro 20→30 en historial: sí, autor: uat.743950@smartlogix.cl
+PAC-14 Aprobado: POST /api/ordenes → HTTP 200, orden #48016, estado=pendiente; en Mis órdenes: sí; stock 30 → 27
+PAC-15 Aprobado: HTTP 400, mensaje: {"error": "Stock insuficiente para UAT Producto 1795743963: no hay 1000 unidad(es) disponibles."}; stock después: 27
+PAC-16 Aprobado: HTTP 403
+PAC-17 Aprobado: procesando → 200; aprobado → 200; tomar → 200; en tránsito (transportista) → 200; entregado (transportista) → 200; entregado (cliente) → 200; estado final=entre
+PAC-18 Aprobado: HTTP 400, mensaje: {"error": "No se puede pasar de \"pendiente\" a \"entregado\" directamente. El siguiente estado válido es \"procesando\"."}
+PAC-19 Aprobado: HTTP 200; estado=cancelado; stock antes de cancelar=26, 4 s después=27
+PAC-20 Aprobado: HTTP 400, mensaje: {"error": "No se puede cancelar una orden que ya fue entregada."}
+PAC-21 Aprobado: PUT stock=5 → HTTP 200; en /bajo-stock: sí; además /api/inventario/alertas (ocupación de bodega) → HTTP 200, 4 alertas
+PAC-22 Aprobado: HTTP 200; 7 movimientos, todos del producto filtrado: sí; resumen por empleado → HTTP 200
+PAC-23 Aprobado: PUT → HTTP 200; GET → HTTP 200, valor=oscuro. Nota: el servicio guarda preferencias por usuario; no hay endpoint de parámetros globales (umbral, correos, datos 
+PAC-24 Aprobado: cambio de estado → HTTP 200; autor registrado en el historial: "UAT"
+PAC-25 Aprobado: BD Users: 30 de 30 claves con hash bcrypt costo ≥ 10
+PAC-26 No ejecutado: No ejecutado en este ambiente: el stack local expone el Gateway en http://localhost:80. HTTPS corresponde al despliegue en la nube (CloudFront / API Gateway), f
+PAC-29 Aprobado: toggle-activo → HTTP 200; activo=False; login posterior del usuario desactivado → HTTP 403
+PAC-27 Aprobado: códigos: 401, 401, 401, 401, 401, 429
+PAC-28 Fallido: 64 llamadas: promedio 119 ms, p95 279 ms, máximo 2166 ms (GET /api/ordenes/mis-ordenes)
+resumen: {'Aprobado': 27, 'Fallido': 1, 'Bloqueado': 0, 'No ejecutado': 1}

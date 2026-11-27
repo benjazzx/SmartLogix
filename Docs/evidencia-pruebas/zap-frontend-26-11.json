@@ -1,0 +1,193 @@
+{
+	"@programName": "ZAP",
+	"@version": "2.17.0",
+	"@generated": "jue, 26 nov 2026 22:51:05",
+	"created": "2026-11-27T01:51:05.002159500Z",
+	"insights":[
+		{
+			"level": "Bajo",
+			"reason": "Advertencia",
+			"site": "",
+			"key": "insight.log.error",
+			"description": "ZAP errors logged - see the zap.log file for details",
+			"statistic": "1"
+		},
+		{
+			"level": "Bajo",
+			"reason": "Advertencia",
+			"site": "",
+			"key": "insight.log.warn",
+			"description": "ZAP warnings logged - see the zap.log file for details",
+			"statistic": "1"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.endpoint.ctype.image/svg+xml",
+			"description": "Percentage of endpoints with content type image/svg+xml",
+			"statistic": "8"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.endpoint.ctype.text/css",
+			"description": "Percentage of endpoints with content type text/css",
+			"statistic": "8"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.endpoint.ctype.text/html",
+			"description": "Percentage of endpoints with content type text/html",
+			"statistic": "25"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.endpoint.ctype.text/javascript",
+			"description": "Percentage of endpoints with content type text/javascript",
+			"statistic": "58"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "100"
+		},
+		{
+			"level": "Información",
+			"reason": "Informativo",
+			"site": "http://localhost:4200",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "12"
+		}
+	],
+	"site":[ 
+		{
+			"@name": "http://localhost:4200",
+			"@host": "localhost",
+			"@port": "4200",
+			"@ssl": "false",
+			"alerts": [ 
+				{
+					"pluginid": "10096",
+					"alertRef": "10096",
+					"alert": "Divulgaci\u00F3n de Marcas de Tiempo - Unix",
+					"name": "Divulgaci\u00F3n de Marcas de Tiempo - Unix",
+					"riskcode": "1",
+					"confidence": "1",
+					"riskdesc": "Bajo (Baja)",
+					"desc": "<p>Una marca de tiempo fue revelada por la aplicaci\u00F3n/servidor web. - Unix</p>",
+					"instances":[ 
+						{
+							"id": "6",
+							"uri": "http://localhost:4200/chunk-3IMK3UJK.js",
+							"nodeName": "http:\/\/localhost:4200\/chunk-3IMK3UJK.js",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1508970993",
+							"otherinfo": "1508970993, que se eval\u00FAa como: 2017-10-25 19:36:33."
+						},
+						{
+							"id": "8",
+							"uri": "http://localhost:4200/chunk-3IMK3UJK.js",
+							"nodeName": "http:\/\/localhost:4200\/chunk-3IMK3UJK.js",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1555081692",
+							"otherinfo": "1555081692, que se eval\u00FAa como: 2019-04-12 11:08:12."
+						},
+						{
+							"id": "5",
+							"uri": "http://localhost:4200/chunk-3IMK3UJK.js",
+							"nodeName": "http:\/\/localhost:4200\/chunk-3IMK3UJK.js",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1899447441",
+							"otherinfo": "1899447441, que se eval\u00FAa como: 2030-03-11 05:17:21."
+						},
+						{
+							"id": "7",
+							"uri": "http://localhost:4200/chunk-3IMK3UJK.js",
+							"nodeName": "http:\/\/localhost:4200\/chunk-3IMK3UJK.js",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1925078388",
+							"otherinfo": "1925078388, que se eval\u00FAa como: 2031-01-01 20:59:48."
+						},
+						{
+							"id": "9",
+							"uri": "http://localhost:4200/chunk-3IMK3UJK.js",
+							"nodeName": "http:\/\/localhost:4200\/chunk-3IMK3UJK.js",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "1996064986",
+							"otherinfo": "1996064986, que se eval\u00FAa como: 2033-04-02 11:29:46."
+						}
+					],
+					"count": "5",
+					"systemic": true,
+					"solution": "<p>Confirmar que los datos encontrados de informaci\u00F3n sobre la marca de tiempo no son sensibles, ni se pueden usar en patrones explotables de divulgaci\u00F3n.</p>",
+					"otherinfo": "<p>1508970993, que se eval\u00FAa como: 2017-10-25 19:36:33.</p>",
+					"reference": "<p>https://cwe.mitre.org/data/definitions/200.html</p>",
+					"cweid": "497",
+					"wascid": "13",
+					"sourceid": "26"
+				},
+				{
+					"pluginid": "10109",
+					"alertRef": "10109",
+					"alert": "Aplicaci\u00F3n Web Moderna",
+					"name": "Aplicaci\u00F3n Web Moderna",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informativo (Media)",
+					"desc": "<p>The application appears to be a modern web application. If you need to explore it automatically then the Client Spider may well be more effective than the standard one.</p>",
+					"instances":[ 
+						{
+							"id": "3",
+							"uri": "http://localhost:4200/sitemap.xml",
+							"nodeName": "http:\/\/localhost:4200\/sitemap.xml",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "<script src=\"main-U6ZOG2FU.js\" type=\"module\"></script>",
+							"otherinfo": "No se han encontrado enlaces aunque s\u00ED scripts, lo que indica que se trata de una aplicaci\u00F3n web moderna."
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>Se trata de una alerta informativa, por lo que no es necesario realizar ning\u00FAn cambio.</p>",
+					"otherinfo": "<p>No se han encontrado enlaces aunque s\u00ED scripts, lo que indica que se trata de una aplicaci\u00F3n web moderna.</p>",
+					"reference": "",
+					"cweid": "-1",
+					"wascid": "-1",
+					"sourceid": "8"
+				}
+			]
+		}
+	],
+	"sequences":[
+	]
+
+}

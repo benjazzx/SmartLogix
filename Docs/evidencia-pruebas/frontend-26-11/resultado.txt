@@ -1,0 +1,23 @@
+Verificación en navegador del frontend (26-11-2026, 10:52:53 p. m.)
+
+OK    Login: formulario con etiquetas: 2 campos, 0 sin etiqueta
+OK    Inicio de sesión admin: ruta /dashboard
+OK    Módulo /productos: «Productos», 13 campos en pantalla, 0 sin etiqueta 
+OK    Módulo /inventario: «Inventario», 5 campos en pantalla, 0 sin etiqueta 
+OK    Módulo /ordenes: «Órdenes», 0 campos en pantalla, 0 sin etiqueta 
+OK    Módulo /envios: «Envíos», 0 campos en pantalla, 0 sin etiqueta 
+OK    Módulo /usuarios: «Usuarios», 0 campos en pantalla, 0 sin etiqueta 
+OK    D-05 en pantalla: 20 campos revisados, 0 sin etiqueta
+OK    Atajo Alt+H y Esc: ayuda abierta=true y cerrada con Esc
+OK    Atajo Alt+2: ruta /productos
+OK    Atajo Alt+T (tema): panel de colores visible
+OK    Atajo Alt+Q (cerrar sesión): ruta /login
+OK    Acceso sin sesión: /productos redirige a /login
+OK    Menú del cliente: Dashboard, Órdenes, Mi Perfil
+OK    Cliente sin acceso a Usuarios: redirige a /dashboard
+OK    Cliente: nuevo pedido: formulario abierto=true, 0 campos sin etiqueta
+OK    D-03 sin recursos bloqueados: ninguna violación de la política de contenido
+
+17 de 17 comprobaciones correctas
+Errores de consola:
+Failed to load resource: the server responded with a status of 403 (Forbidden)
